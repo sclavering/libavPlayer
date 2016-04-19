@@ -390,7 +390,7 @@ void alloc_picture(void *opaque)
     /* LAVP: Use AVFrame instead of SDL_YUVOverlay */
 	AVFrame *picture = av_frame_alloc();
 	int ret = av_image_alloc(picture->data, picture->linesize, 
-							 is->video_st->codec->width, is->video_st->codec->height, PIX_FMT_YUV420P, 0x10);
+							 is->video_st->codec->width, is->video_st->codec->height, AV_PIX_FMT_YUV420P, 0x10);
 	assert(ret > 0);
 	
     //
@@ -492,7 +492,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 		
         /* LAVP: duplicate or create YUV420P picture */
 		LAVPLockMutex(is->pictq_mutex);
-		if (src_frame->format == PIX_FMT_YUV420P) {
+		if (src_frame->format == AV_PIX_FMT_YUV420P) {
 #if ALLOW_GPL_CODE
 			CVF_CopyPlane((const UInt8 *)src_frame->data[0], src_frame->linesize[0], vp->height, pict.data[0], pict.linesize[0], vp->height);
 			CVF_CopyPlane((const UInt8 *)src_frame->data[1], src_frame->linesize[1], vp->height, pict.data[1], pict.linesize[1], vp->height/2);
