@@ -65,6 +65,10 @@
 		16E3B1C213BA0AE4000E6062 /* LAVPutil.c in Sources */ = {isa = PBXBuildFile; fileRef = 16E3B1C113BA0AE4000E6062 /* LAVPutil.c */; };
 		16E3B23213BA752C000E6062 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A196F813ADFDC1008825FF /* Cocoa.framework */; };
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
+		AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D61CC6876100827BED /* CoreMedia.framework */; };
+		AA81D9D91CC6879700827BED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D81CC6879700827BED /* Security.framework */; };
+		AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */; };
+		AA81D9DD1CC6882E00827BED /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -140,6 +144,10 @@
 		32DBCF5E0370ADEE00C91783 /* libavPlayer_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libavPlayer_Prefix.pch; sourceTree = "<group>"; };
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* libavPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = libavPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA81D9D61CC6876100827BED /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		AA81D9D81CC6879700827BED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
+		AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		D2F7E79907B2D74100F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
@@ -148,6 +156,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA81D9DD1CC6882E00827BED /* VideoToolbox.framework in Frameworks */,
+				AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */,
+				AA81D9D91CC6879700827BED /* Security.framework in Frameworks */,
+				AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */,
 				1660410318292F2B00E78594 /* libiconv.dylib in Frameworks */,
 				16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */,
 				16A18FF113AC57CC008825FF /* libz.dylib in Frameworks */,
@@ -179,6 +191,10 @@
 		0867D691FE84028FC02AAC07 /* libavPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */,
+				AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */,
+				AA81D9D81CC6879700827BED /* Security.framework */,
+				AA81D9D61CC6876100827BED /* CoreMedia.framework */,
 				16A18F8513AC5506008825FF /* libav */,
 				08FB77AEFE84172EC02AAC07 /* Classes */,
 				32C88DFF0371C24200C91783 /* Other Sources */,
