@@ -488,6 +488,7 @@
 				COPY_PHASE_STRIP = NO;
 				DYLIB_COMPATIBILITY_VERSION = 1.0;
 				DYLIB_CURRENT_VERSION = 2.0;
+				DYLIB_INSTALL_NAME_BASE = "@executable_path/../Frameworks";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(HOME)/Library/Frameworks\"",
@@ -517,6 +518,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DYLIB_COMPATIBILITY_VERSION = 1.0;
 				DYLIB_CURRENT_VERSION = 2.0;
+				DYLIB_INSTALL_NAME_BASE = "@executable_path/../Frameworks";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(HOME)/Library/Frameworks\"",
