@@ -43,7 +43,6 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 	BOOL _muted;
 	Float32 currentVol;
 	BOOL _busy;
-	BOOL _strictSeek;
 }
 
 @property (retain, readonly) NSURL *url;

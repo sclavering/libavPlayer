@@ -41,7 +41,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 @implementation LAVPStream
 @synthesize url;
 @synthesize busy = _busy;
-@synthesize strictSeek = _strictSeek;
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
 {
@@ -49,7 +48,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 	if (self) {
 		url = [sourceURL copy];
 		currentVol = 1.0;
-		_strictSeek = YES;
 		
 		//
 		decoder = [[LAVPDecoder alloc] initWithURL:url error:errorPtr];
@@ -212,7 +210,7 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 	
 	double_t prevRate = [self rate];
 	
-	[decoder setPosition:newPosition*duration blocking:_strictSeek];
+	[decoder setPosition:newPosition*duration blocking:false];
 	
 	if (prevRate) [self setRate:prevRate];
 	
