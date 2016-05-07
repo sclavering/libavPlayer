@@ -98,10 +98,6 @@ NSString* formatTime(QTTime qttime)
 		
 		// LAVPView test
 		viewstream = [LAVPStream streamWithURL:url error:nil];
-		
-		[view setExpandToFit:YES];
-		
-		//
 		[view setStream:viewstream];
 	}
 #endif

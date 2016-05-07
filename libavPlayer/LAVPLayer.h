@@ -24,7 +24,7 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import <libavPlayer/libavPlayer.h>
+#import "LAVPStream.h"
 
 @interface LAVPLayer : CAOpenGLLayer {
 	LAVPStream *_stream;
