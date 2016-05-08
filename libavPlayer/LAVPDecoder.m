@@ -158,72 +158,38 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
 - (BOOL) readyForPTS:(double_t)pts
 {
-	// pts is in sec.
-	
-	if (hasImage(is, pts)) {
-		return YES;
-	}
-	return NO;
-}
-
-- (CVPixelBufferRef) getPixelBufferForPTS:(double_t*)pts
-{
-	// pts is in sec.
-	
-	if (!pb) {
-		pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(is->width, is->height)];
-	}
-	
-	double_t currentpts = *pts;
-	
-	// Get current buffer for pts
-	CVPixelBufferLockBaseAddress(pb, 0);
-	
-	uint8_t* data = CVPixelBufferGetBaseAddress(pb);
-	int pitch = CVPixelBufferGetBytesPerRow(pb);
-	int ret = copyImage(is, &currentpts, data, pitch);
-	
-	CVPixelBufferUnlockBaseAddress(pb, 0);
-	
-	//
-	if (ret == 1) {
-		*pts = currentpts;
-		return pb;
-	} else if (ret == 2) {
-		*pts = currentpts;
-		return pb;
-	}
-	return NULL;
+	return !!hasImage(is, pts);
 }
 
 - (BOOL) readyForCurrent
 {
-	if (hasImageCurrent(is)) {
-		return YES;
-	}
-	return NO;
+    return !!hasImageCurrent(is);
+}
+
+- (CVPixelBufferRef) getPixelBufferForPTS:(double_t*)pts
+{
+    return [self _getPixelBuffer:pts current:false];
 }
 
 - (CVPixelBufferRef) getPixelBufferForCurrent:(double_t*)pts
 {
-	// returned pts is in sec.
-	
+    return [self _getPixelBuffer:pts current:true];
+}
+
+- (CVPixelBufferRef) _getPixelBuffer:(double_t*)pts current:(bool)current
+{
 	if (!pb) {
 		pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(is->width, is->height)];
 	}
 	
-	double_t currentpts=0.0;
+	double_t currentpts = current ? 0.0 : *pts;
 	
-	// Get current buffer for now
 	CVPixelBufferLockBaseAddress(pb, 0);
-	
 	uint8_t* data = CVPixelBufferGetBaseAddress(pb);
 	int pitch = CVPixelBufferGetBytesPerRow(pb);
-	int ret = copyImageCurrent(is, &currentpts, data, pitch);
-	
+	int ret = current ? copyImageCurrent(is, &currentpts, data, pitch) : copyImage(is, &currentpts, data, pitch);
 	CVPixelBufferUnlockBaseAddress(pb, 0);
 	
-	//
 	if (ret == 1) {
 		*pts = currentpts;
 		return pb;
