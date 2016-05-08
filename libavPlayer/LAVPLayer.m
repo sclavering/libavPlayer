@@ -68,21 +68,16 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
 - (void)invalidate:(NSNotification*)inNotification
 {
-    //NSLog(@"DEGUB: layer invalidate: from %@", [inNotification class]);
-	
     self.asynchronous = NO;
     CGDisplayRemoveReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 	
-	// Resign observer
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
-	// Release stream
 	if (_stream) {
 		[_stream stop];
 		_stream = NULL;
 	}
 	
-	// Delete the texture and the FBO
 	if (FBOid) {
 		glDeleteTextures(1, &FBOTextureId);
 		glDeleteFramebuffersEXT(1, &FBOid);
@@ -168,7 +163,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		CGLSetCurrentContext(_cglContext);
 		CGLLockContext(_cglContext);
 		
-		// 
 		[self initOpenGL];
 		
 		// Turn on VBL syncing for swaps
@@ -183,10 +177,8 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		
 		/* ========================================================= */
 		
-		//
 		lock = [[NSLock alloc] init];
 		
-		//
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidate:) name:NSApplicationWillTerminateNotification object:nil];
 		
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(streamDidSeek:) name:LAVPStreamDidSeekNotification object:nil];
@@ -205,7 +197,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
 /* =============================================================================================== */
 #pragma mark -
-/* =============================================================================================== */
 
 - (CGLPixelFormatObj) copyCGLPixelFormatForDisplayMask:(uint32_t)mask
 {
@@ -224,11 +215,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 				forLayerTime:(CFTimeInterval)timeInterval 
 				 displayTime:(const CVTimeStamp *)timeStamp
 {
-	if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy) {
-        return YES;
-	} else {
-		return NO;
-	}
+	return _stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy;
 }
 
 - (void) drawInCGLContext:(CGLContextObj)glContext 
@@ -262,28 +249,16 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 				[self setCVPixelBuffer:pb];
 				[self drawImage];
 				[lock unlock];
-                
                 goto bail;
-			} else {
-                //NSLog(@"DEBUG: No pixelBuffer on %@.", (timeStamp ? @"getCVPixelBufferForTime:asPTS:" : @"getCVPixelBufferForCurrentAsPTS:"));
             }
-        } else {
-            //NSLog(@"DEBUG: No pixelBuffer on %@.", (timeStamp ? @"readyForTime:" : @"readyForCurrent"));
         }
+    }
         
-        // Fallback: Use last shown image
-        if (image) {
-            [lock lock];
-            [self drawImage];
-            [lock unlock];
-        }
-    } else {
-        // Fallback: Use last shown image
-        if (image) {
-            [lock lock];
-            [self drawImage];
-            [lock unlock];
-        }
+    // Fallback: Use last shown image
+    if (image) {
+        [lock lock];
+        [self drawImage];
+        [lock unlock];
     }
 	
 bail:
@@ -297,11 +272,7 @@ bail:
 /* =============================================================================================== */
 #pragma mark -
 #pragma mark private
-/* =============================================================================================== */
 
-/*
- Set up performed only once 
- */
 - (void) initOpenGL {
 	// Clear to black.
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -322,7 +293,6 @@ bail:
  Draw CVImageBuffer into CGLContext
  */
 - (void) drawImage {
-	//
 	CGLContextObj savedContext = CGLGetCurrentContext();
 	CGLSetCurrentContext(_cglContext);
 	CGLLockContext(_cglContext);
@@ -358,20 +328,15 @@ bail:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	
-	// 
 	CGLUnlockContext(_cglContext);
 	CGLSetCurrentContext(savedContext);
 	
 	CGLFlushDrawable(_cglContext);
 }
 
-/*
- Check CIContext and recreate if required
- */
 - (void) setCIContext
 {
 	if (!ciContext) {
-		// Create CoreImage Context
 		ciContext = [CIContext contextWithCGLContext:_cglContext
 										  pixelFormat:_cglPixelFormat 
 										   colorSpace:NULL 
@@ -437,9 +402,6 @@ bail:
 	}
 }
 
-/*
- Render CoreImage into Texture
- */
 - (void) renderCoreImageToFBO
 {
 	// Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderCoreImageToFBO
@@ -464,21 +426,9 @@ bail:
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		
-		// clear
 		glClear(GL_COLOR_BUFFER_BIT);
 		
-		// render CVImageBuffer into CGLContext // BUGGY //
-		
-		// Fails (expand single pixel to texture)
-		//[ciContext drawImage:image atPoint:CGPointMake(0, 0) fromRect:[image extent]];
 		[ciContext drawImage:image inRect:textureRect fromRect:[image extent]];
-		//[ciContext drawImage:image inRect:CGRectMake(0, 0, width, height) fromRect:[image extent]];
-		
-		// Works
-		//[ciContext drawImage:image atPoint:CGPointMake(1, 1) fromRect:[image extent]];
-		//[ciContext drawImage:image inRect:CGRectMake(0, 0, width-1, height-1) fromRect:[image extent]];
-		//[ciContext drawImage:image inRect:CGRectMake(1, 1, width-2, height-2) fromRect:[image extent]];
-		//[ciContext drawImage:image inRect:CGRectMake(0.001, 0.001, width, height) fromRect:[image extent]];
 	}
 	
 	// Unbind FBO 
@@ -553,9 +503,6 @@ bail:
 	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 }
 
-/*
- Remove FBO and Texture
- */
 - (void)unsetFBO {
     if (FBOid) {
         glDeleteTextures(1, &FBOTextureId);
@@ -567,7 +514,6 @@ bail:
 
 /* =============================================================================================== */
 #pragma mark -
-/* =============================================================================================== */
 
 /*
  new CVPixelBuffer '2vuy' using specified size.
@@ -610,7 +556,6 @@ bail:
 		pixelbuffer = NULL;
 	}
 	
-	// Replace current CVPixelBuffer with new one
 	if (pb) {
 		CVPixelBufferRetain(pb);
 		pixelbuffer = pb;
@@ -618,7 +563,6 @@ bail:
 		pixelbuffer = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
 	}
 	
-	// Replace current CIImage with new one
 	image = [CIImage imageWithCVImageBuffer:pixelbuffer];
 }
 
@@ -656,7 +600,6 @@ bail:
 /* =============================================================================================== */
 #pragma mark -
 #pragma mark public
-/* =============================================================================================== */
 
 - (LAVPStream *) stream
 {
@@ -665,11 +608,9 @@ bail:
 
 - (void) setStream:(LAVPStream *)newStream
 {
-	//
 	self.asynchronous = NO;
 	[lock lock];
 	
-	// Delete the texture and the FBO
 	if (FBOid) {
 		glDeleteTextures(1, &FBOTextureId);
 		glDeleteFramebuffersEXT(1, &FBOid);
@@ -677,7 +618,6 @@ bail:
 		FBOid = 0;
 	}
 	
-	//
 	[_stream stop];
 	_stream = newStream;
 	
@@ -701,15 +641,10 @@ bail:
 			textureRect.size.width = maxTexSize * imageAspectRatio ;
 			textureRect.size.height = maxTexSize; 
 		}
-		//NSLog(@"DEBUG: texture rect = %@ (shrinked)", NSStringFromRect(textureRect));
-	} else {
-		//NSLog(@"DEBUG: texture rect = %@", NSStringFromRect(textureRect));
 	}
 	
-	// Try to update CAOpenGLLayer
 	[self setNeedsDisplay];
 	
-	//
 	[lock unlock];
 	self.asynchronous = YES;
 }
