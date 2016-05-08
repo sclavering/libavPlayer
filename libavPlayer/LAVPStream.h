@@ -7,17 +7,17 @@
 //
 /*
  This file is part of livavPlayer.
- 
+
  livavPlayer is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
  (at your option) any later version.
- 
+
  livavPlayer is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with libavPlayer; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,15 +34,15 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 @class LAVPDecoder;
 
 @interface LAVPStream : NSObject {
-	NSURL	*url;
+    NSURL    *url;
 @private
-	LAVPDecoder *decoder;
-	uint64_t _htOffset;		// CVHostTime offset when play
-	double_t _posOffset;	// movie time in {0.0, 1.0} 
-	NSTimer *timer;			// notification timer when EndOfMovie reached
-	BOOL _muted;
-	Float32 currentVol;
-	BOOL _busy;
+    LAVPDecoder *decoder;
+    uint64_t _htOffset;     // CVHostTime offset when play
+    double_t _posOffset;    // movie time in {0.0, 1.0}
+    NSTimer *timer;         // notification timer when EndOfMovie reached
+    BOOL _muted;
+    Float32 currentVol;
+    BOOL _busy;
 }
 
 @property (retain, readonly) NSURL *url;

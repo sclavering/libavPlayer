@@ -8,17 +8,17 @@
  */
 /*
  This file is part of livavPlayer.
- 
+
  livavPlayer is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
  (at your option) any later version.
- 
+
  livavPlayer is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with libavPlayer; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -123,9 +123,9 @@ v = val & 0xff;\
 /* =========================================================== */
 
 enum {
-	AV_SYNC_AUDIO_MASTER, /* default choice */
-	AV_SYNC_VIDEO_MASTER,
-	AV_SYNC_EXTERNAL_CLOCK, /* synchronize to an external clock */
+    AV_SYNC_AUDIO_MASTER, /* default choice */
+    AV_SYNC_VIDEO_MASTER,
+    AV_SYNC_EXTERNAL_CLOCK, /* synchronize to an external clock */
 };
 
 enum ShowMode {
@@ -141,15 +141,15 @@ typedef struct MyAVPacketList {
 } MyAVPacketList;
 
 typedef struct PacketQueue {
-	MyAVPacketList *first_pkt, *last_pkt;
-	volatile int nb_packets;
-	volatile int size;
-	volatile int abort_request;
+    MyAVPacketList *first_pkt, *last_pkt;
+    volatile int nb_packets;
+    volatile int size;
+    volatile int abort_request;
     volatile int serial;
-	LAVPmutex *mutex;
-	LAVPcond *cond;
-	
-	AVPacket flush_pkt; /* LAVP: assign queue specific flush packet */
+    LAVPmutex *mutex;
+    LAVPcond *cond;
+
+    AVPacket flush_pkt; /* LAVP: assign queue specific flush packet */
 } PacketQueue;
 
 /* =========================================================== */
@@ -159,18 +159,18 @@ typedef struct VideoPicture {
     volatile double pts;             // presentation timestamp for this picture
     double duration;        // estimated duration based on frame rate
     int64_t pos;            // byte position in file
-	AVFrame *bmp;
-	volatile int width, height; /* source height & width */
-	volatile int allocated;
+    AVFrame *bmp;
+    volatile int width, height; /* source height & width */
+    volatile int allocated;
     volatile int reallocate;
     volatile int serial;
-    
+
     AVRational sar;
 } VideoPicture;
 
 typedef struct SubPicture {
-	volatile double pts; /* presentation time stamp for this picture */
-	AVSubtitle sub;
+    volatile double pts; /* presentation time stamp for this picture */
+    AVSubtitle sub;
     volatile int serial;
 } SubPicture;
 
@@ -200,40 +200,40 @@ typedef struct VideoState {
     int64_t sws_flags;              /* static int64_t sws_flags = SWS_BICUBIC; */
     volatile int seek_by_bytes;     /* static int seek_by_bytes = -1; */
     int display_disable;            /* static int display_disable; */
-	volatile int show_status;       /* static int show_status = -1 */
+    volatile int show_status;       /* static int show_status = -1 */
     int workaround_bugs;            /* static int workaround_bugs = 1; */
     int fast;                       /* static int fast = 0; */
     int genpts;                     /* static int genpts = 0; */
     int lowres;                     /* static int lowres = 0; */
     int error_concealment;          /* static int error_concealment = 3; */
-	int decoder_reorder_pts;        /* static int decoder_reorder_pts = -1; */
-	int loop;                       /* static int loop = 1; */
-	int framedrop;                  /* static int framedrop = -1; */
+    int decoder_reorder_pts;        /* static int decoder_reorder_pts = -1; */
+    int loop;                       /* static int loop = 1; */
+    int framedrop;                  /* static int framedrop = -1; */
     volatile int infinite_buffer;            /* static int infinite_buffer = -1; */
     volatile enum ShowMode show_mode;        /* static enum ShowMode show_mode = SHOW_MODE_NONE; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
-    
+
     volatile int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
-    
+
     /* moved from local valuable */
     volatile double remaining_time;
-    
-	// LAVPcore
-    
+
+    // LAVPcore
+
     /* same order as original struct */
     AVInputFormat *iformat;
     //
-	volatile int abort_request;
+    volatile int abort_request;
     volatile int force_refresh;
-	volatile int paused;
-	volatile int last_paused;
+    volatile int paused;
+    volatile int last_paused;
     volatile int queue_attachments_req;
     volatile int seek_req;
     volatile int seek_flags;
-	volatile int64_t seek_pos;
-	volatile int64_t seek_rel;
-	volatile int read_pause_return;
-	AVFormatContext *ic;
+    volatile int64_t seek_pos;
+    volatile int64_t seek_rel;
+    volatile int read_pause_return;
+    AVFormatContext *ic;
     volatile int realtime;
     volatile int audio_finished; /* AVPacket serial */
     volatile int video_finished; /* AVPacket serial */
@@ -242,48 +242,48 @@ typedef struct VideoState {
     Clock vidclk;
     Clock extclk;
     //
-	volatile int av_sync_type;
+    volatile int av_sync_type;
     //
     char* filename; /* LAVP: char filename[1024] */
     volatile int width, height, xleft, ytop;
-	volatile int step;
+    volatile int step;
     //
     LAVPcond *continue_read_thread;
-	
+
     /* stream index */
-	volatile int video_stream, audio_stream, subtitle_stream;
+    volatile int video_stream, audio_stream, subtitle_stream;
     volatile int last_video_stream, last_audio_stream, last_subtitle_stream;
 
     /* AVStream */
-	AVStream *audio_st;
-	AVStream *video_st;
-	AVStream *subtitle_st;
-	
+    AVStream *audio_st;
+    AVStream *video_st;
+    AVStream *subtitle_st;
+
     /* PacketQueue */
-	PacketQueue audioq;
-	PacketQueue videoq;
-	PacketQueue subtitleq;
-	
+    PacketQueue audioq;
+    PacketQueue videoq;
+    PacketQueue subtitleq;
+
     /* Extension; playRate */
     double_t playRate;
     volatile int eof_flag;
-    
+
     /* Extension; Sub thread */
-	void* parse_queue; // dispatch_queue_t
-	void* parse_group; // dispatch_group_t
-	void* video_queue; // dispatch_queue_t
-	void* video_group; // dispatch_group_t
-	void* subtitle_queue; // dispatch_queue_t
-	void* subtitle_group; // dispatch_group_t
-    
+    void* parse_queue; // dispatch_queue_t
+    void* parse_group; // dispatch_group_t
+    void* video_queue; // dispatch_queue_t
+    void* video_group; // dispatch_group_t
+    void* subtitle_queue; // dispatch_queue_t
+    void* subtitle_group; // dispatch_group_t
+
     /* Extension; Obj-C Instance */
-	void* decoder;  // LAVPDecoder*
-	void* decoderThread;    // NSThread*
-	
+    void* decoder;  // LAVPDecoder*
+    void* decoderThread;    // NSThread*
+
     /* =========================================================== */
-    
-	// LAVPaudio
-    
+
+    // LAVPaudio
+
     /* same order as original struct */
     volatile double audio_clock;
     volatile int audio_clock_serial;
@@ -321,48 +321,48 @@ typedef struct VideoState {
     FFTSample *rdft_data;
     int xpos;
     double last_vis_time;
-    
+
     /* LAVP: extension */
-	AudioQueueRef outAQ;
-	AudioStreamBasicDescription asbd;
-	void* audioDispatchQueue; // dispatch_queue_t
-    
+    AudioQueueRef outAQ;
+    AudioStreamBasicDescription asbd;
+    void* audioDispatchQueue; // dispatch_queue_t
+
     /* =========================================================== */
-    
-	// LAVPsubs
+
+    // LAVPsubs
 
     /* same order as original struct */
     SubPicture subpq[SUBPICTURE_QUEUE_SIZE];
-	volatile int subpq_size, subpq_rindex, subpq_windex;
-	LAVPmutex *subpq_mutex;
-	LAVPcond *subpq_cond;
-    
+    volatile int subpq_size, subpq_rindex, subpq_windex;
+    LAVPmutex *subpq_mutex;
+    LAVPcond *subpq_cond;
+
     /* =========================================================== */
 
-	// LAVPvideo
-    
+    // LAVPvideo
+
     /* same order as original struct */
     int frame_drops_early;
     int frame_drops_late;
     //
-	volatile double frame_timer;
+    volatile double frame_timer;
     volatile double frame_last_returned_time;
     volatile double frame_last_filter_delay;
     //
-	volatile int64_t video_current_pos;      ///<current displayed file pos
+    volatile int64_t video_current_pos;      ///<current displayed file pos
     volatile double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-	VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE];
-	volatile int pictq_size, pictq_rindex, pictq_windex;
-	LAVPmutex *pictq_mutex;
-	LAVPcond *pictq_cond;
+    VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE];
+    volatile int pictq_size, pictq_rindex, pictq_windex;
+    LAVPmutex *pictq_mutex;
+    LAVPcond *pictq_cond;
     struct SwsContext *img_convert_ctx;
-    
+
     /* LAVP: extension */
-	volatile double lastPTScopied;
-	struct SwsContext *sws420to422;
-	
+    volatile double lastPTScopied;
+    struct SwsContext *sws420to422;
+
     /* =========================================================== */
-    
+
 } VideoState;
 
 #endif

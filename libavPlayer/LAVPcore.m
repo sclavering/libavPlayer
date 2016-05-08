@@ -8,17 +8,17 @@
  */
 /*
  This file is part of livavPlayer.
- 
+
  livavPlayer is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
  (at your option) any later version.
- 
+
  livavPlayer is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with libavPlayer; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -68,11 +68,11 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
     : AV_OPT_FLAG_DECODING_PARAM;
     char          prefix = 0;
     const AVClass    *cc = avcodec_get_class();
-    
+
     if (!codec)
         codec            = s->oformat ? avcodec_find_encoder(codec_id)
         : avcodec_find_decoder(codec_id);
-    
+
     switch (st->codec->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
             prefix  = 'v';
@@ -89,10 +89,10 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
         default:
             break;
     }
-    
+
     while ((t = av_dict_get(opts, "", t, AV_DICT_IGNORE_SUFFIX))) {
         char *p = strchr(t->key, ':');
-        
+
         /* check stream specification in opt name */
         if (p)
             switch (check_stream_specifier(s, st, p + 1)) {
@@ -100,7 +100,7 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
                 case  0:         continue;
                 default:         return NULL;
             }
-        
+
         if (av_opt_find(&cc, t->key, NULL, flags, AV_OPT_SEARCH_FAKE_OBJ) ||
             (codec && codec->priv_class &&
              av_opt_find(&codec->priv_class, t->key, NULL, flags,
@@ -110,7 +110,7 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
                  av_opt_find(&cc, t->key + 1, NULL, flags,
                              AV_OPT_SEARCH_FAKE_OBJ))
             av_dict_set(&ret, t->key + 1, t->value, 0);
-        
+
         if (p)
             *p = ':';
     }
@@ -123,7 +123,7 @@ AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
 {
     int i;
     AVDictionary **opts;
-    
+
     if (!s->nb_streams)
         return NULL;
     opts = av_mallocz(s->nb_streams * sizeof(*opts));
@@ -144,11 +144,11 @@ AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
 /* open a given stream. Return 0 if OK */
 int stream_component_open(VideoState *is, int stream_index)
 {
-	//NSLog(@"DEBUG: stream_component_open(%d)", stream_index);
-	
-	AVFormatContext *ic = is->ic;
-	AVCodecContext *avctx;
-	AVCodec *codec;
+    //NSLog(@"DEBUG: stream_component_open(%d)", stream_index);
+
+    AVFormatContext *ic = is->ic;
+    AVCodecContext *avctx;
+    AVCodec *codec;
     const char *forced_codec_name = NULL;
     AVDictionary *opts;
     AVDictionaryEntry *t = NULL;
@@ -156,41 +156,41 @@ int stream_component_open(VideoState *is, int stream_index)
     int64_t channel_layout;
     int ret;
     int stream_lowres = is->lowres;
-    
-	if (stream_index < 0 || stream_index >= ic->nb_streams)
-		return -1;
-	avctx = ic->streams[stream_index]->codec;
-	
-	codec = avcodec_find_decoder(avctx->codec_id);
-	
+
+    if (stream_index < 0 || stream_index >= ic->nb_streams)
+        return -1;
+    avctx = ic->streams[stream_index]->codec;
+
+    codec = avcodec_find_decoder(avctx->codec_id);
+
     //
     if (forced_codec_name)
         codec = avcodec_find_decoder_by_name(forced_codec_name);
-	if (!codec) {
+    if (!codec) {
         if (forced_codec_name) av_log(NULL, AV_LOG_WARNING,
                                       "No codec could be found with name '%s'\n", forced_codec_name);
         else                   av_log(NULL, AV_LOG_WARNING,
                                       "No codec could be found with id %d\n", avctx->codec_id);
-		return -1;
+        return -1;
     }
-    
+
     avctx->codec_id = codec->id;
-	avctx->workaround_bugs = is->workaround_bugs;
+    avctx->workaround_bugs = is->workaround_bugs;
     if(stream_lowres > av_codec_get_max_lowres(codec)){
         av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
                av_codec_get_max_lowres(codec));
         stream_lowres = av_codec_get_max_lowres(codec);
     }
     av_codec_set_lowres(avctx, stream_lowres);
-	avctx->error_concealment= is->error_concealment;
-	
+    avctx->error_concealment= is->error_concealment;
+
     if(stream_lowres) avctx->flags |= CODEC_FLAG_EMU_EDGE;
     if (is->fast)   avctx->flags2 |= CODEC_FLAG2_FAST;
     if(codec->capabilities & CODEC_CAP_DR1)
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
-    
+
     AVDictionary *codec_opts = NULL; // LAVP: Dummy
-    
+
     opts = filter_codec_opts(codec_opts, avctx->codec_id, ic, ic->streams[stream_index], codec);
     if (!av_dict_get(opts, "threads", NULL, 0))
         av_dict_set(&opts, "threads", "auto", 0);
@@ -204,21 +204,21 @@ int stream_component_open(VideoState *is, int stream_index)
         av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
         return AVERROR_OPTION_NOT_FOUND;
     }
-    
-	ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
+
+    ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
-		case AVMEDIA_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
             // LAVP: set before audio_open
-			is->audio_stream = stream_index;
-			is->audio_st = ic->streams[stream_index];
-			
+            is->audio_stream = stream_index;
+            is->audio_st = ic->streams[stream_index];
+
             packet_queue_start(&is->audioq);
-			
+
             //
             sample_rate    = avctx->sample_rate;
             nb_channels    = avctx->channels;
             channel_layout = avctx->channel_layout;
-            
+
             /* prepare audio output */
             if ((ret = audio_open(is, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) < 0)
                 return ret;
@@ -226,29 +226,29 @@ int stream_component_open(VideoState *is, int stream_index)
             is->audio_src = is->audio_tgt;
             is->audio_buf_size  = 0;
             is->audio_buf_index = 0;
-            
+
             /* init averaging filter */
-			is->audio_diff_avg_coef = exp(log(0.01) / AUDIO_DIFF_AVG_NB);
-			is->audio_diff_avg_count = 0;
+            is->audio_diff_avg_coef = exp(log(0.01) / AUDIO_DIFF_AVG_NB);
+            is->audio_diff_avg_count = 0;
             /* since we do not have a precise anough audio fifo fullness,
              we correct audio sync only if larger than this threshold */
-			is->audio_diff_threshold = 2.0 * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec;
+            is->audio_diff_threshold = 2.0 * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec;
 
             memset(&is->audio_pkt, 0, sizeof(is->audio_pkt));
             memset(&is->audio_pkt_temp, 0, sizeof(is->audio_pkt_temp));
             is->audio_pkt_temp.stream_index = -1;
-			
+
             // LAVP: start AudioQueue
             LAVPAudioQueueInit(is, avctx);
-			LAVPAudioQueueStart(is);
-			
-			break;
-		case AVMEDIA_TYPE_VIDEO:
-			is->video_stream = stream_index;
-			is->video_st = ic->streams[stream_index];
-			
+            LAVPAudioQueueStart(is);
+
+            break;
+        case AVMEDIA_TYPE_VIDEO:
+            is->video_stream = stream_index;
+            is->video_st = ic->streams[stream_index];
+
             packet_queue_start(&is->videoq);
-			
+
             // LAVP: Using dispatch queue
             {
                 dispatch_queue_t video_queue = dispatch_queue_create("video", NULL);
@@ -258,13 +258,13 @@ int stream_component_open(VideoState *is, int stream_index)
             }
             dispatch_group_async((__bridge dispatch_group_t)is->video_group, (__bridge dispatch_queue_t)is->video_queue, ^(void){video_thread(is);});
             is->queue_attachments_req = 1;
-			break;
-		case AVMEDIA_TYPE_SUBTITLE:
-			is->subtitle_stream = stream_index;
-			is->subtitle_st = ic->streams[stream_index];
-			
+            break;
+        case AVMEDIA_TYPE_SUBTITLE:
+            is->subtitle_stream = stream_index;
+            is->subtitle_st = ic->streams[stream_index];
+
             packet_queue_start(&is->subtitleq);
-			
+
             // LAVP: Using dispatch queue
             {
                 dispatch_queue_t subtitle_queue = dispatch_queue_create("subtitle", NULL);
@@ -272,62 +272,62 @@ int stream_component_open(VideoState *is, int stream_index)
                 is->subtitle_queue = (__bridge_retained void*)subtitle_queue;
                 is->subtitle_group = (__bridge_retained void*)subtitle_group;
             }
-			dispatch_group_async((__bridge dispatch_group_t)is->subtitle_group, (__bridge dispatch_queue_t)is->subtitle_queue, ^(void){subtitle_thread(is);});
-			break;
-		default:
-			break;
-	}
-    
-	//NSLog(@"DEBUG: stream_component_open(%d) done", stream_index);
-	return 0;
+            dispatch_group_async((__bridge dispatch_group_t)is->subtitle_group, (__bridge dispatch_queue_t)is->subtitle_queue, ^(void){subtitle_thread(is);});
+            break;
+        default:
+            break;
+    }
+
+    //NSLog(@"DEBUG: stream_component_open(%d) done", stream_index);
+    return 0;
 }
 
 void stream_component_close(VideoState *is, int stream_index)
 {
-	//NSLog(@"DEBUG: stream_component_close(%d)", stream_index);
-	
-	AVFormatContext *ic = is->ic;
-	AVCodecContext *avctx;
-	
-	if (stream_index < 0 || stream_index >= ic->nb_streams)
-		return;
-	avctx = ic->streams[stream_index]->codec;
-	
-	switch(avctx->codec_type) {
-		case AVMEDIA_TYPE_AUDIO:
-			packet_queue_abort(&is->audioq);
-			
+    //NSLog(@"DEBUG: stream_component_close(%d)", stream_index);
+
+    AVFormatContext *ic = is->ic;
+    AVCodecContext *avctx;
+
+    if (stream_index < 0 || stream_index >= ic->nb_streams)
+        return;
+    avctx = ic->streams[stream_index]->codec;
+
+    switch(avctx->codec_type) {
+        case AVMEDIA_TYPE_AUDIO:
+            packet_queue_abort(&is->audioq);
+
             // LAVP: Stop Audio Queue
-			LAVPAudioQueueStop(is);
-			LAVPAudioQueueDealloc(is);
-			
+            LAVPAudioQueueStop(is);
+            LAVPAudioQueueDealloc(is);
+
             //
-			packet_queue_flush(&is->audioq);
-			av_free_packet(&is->audio_pkt);
+            packet_queue_flush(&is->audioq);
+            av_free_packet(&is->audio_pkt);
             swr_free(&is->swr_ctx);
             av_freep(&is->audio_buf1);
             is->audio_buf1_size = 0;
             is->audio_buf = NULL;
             av_frame_free(&is->frame);
-            
+
             if (is->rdft) {
                 av_rdft_end(is->rdft);
                 av_freep(&is->rdft_data);
                 is->rdft = NULL;
                 is->rdft_bits = 0;
             }
-			break;
-		case AVMEDIA_TYPE_VIDEO:
-			packet_queue_abort(&is->videoq);
-			
-			/* note: we also signal this mutex to make sure we deblock the
-			 video thread in all cases */
-			LAVPLockMutex(is->pictq_mutex);
-			LAVPCondSignal(is->pictq_cond);
-			LAVPUnlockMutex(is->pictq_mutex);
-			
+            break;
+        case AVMEDIA_TYPE_VIDEO:
+            packet_queue_abort(&is->videoq);
+
+            /* note: we also signal this mutex to make sure we deblock the
+             video thread in all cases */
+            LAVPLockMutex(is->pictq_mutex);
+            LAVPCondSignal(is->pictq_cond);
+            LAVPUnlockMutex(is->pictq_mutex);
+
             // LAVP: release dispatch queue
-			dispatch_group_wait((__bridge dispatch_group_t)is->video_group, DISPATCH_TIME_FOREVER);
+            dispatch_group_wait((__bridge dispatch_group_t)is->video_group, DISPATCH_TIME_FOREVER);
             {
                 dispatch_group_t video_group = (__bridge_transfer dispatch_group_t)is->video_group;
                 dispatch_queue_t video_queue = (__bridge_transfer dispatch_queue_t)is->video_queue;
@@ -336,19 +336,19 @@ void stream_component_close(VideoState *is, int stream_index)
                 is->video_group = NULL;
                 is->video_queue = NULL;
             }
-			packet_queue_flush(&is->videoq);
-			break;
-		case AVMEDIA_TYPE_SUBTITLE:
-			packet_queue_abort(&is->subtitleq);
-			
-			/* note: we also signal this mutex to make sure we deblock the
-			 video thread in all cases */
-			LAVPLockMutex(is->subpq_mutex);
-			LAVPCondSignal(is->subpq_cond);
-			LAVPUnlockMutex(is->subpq_mutex);
-			
+            packet_queue_flush(&is->videoq);
+            break;
+        case AVMEDIA_TYPE_SUBTITLE:
+            packet_queue_abort(&is->subtitleq);
+
+            /* note: we also signal this mutex to make sure we deblock the
+             video thread in all cases */
+            LAVPLockMutex(is->subpq_mutex);
+            LAVPCondSignal(is->subpq_cond);
+            LAVPUnlockMutex(is->subpq_mutex);
+
             // LAVP: release dispatch queue
-			dispatch_group_wait((__bridge dispatch_group_t)is->subtitle_group, DISPATCH_TIME_FOREVER);
+            dispatch_group_wait((__bridge dispatch_group_t)is->subtitle_group, DISPATCH_TIME_FOREVER);
             {
                 dispatch_group_t subtitle_group = (__bridge_transfer dispatch_group_t)is->subtitle_group;
                 dispatch_queue_t subtitle_queue = (__bridge_transfer dispatch_queue_t)is->subtitle_queue;
@@ -357,32 +357,32 @@ void stream_component_close(VideoState *is, int stream_index)
                 is->subtitle_group = NULL;
                 is->subtitle_queue = NULL;
             }
-			packet_queue_flush(&is->subtitleq);
-			break;
-		default:
-			break;
-	}
-	
-	ic->streams[stream_index]->discard = AVDISCARD_ALL;
-	avcodec_close(avctx);
-	switch(avctx->codec_type) {
-		case AVMEDIA_TYPE_AUDIO:
-			is->audio_st = NULL;
-			is->audio_stream = -1;
-			break;
-		case AVMEDIA_TYPE_VIDEO:
-			is->video_st = NULL;
-			is->video_stream = -1;
-			break;
-		case AVMEDIA_TYPE_SUBTITLE:
-			is->subtitle_st = NULL;
-			is->subtitle_stream = -1;
-			break;
-		default:
-			break;
-	}
-    
-	//NSLog(@"DEBUG: stream_component_close(%d) done", stream_index);
+            packet_queue_flush(&is->subtitleq);
+            break;
+        default:
+            break;
+    }
+
+    ic->streams[stream_index]->discard = AVDISCARD_ALL;
+    avcodec_close(avctx);
+    switch(avctx->codec_type) {
+        case AVMEDIA_TYPE_AUDIO:
+            is->audio_st = NULL;
+            is->audio_stream = -1;
+            break;
+        case AVMEDIA_TYPE_VIDEO:
+            is->video_st = NULL;
+            is->video_stream = -1;
+            break;
+        case AVMEDIA_TYPE_SUBTITLE:
+            is->subtitle_st = NULL;
+            is->subtitle_stream = -1;
+            break;
+        default:
+            break;
+    }
+
+    //NSLog(@"DEBUG: stream_component_close(%d) done", stream_index);
 }
 
 static int decode_interrupt_cb(void *ctx)
@@ -398,7 +398,7 @@ int is_realtime(AVFormatContext *s)
        || !strcmp(s->iformat->name, "sdp")
        )
         return 1;
-    
+
     if(s->pb && (   !strncmp(s->filename, "rtp:", 4)
                  || !strncmp(s->filename, "udp:", 4)
                  )
@@ -411,51 +411,51 @@ int is_realtime(AVFormatContext *s)
 int read_thread(void *arg)
 {
     @autoreleasepool {
-        
+
         int ret;
         VideoState *is = (VideoState *)arg;
-        
+
         int st_index[AVMEDIA_TYPE_NB] = {-1};
-        
+
         LAVPmutex* wait_mutex = LAVPCreateMutex();
-        
+
         // LAVP: Choose best stream for Video, Audio, Subtitle
         int vid_index = -1;
         int aud_index = (st_index[AVMEDIA_TYPE_VIDEO]);
         int sub_index = (st_index[AVMEDIA_TYPE_AUDIO] >= 0 ? st_index[AVMEDIA_TYPE_AUDIO] : st_index[AVMEDIA_TYPE_VIDEO]);
-        
+
         st_index[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, vid_index, NULL, 0);
         st_index[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1,  aud_index, NULL , 0);
         st_index[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(is->ic, AVMEDIA_TYPE_SUBTITLE, -1, sub_index , NULL, 0);
-        
+
         // LAVP: show_status is in stream_open()
-        
+
         /* open the streams */
         if (st_index[AVMEDIA_TYPE_AUDIO] >= 0)
             stream_component_open(is, st_index[AVMEDIA_TYPE_AUDIO]);
-        
+
         ret = -1;
         if (st_index[AVMEDIA_TYPE_VIDEO] >= 0)
             ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
-        
+
         if (is->show_mode == SHOW_MODE_NONE)
             is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
-        
+
         if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0)
             stream_component_open(is, st_index[AVMEDIA_TYPE_SUBTITLE]);
-        
+
         if (is->video_stream < 0 && is->audio_stream < 0) {
             av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
                    is->filename);
             ret = -1;
             goto bail;
         }
-        
+
         if (is->infinite_buffer < 0 && is->realtime)
             is->infinite_buffer = 1;
-        
+
         /* ================================================================================== */
-        
+
         // decode loop
         is->eof_flag = 0; // LAVP:
         int eof = 0;
@@ -466,7 +466,7 @@ int read_thread(void *arg)
                 if (is->abort_request) {
                     break;
                 }
-                
+
                 // Pause
                 if (is->paused != is->last_paused) {
                     is->last_paused = is->paused;
@@ -474,10 +474,10 @@ int read_thread(void *arg)
                         is->read_pause_return = av_read_pause(is->ic);
                     else
                         av_read_play(is->ic);
-                    
+
                     //NSLog(@"DEBUG: %@", is->paused ? @"paused:YES" : @"paused:NO");
                 }
-                
+
 #if CONFIG_RTSP_DEMUXER
                 if (is->paused &&
                     (!strcmp(is->ic->iformat->name, "rtsp") ||
@@ -488,7 +488,7 @@ int read_thread(void *arg)
                         continue;
                     }
 #endif
-                
+
                 // Seek
                 if (is->seek_req) {
                     is->lastPTScopied = -1;
@@ -497,7 +497,7 @@ int read_thread(void *arg)
                     int64_t seek_max= is->seek_rel < 0 ? seek_target - is->seek_rel - 2: INT64_MAX;
                     //FIXME the +-2 is due to rounding being not done in the correct direction in generation
                     //      of the seek_pos/seek_rel variables
-                    
+
                     ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
                     if (ret < 0) {
                         av_log(NULL, AV_LOG_ERROR,
@@ -524,14 +524,14 @@ int read_thread(void *arg)
                     is->seek_req = 0;
                     is->queue_attachments_req = 1;
                     eof = 0;
-                    
+
                     // LAVP: reset eof (referenced from LAVPDecoder)
                     is->eof_flag = 0;
-                    
+
                     if (is->paused)
                         step_to_next_frame(is);
                 }
-                
+
                 if (is->queue_attachments_req) {
                     if (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC) {
                         AVPacket copy;
@@ -542,7 +542,7 @@ int read_thread(void *arg)
                     }
                     is->queue_attachments_req = 0;
                 }
-                
+
                 /* if the queue are full, no need to read more */
                 if (is->infinite_buffer<1 &&
                     (is->audioq.size + is->videoq.size + is->subtitleq.size > MAX_QUEUE_SIZE
@@ -556,7 +556,7 @@ int read_thread(void *arg)
                          LAVPUnlockMutex(wait_mutex);
                          continue;
                      }
-                
+
                 // LAVP: EOF reached
                 if (is->eof_flag) {
                     usleep(50*1000);
@@ -567,10 +567,10 @@ int read_thread(void *arg)
                     (!is->video_st || (is->video_finished == is->videoq.serial && is->pictq_size == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
-                    
+
                     // LAVP: finally mark end of stream flag (reset when seek performed)
                     is->eof_flag = 1;
-                    
+
                     //NSLog(@"DEBUG: eof_flag = 1 on %f", get_master_clock(is));
                 }
                 if(eof) {
@@ -584,7 +584,7 @@ int read_thread(void *arg)
                     eof=0;
                     continue;
                 }
-                
+
                 // Read file
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
@@ -598,13 +598,13 @@ int read_thread(void *arg)
                     LAVPUnlockMutex(wait_mutex);
                     continue;
                 }
-                
+
                 // Queue packet
                 int64_t start_time = AV_NOPTS_VALUE; // LAVP:
                 int64_t duration = AV_NOPTS_VALUE; // LAVP:
                 int64_t stream_start_time; // LAVP:
                 int pkt_in_play_range; // LAVP:
-                
+
                 /* check if packet is in play range specified by user, then queue, otherwise discard */
                 stream_start_time = is->ic->streams[pkt->stream_index]->start_time; // LAVP:
                 pkt_in_play_range = duration == AV_NOPTS_VALUE ||
@@ -621,20 +621,20 @@ int read_thread(void *arg)
                 } else {
                     av_free_packet(pkt);
                 }
-                
+
             }
         }
-        
+
         /* ================================================================================== */
-        
+
         /* wait until the end */
         while (!is->abort_request) {
             usleep(10*1000);
         }
-        
+
         // finish thread
         ret = 0;
-        
+
     bail:
         /* close each stream */
         if (is->audio_stream >= 0)
@@ -643,9 +643,9 @@ int read_thread(void *arg)
             stream_component_close(is, is->video_stream);
         if (is->subtitle_stream >= 0)
             stream_component_close(is, is->subtitle_stream);
-        
+
         LAVPDestroyMutex(wait_mutex);
-        
+
         return ret;
     }
 }
@@ -742,9 +742,9 @@ int get_master_sync_type(VideoState *is) {
 /* get the current master clock value */
 double get_master_clock(VideoState *is)
 {
-	//NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double_t)get_clock(&is->vidclk), (double_t)get_clock(&is->audclk));
-    
-	double val;
+    //NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double_t)get_clock(&is->vidclk), (double_t)get_clock(&is->audclk));
+
+    double val;
     switch (get_master_sync_type(is)) {
         case AV_SYNC_VIDEO_MASTER:
             val = get_clock(&is->vidclk);
@@ -756,7 +756,7 @@ double get_master_clock(VideoState *is)
             val = get_clock(&is->extclk);
             break;
     }
-	return val;
+    return val;
 }
 
 void check_external_clock_speed(VideoState *is) {
@@ -776,18 +776,18 @@ void check_external_clock_speed(VideoState *is) {
 /* seek in the stream */
 void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes)
 {
-	if (!is->seek_req) {
-		is->seek_pos = pos;
-		is->seek_rel = rel;
-		is->seek_flags &= ~AVSEEK_FLAG_BYTE;
-		if (seek_by_bytes)
-			is->seek_flags |= AVSEEK_FLAG_BYTE;
-		is->seek_req = 1;
+    if (!is->seek_req) {
+        is->seek_pos = pos;
+        is->seek_rel = rel;
+        is->seek_flags &= ~AVSEEK_FLAG_BYTE;
+        if (seek_by_bytes)
+            is->seek_flags |= AVSEEK_FLAG_BYTE;
+        is->seek_req = 1;
 
         is->remaining_time = 0.0; // LAVP: reset remaining time
-        
+
         LAVPCondSignal(is->continue_read_thread);
-	}
+    }
 }
 
 /* pause or resume the video */
@@ -822,27 +822,27 @@ void step_to_next_frame(VideoState *is)
 void stream_pause(VideoState *is)
 {
     toggle_pause(is);
-	
-	if (is->audio_stream >= 0) {
-		if (is->paused) 
-			LAVPAudioQueuePause(is);
-		else
-			LAVPAudioQueueStart(is);
-	}
-	
-	//NSLog(@"DEBUG: stream_pause = %s at %3.3f", (is->paused ? "paused" : "play"), get_master_clock(is));
+
+    if (is->audio_stream >= 0) {
+        if (is->paused)
+            LAVPAudioQueuePause(is);
+        else
+            LAVPAudioQueueStart(is);
+    }
+
+    //NSLog(@"DEBUG: stream_pause = %s at %3.3f", (is->paused ? "paused" : "play"), get_master_clock(is));
 }
 
 void stream_close(VideoState *is)
 {
     /* original: stream_close() */
-	if (is) {
-		int i;
-		
-		/* XXX: use a special url_shutdown call to abort parse cleanly */
-		is->abort_request = 1;
-        
-		dispatch_group_wait((__bridge dispatch_group_t)is->parse_group, DISPATCH_TIME_FOREVER);
+    if (is) {
+        int i;
+
+        /* XXX: use a special url_shutdown call to abort parse cleanly */
+        is->abort_request = 1;
+
+        dispatch_group_wait((__bridge dispatch_group_t)is->parse_group, DISPATCH_TIME_FOREVER);
         {
             dispatch_group_t parse_group = (__bridge_transfer dispatch_group_t)is->parse_group;
             dispatch_queue_t parse_queue = (__bridge_transfer dispatch_queue_t)is->parse_queue;
@@ -856,44 +856,44 @@ void stream_close(VideoState *is)
         packet_queue_destroy(&is->audioq);
         packet_queue_destroy(&is->subtitleq);
 
-		/* free all pictures */
+        /* free all pictures */
         for (i = 0; i < VIDEO_PICTURE_QUEUE_SIZE; i++)
             free_picture(&is->pictq[i]);
         for (i = 0; i < SUBPICTURE_QUEUE_SIZE; i++)
             free_subpicture(&is->subpq[i]);
-		
-		//
-		LAVPDestroyMutex(is->pictq_mutex);
-		LAVPDestroyCond(is->pictq_cond);
-		LAVPDestroyMutex(is->subpq_mutex);
-		LAVPDestroyCond(is->subpq_cond);
-		LAVPDestroyCond(is->continue_read_thread);
 
-		// LAVP: free image converter
-		if (is->img_convert_ctx)
-			sws_freeContext(is->img_convert_ctx);
-		
-		// LAVP: free format context
+        //
+        LAVPDestroyMutex(is->pictq_mutex);
+        LAVPDestroyCond(is->pictq_cond);
+        LAVPDestroyMutex(is->subpq_mutex);
+        LAVPDestroyCond(is->subpq_cond);
+        LAVPDestroyCond(is->continue_read_thread);
+
+        // LAVP: free image converter
+        if (is->img_convert_ctx)
+            sws_freeContext(is->img_convert_ctx);
+
+        // LAVP: free format context
         if (is->ic) {
             avformat_close_input(&is->ic);
             is->ic = NULL;
         }
-        
+
         {
             id decoder = (__bridge_transfer id)is->decoder;
             decoder = NULL; // ARC
             is->decoder = NULL;
         }
     }
-    
+
     /* original: do_exit() */
     BOOL doLF = false;
     if (is) {
         doLF = (is->show_status);
-        
-		free(is);
-		is = NULL;
-	}
+
+        free(is);
+        is = NULL;
+    }
     av_lockmgr_register(NULL);
     //
     avformat_network_deinit();
@@ -905,21 +905,21 @@ void stream_close(VideoState *is)
 VideoState* stream_open(id opaque, NSURL *sourceURL)
 {
     int err, i, ret;
-	
-	// Initialize VideoState struct
-	VideoState *is = calloc(1, sizeof(VideoState));
+
+    // Initialize VideoState struct
+    VideoState *is = calloc(1, sizeof(VideoState));
     assert(is);
-	
-	const char* path = [[sourceURL path] fileSystemRepresentation];
+
+    const char* path = [[sourceURL path] fileSystemRepresentation];
     if (path) {
         is->filename = strdup(path);
     }
-    
+
     /* ======================================== */
-	
-	is->decoder = (__bridge_retained void*)opaque;	// (LAVPDecoder *)
-	is->lastPTScopied = -1;
-    	
+
+    is->decoder = (__bridge_retained void*)opaque;    // (LAVPDecoder *)
+    is->lastPTScopied = -1;
+
     is->sws_flags = SWS_BICUBIC;
     is->seek_by_bytes = -1;
     is->display_disable = 0;
@@ -931,36 +931,36 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     is->decoder_reorder_pts = -1;
     is->loop = 1;
     is->framedrop = -1;
-	is->infinite_buffer = -1;
+    is->infinite_buffer = -1;
     is->show_mode = SHOW_MODE_NONE;
     is->rdftspeed = 0.02;
-    
-	is->paused = 0;
-	is->playRate = 1.0;
+
+    is->paused = 0;
+    is->playRate = 1.0;
 
     is->last_video_stream = is->video_stream = -1;
     is->last_audio_stream = is->audio_stream = -1;
     is->last_subtitle_stream = is->subtitle_stream = -1;
-    
+
     /* ======================================== */
-	
+
     /* original: main() */
     {
         av_log_set_flags(AV_LOG_SKIP_REPEATED);
-        
+
         /* register all codecs, demux and protocols */
         av_register_all();
         avformat_network_init();
-        
+
         //
         if (av_lockmgr_register(lockmgr)) {
             av_log(NULL, AV_LOG_FATAL, "Could not initialize lock manager!\n");
             goto bail;
         }
     }
-    
+
     /* ======================================== */
-	
+
     /* original: opt_format() */
     // TODO
     const char * extension = [[sourceURL pathExtension] cStringUsingEncoding:NSASCIIStringEncoding];
@@ -972,16 +972,16 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
             is->iformat = file_iformat;
         }
     }
-    
+
     /* ======================================== */
-	
+
     /* original: read_thread() */
-	// Open file
+    // Open file
     {
         AVFormatContext *ic = NULL;
         AVDictionaryEntry *t = NULL;
         AVDictionary *format_opts = NULL; // LAVP: difine as local value
-        
+
         ic = avformat_alloc_context();
         ic->interrupt_callback.callback = decode_interrupt_cb;
         ic->interrupt_callback.opaque = is;
@@ -991,7 +991,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
             {
                 char errbuf[128];
                 const char *errbuf_ptr = errbuf;
-                
+
                 if (av_strerror(err, errbuf, sizeof(errbuf)) < 0)
                     errbuf_ptr = strerror(AVUNERROR(err));
                 av_log(NULL, AV_LOG_ERROR, "%s: %s\n", is->filename, errbuf_ptr);
@@ -1006,19 +1006,19 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
         }
         is->ic = ic;
     }
-    
+
     if (is->genpts)
         is->ic->flags |= AVFMT_FLAG_GENPTS;
-	
-	// Examine stream info
+
+    // Examine stream info
     {
         AVDictionary **opts;
         AVDictionary *codec_opts = NULL; // LAVP: Dummy
         int orig_nb_streams;
-        
+
         opts = setup_find_stream_info_opts(is->ic, codec_opts);
         orig_nb_streams = is->ic->nb_streams;
-        
+
         err = avformat_find_stream_info(is->ic, opts);
         if (err < 0) {
             av_log(NULL, AV_LOG_WARNING,
@@ -1026,36 +1026,36 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
             ret = -1;
             goto bail;
         }
-    
+
         for (i = 0; i < orig_nb_streams; i++)
             av_dict_free(&opts[i]);
         av_freep(&opts);
-	}
-    
-	if (is->ic->pb) 
+    }
+
+    if (is->ic->pb)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use url_feof() to test for the end
-	
+
     if (is->seek_by_bytes < 0)
         is->seek_by_bytes = !!(is->ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", is->ic->iformat->name);
-	
+
     is->max_frame_duration = (is->ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
-    
+
     //
-    
+
     is->realtime = is_realtime(is->ic);
-    
-	for (int i = 0; i < is->ic->nb_streams; i++)
-		is->ic->streams[i]->discard = AVDISCARD_ALL;
-    
+
+    for (int i = 0; i < is->ic->nb_streams; i++)
+        is->ic->streams[i]->discard = AVDISCARD_ALL;
+
     // LAVP: av_find_best_stream is moved to read_thread()
-    
-	// dump format info
-	if (is->show_status) {
-		av_dump_format(is->ic, 0, is->filename, 0);
-	}
-    
+
+    // dump format info
+    if (is->show_status) {
+        av_dump_format(is->ic, 0, is->filename, 0);
+    }
+
     /* ======================================== */
-	
+
     /* original: stream_open() */
     {
         is->pictq_mutex = LAVPCreateMutex();
@@ -1088,14 +1088,14 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
         }
         dispatch_group_async((__bridge dispatch_group_t)is->parse_group, (__bridge dispatch_queue_t)is->parse_queue, ^(void){read_thread(is);});
     }
-	return is;
-	
+    return is;
+
 bail:
     av_log(NULL, AV_LOG_ERROR, "ret = %d, err = %d\n", ret, err);
-	if (is->filename)
+    if (is->filename)
         free(is->filename);
     free (is);
-	return NULL;
+    return NULL;
 }
 
 /*
@@ -1107,15 +1107,15 @@ bail:
 
 double_t stream_playRate(VideoState *is)
 {
-	return is->playRate;
+    return is->playRate;
 }
 
 void stream_setPlayRate(VideoState *is, double_t newRate)
 {
-	assert(newRate > 0.0);
-	
-	is->playRate = newRate;
-    
+    assert(newRate > 0.0);
+
+    is->playRate = newRate;
+
     set_clock_speed(&is->vidclk, newRate);
     set_clock_speed(&is->audclk, newRate);
     set_clock_speed(&is->extclk, newRate);
@@ -1130,10 +1130,10 @@ int stream_getChapterCurrent(VideoState *is)
 {
     int64_t pos = get_master_clock(is) * AV_TIME_BASE;
     int i;
-    
+
     if (!stream_getChapterCount(is))
         return 0;
-    
+
     /* find the current chapter */
     for (i = 0; i < is->ic->nb_chapters; i++) {
         AVChapter *ch = is->ic->chapters[i];
@@ -1142,7 +1142,7 @@ int stream_getChapterCurrent(VideoState *is)
             break;
         }
     }
-    
+
     return i;
 }
 
@@ -1150,14 +1150,14 @@ void stream_seek_chapter(VideoState *is, int incr)
 {
     if (!stream_getChapterCount(is))
         return;
-    
+
     int i = stream_getChapterCurrent(is);
-    
+
     i += incr;
     i = FFMAX(i, 0);
     if (i >= is->ic->nb_chapters)
         return;
-    
+
     av_log(NULL, AV_LOG_VERBOSE, "Seeking to chapter %d.\n", i);
     stream_seek(is, av_rescale_q(is->ic->chapters[i]->start, is->ic->chapters[i]->time_base,
                                  AV_TIME_BASE_Q), 0, 0);
