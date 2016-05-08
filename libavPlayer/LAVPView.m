@@ -8,7 +8,7 @@
         CALayer *rootLayer = [self layer];
         rootLayer.needsDisplayOnBoundsChange = YES;
         _videoLayer = [LAVPLayer layer];
-        _videoLayer.contentsGravity = kCAGravityResizeAspect;
+        _videoLayer.stretchVideoToFitLayer = true;
         _videoLayer.frame = rootLayer.frame;
         _videoLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
         _videoLayer.backgroundColor = CGColorGetConstantColor(kCGColorBlack);

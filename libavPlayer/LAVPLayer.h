@@ -42,10 +42,9 @@
 	
 	CGLPixelFormatObj   _cglPixelFormat;
 	CGLContextObj       _cglContext;
-	
-	NSArray *gravities;
 }
 
+@property bool stretchVideoToFitLayer;
 @property (retain) LAVPStream *stream;
 
 @end

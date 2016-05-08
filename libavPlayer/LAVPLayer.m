@@ -104,9 +104,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		ciContext = NULL;
 	}
 	
-	if (gravities) {
-		gravities = NULL;
-	}
 	if (_cglContext) {
 		CGLReleaseContext(_cglContext);
 		_cglContext = NULL;
@@ -127,22 +124,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 	self = [super init];
 	
 	if (self) {
-		// kCAGravity support
-		gravities = [NSArray arrayWithObjects:
-					  kCAGravityCenter,				//0
-					  kCAGravityTop,				//1
-					  kCAGravityBottom,				//2
-					  kCAGravityLeft,				//3
-					  kCAGravityRight,				//4
-					  kCAGravityTopLeft,			//5
-					  kCAGravityTopRight,			//6
-					  kCAGravityBottomLeft,			//7
-					  kCAGravityBottomRight,		//8
-					  kCAGravityResize,				//9
-					  kCAGravityResizeAspect, 		//10
-					  kCAGravityResizeAspectFill,	//11
-					  nil];
-		
 		// FBO Support
 		GLint numPixelFormats = 0;
 		CGLPixelFormatAttribute attributes[] =
@@ -504,114 +485,32 @@ bail:
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, savedFBOid);
 }
 
-/*
- Draw quad with Texture
- */
 - (void) renderQuad
 {
-	// Handle kCAGravity behavior
-	CGSize tr, tl, br, bl;
-	CGSize ls = [self bounds].size;
-	CGSize vs = [_stream frameSize];
-	CGFloat hRatio = vs.width / ls.width;
-	CGFloat vRatio = vs.height / ls.height;
-	CGFloat lAspect = ls.width/ls.height;
-	CGFloat vAspect = vs.width/vs.height;
-	CGFloat vOffset = 1.0f - (1.0f-vRatio)*2 ;
-	CGFloat hOffset = 1.0f - (1.0f-hRatio)*2 ;
-	
-	switch ([gravities indexOfObject:self.contentsGravity]) {
-		case 0: //kCAGravityCenter
-			tr = CGSizeMake( hRatio, vRatio);
-			tl = CGSizeMake(-hRatio, vRatio);
-			bl = CGSizeMake(-hRatio,-vRatio);
-			br = CGSizeMake( hRatio,-vRatio);
-			break;
-		case 1: //kCAGravityTop
-			tr = CGSizeMake( hRatio, 1.0f);
-			tl = CGSizeMake(-hRatio, 1.0f);
-			bl = CGSizeMake(-hRatio,-vOffset);
-			br = CGSizeMake( hRatio,-vOffset);
-			break;
-		case 2: //kCAGravityBottom
-			tr = CGSizeMake( hRatio, vOffset);
-			tl = CGSizeMake(-hRatio, vOffset);
-			bl = CGSizeMake(-hRatio,-1.0f);
-			br = CGSizeMake( hRatio,-1.0f);
-			break;
-		case 3: //kCAGravityLeft
-			tr = CGSizeMake( hOffset, vRatio);
-			tl = CGSizeMake(-1.0f, vRatio);
-			bl = CGSizeMake(-1.0f,-vRatio);
-			br = CGSizeMake( hOffset,-vRatio);
-			break;
-		case 4: //kCAGravityRight
-			tr = CGSizeMake( 1.0f, vRatio);
-			tl = CGSizeMake(-hOffset, vRatio);
-			bl = CGSizeMake(-hOffset,-vRatio);
-			br = CGSizeMake( 1.0f,-vRatio);
-			break;
-		case 5: //kCAGravityTopLeft
-			tr = CGSizeMake( hOffset, 1.0f);
-			tl = CGSizeMake(-1.0f, 1.0f);
-			bl = CGSizeMake(-1.0f,-vOffset);
-			br = CGSizeMake( hOffset,-vOffset);
-			break;
-		case 6: //kCAGravityTopRight
-			tr = CGSizeMake( 1.0f, 1.0f);
-			tl = CGSizeMake(-hOffset, 1.0f);
-			bl = CGSizeMake(-hOffset,-vOffset);
-			br = CGSizeMake( 1.0f,-vOffset);
-			break;
-		case 7: //kCAGravityBottomLeft
-			tr = CGSizeMake( hOffset, vOffset);
-			tl = CGSizeMake(-1.0f, vOffset);
-			bl = CGSizeMake(-1.0f,-1.0f);
-			br = CGSizeMake( hOffset,-1.0f);
-			break;
-		case 8: //kCAGravityBottomRight
-			tr = CGSizeMake( 1.0f, vOffset);
-			tl = CGSizeMake(-hOffset, vOffset);
-			bl = CGSizeMake(-hOffset,-1.0f);
-			br = CGSizeMake( 1.0f,-1.0f);
-			break;
-		case 10: //kCAGravityResizeAspect
-			if (lAspect > vAspect) {	// Layer is wider aspect than video - Shrink horizontally
-				tr = CGSizeMake( hRatio/vRatio, 1.0f);
-				tl = CGSizeMake(-hRatio/vRatio, 1.0f);
-				bl = CGSizeMake(-hRatio/vRatio,-1.0f);
-				br = CGSizeMake( hRatio/vRatio,-1.0f);
-			} else {					// Layer is narrow aspect than video - Shrink vertically
-				tr = CGSizeMake( 1.0f, vRatio/hRatio);
-				tl = CGSizeMake(-1.0f, vRatio/hRatio);
-				bl = CGSizeMake(-1.0f,-vRatio/hRatio);
-				br = CGSizeMake( 1.0f,-vRatio/hRatio);
-			}
-			break;
-		case 11: //kCAGravityResizeAspectFill
-			if (lAspect > vAspect) {	// Layer is wider aspect than video - Expand vertically
-				tr = CGSizeMake( 1.0f, vRatio/hRatio);
-				tl = CGSizeMake(-1.0f, vRatio/hRatio);
-				bl = CGSizeMake(-1.0f,-vRatio/hRatio);
-				br = CGSizeMake( 1.0f,-vRatio/hRatio);
-			} else {					// Layer is narrow aspect than video - Expand horizontally
-				tr = CGSizeMake( hRatio/vRatio, 1.0f);
-				tl = CGSizeMake(-hRatio/vRatio, 1.0f);
-				bl = CGSizeMake(-hRatio/vRatio,-1.0f);
-				br = CGSizeMake( hRatio/vRatio,-1.0f);
-			}
-			break;
-		case 9:	//kCAGravityResize
-		default:
-			// The default value is kCAGravityResize
-			tr = CGSizeMake( 1.0f, 1.0f);
-			tl = CGSizeMake(-1.0f, 1.0f);
-			bl = CGSizeMake(-1.0f,-1.0f);
-			br = CGSizeMake( 1.0f,-1.0f);
-			break;
+	CGSize tr = CGSizeMake( 1.0f,  1.0f);
+	CGSize tl = CGSizeMake(-1.0f,  1.0f);
+	CGSize bl = CGSizeMake(-1.0f, -1.0f);
+	CGSize br = CGSizeMake( 1.0f, -1.0f);
+	if(!self.stretchVideoToFitLayer) {
+		CGSize ls = [self bounds].size;
+		CGSize vs = [_stream frameSize];
+		CGFloat hRatio = vs.width / ls.width;
+		CGFloat vRatio = vs.height / ls.height;
+		CGFloat layerAspect = ls.width / ls.height;
+		CGFloat videoAspect = vs.width / vs.height;
+		// If layer is wider aspect ratio than video
+		if(layerAspect > videoAspect) {
+			tr = CGSizeMake( hRatio / vRatio,  1.0f);
+			tl = CGSizeMake(-hRatio / vRatio,  1.0f);
+			bl = CGSizeMake(-hRatio / vRatio, -1.0f);
+			br = CGSizeMake( hRatio / vRatio, -1.0f);
+		} else {
+			tr = CGSizeMake( 1.0f,  vRatio / hRatio);
+			tl = CGSizeMake(-1.0f,  vRatio / hRatio);
+			bl = CGSizeMake(-1.0f, -vRatio / hRatio);
+			br = CGSizeMake( 1.0f, -vRatio / hRatio);
+		}
 	}
-	
-	/* ========================================================= */
 	
 	// Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderScene
 	
