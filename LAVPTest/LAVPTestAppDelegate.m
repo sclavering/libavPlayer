@@ -197,7 +197,7 @@ NSString* formatTime(QTTime qttime)
 		QTTime currentTime = [theStream currentTime];
 		QTTime duration = [theStream duration];
 		if (currentTime.timeValue + 1e6/30 >= duration.timeValue) {
-			[theStream gotoBeggining];
+			[theStream setPosition:0];
 		}
 		
 		// test code for playRate support
@@ -238,10 +238,10 @@ NSString* formatTime(QTTime qttime)
 {
 	NSButton *button = (NSButton*) sender;
 	if ([button window] == layerwindow) {
-		[layerstream gotoBeggining];
+		[layerstream setPosition:0];
 	}
 	if ([button window] == viewwindow) {
-		[viewstream gotoBeggining];
+		[viewstream setPosition:0];
 	}
 }
 

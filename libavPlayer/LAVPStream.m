@@ -312,16 +312,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 	[self setRate:0.0];
 }
 
-- (void) gotoBeggining
-{
-	[self setPosition:0.0];
-}
-
-- (void) gotoEnd
-{
-	[self setPosition:1.0];
-}
-
 - (Float32) volume
 {
 	return currentVol;
@@ -348,11 +338,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 		_muted = FALSE;
 		[decoder setVolume:currentVol];
 	}
-}
-
-- (BOOL) eof
-{
-	return [decoder eof];
 }
 
 @end
