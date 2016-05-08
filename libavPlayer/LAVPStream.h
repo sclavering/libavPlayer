@@ -55,7 +55,6 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 @property (assign) Float32 volume;
 @property (assign) BOOL muted;
 @property (readonly) BOOL busy;
-@property (assign) BOOL strictSeek;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 + (id) streamWithURL:(NSURL *)url error:(NSError **)errorPtr;
