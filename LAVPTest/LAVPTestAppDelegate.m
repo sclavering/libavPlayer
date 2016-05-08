@@ -251,20 +251,12 @@ NSString* formatTime(QTTime qttime)
 	double_t newPos = [pos doubleValue];
 	
 	if ([pos window] == layerwindow && !layerstream.busy) {
-		if ([layerstream rate]) {
-			prevRate = [layerstream rate];
-			[layerstream stop];
-		}
 		if (newPos != layerPrev) {
 			[layerstream setPosition:newPos];
 			layerPrev = newPos;
 		}
 	}
 	if ([pos window] == viewwindow && !viewstream.busy) {
-		if ([viewstream rate]) {
-			prevRate = [viewstream rate];
-			[viewstream stop];
-		}
 		if (newPos != viewPrev) {
 			[viewstream setPosition:newPos];
 			viewPrev = newPos;
@@ -279,14 +271,6 @@ NSString* formatTime(QTTime qttime)
 
 - (void) finishUpdatePosition:(id)sender
 {
-	NSSlider *pos = (NSSlider*) sender;
-	if ([pos window] == layerwindow && !layerstream.busy) {
-		[layerstream setRate:prevRate];
-	}
-	if ([pos window] == viewwindow && !viewstream.busy) {
-		[viewstream setRate:prevRate];
-	}
-	prevRate = 0;
 	layerPrev = -1;
 	viewPrev = -1;
 }

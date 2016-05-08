@@ -184,6 +184,15 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 
 - (void) setPosition:(double_t)newPosition
 {
+    // If you seek with rate != 0 the seeking takes ages (several seconds).
+    double prevRate = self.rate;
+    [self stop];
+    [self _setPosition:newPosition];
+    self.rate = prevRate;
+}
+
+- (void) _setPosition:(double_t)newPosition
+{
     // position uses double value between 0.0 and 1.0
 
     //NSLog(@"DEBUG: seek started");
