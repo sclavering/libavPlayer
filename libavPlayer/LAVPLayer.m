@@ -44,7 +44,6 @@
 - (CVPixelBufferRef) getCVPixelBuffer;
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb;
 - (void) streamDidSeek:(NSNotification *)aNotification;
-- (void) redrawRequest:(NSNotification *)aNotification;
 - (void) handleDisplayLink:(NSNotification *)aNotification;
 
 @end
@@ -206,12 +205,9 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		
 		//
 		lock = [[NSLock alloc] init];
-		lastPTS = -1;
 		
 		//
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidate:) name:NSApplicationWillTerminateNotification object:nil];
-		
-		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(redrawRequest:) name:NSWindowDidMoveNotification object:nil];
 		
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(streamDidSeek:) name:LAVPStreamDidSeekNotification object:nil];
 
@@ -220,8 +216,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleDisplayLink:) name:LAVPStreamDidEndNotification object:nil];
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleDisplayLink:) name:LAVPStreamUpdateRateNotification object:nil];
-		
-		[[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(redrawRequest:) name:NSWorkspaceDidWakeNotification object:nil];
 		
 		CGDisplayRegisterReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 	}
@@ -294,8 +288,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 				pb = [_stream getCVPixelBufferForTime:timeStamp asPTS:&pts];
 			
 			if (pb) {
-				lastPTS = pts;
-				
 				[lock lock];
 				[self setCVPixelBuffer:pb];
 				[self drawImage];
@@ -768,8 +760,6 @@ bail:
 {
 	LAVPStream *sender = [aNotification object];
 	if (sender == _stream) {
-		lastPTS = -1;
-        
         // Give some interval to displayLink updating image
         //[self performSelector:@selector(handleDisplayLink:) withObject:aNotification afterDelay:0.05];
         NSNotification * delayed = [NSNotification notificationWithName:@"delayed" object:sender];
@@ -783,11 +773,6 @@ bail:
 	if (sender == _stream) {
         if (!self.asynchronous) self.asynchronous = YES;
 	}
-}
-
-- (void) redrawRequest:(NSNotification *)aNotification;
-{
-	lastPTS = -1;
 }
 
 - (void) handleDisplayLink:(NSNotification *)aNotification
@@ -856,7 +841,6 @@ bail:
 	}
 	
 	// Try to update CAOpenGLLayer
-	lastPTS = -1;
 	[self setNeedsDisplay];
 	
 	//
