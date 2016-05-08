@@ -99,8 +99,8 @@
 		0867D69BFE84028FC02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		0867D6A5FE840307C02AAC07 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		089C1667FE841158C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		16009698183C8E1E0026B528 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = libav/libswresample.a; sourceTree = "<group>"; };
-		1600969A183C8E2E0026B528 /* swresample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swresample.h; path = libav/libswresample/swresample.h; sourceTree = "<group>"; };
+		16009698183C8E1E0026B528 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../libav/libswresample.a; sourceTree = "<group>"; };
+		1600969A183C8E2E0026B528 /* swresample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swresample.h; path = ../libav/libswresample/swresample.h; sourceTree = "<group>"; };
 		164826BB13D39785008E16A7 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		1660410218292F2B00E78594 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		166F893613E0555A00B74CCA /* LAVPthread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = LAVPthread.c; sourceTree = "<group>"; };
@@ -108,14 +108,14 @@
 		169D704213EE2A5700031A4A /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
 		16A18F4713AC466F008825FF /* LAVPStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPStream.h; sourceTree = "<group>"; };
 		16A18F4813AC466F008825FF /* LAVPStream.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPStream.m; sourceTree = "<group>"; };
-		16A18F8A13AC5536008825FF /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = libav/libavcodec.a; sourceTree = "<group>"; };
-		16A18F8B13AC5536008825FF /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = libav/libswscale.a; sourceTree = "<group>"; };
-		16A18F8C13AC5536008825FF /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = libav/libavutil.a; sourceTree = "<group>"; };
-		16A18F8D13AC5536008825FF /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = libav/libavformat.a; sourceTree = "<group>"; };
-		16A18F9313AC554A008825FF /* avcodec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avcodec.h; path = libav/libavcodec/avcodec.h; sourceTree = "<group>"; };
-		16A18F9513AC5554008825FF /* swscale.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swscale.h; path = libav/libswscale/swscale.h; sourceTree = "<group>"; };
-		16A18F9713AC555E008825FF /* avutil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avutil.h; path = libav/libavutil/avutil.h; sourceTree = "<group>"; };
-		16A18F9913AC556F008825FF /* avformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avformat.h; path = libav/libavformat/avformat.h; sourceTree = "<group>"; };
+		16A18F8A13AC5536008825FF /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../libav/libavcodec.a; sourceTree = "<group>"; };
+		16A18F8B13AC5536008825FF /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../libav/libswscale.a; sourceTree = "<group>"; };
+		16A18F8C13AC5536008825FF /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../libav/libavutil.a; sourceTree = "<group>"; };
+		16A18F8D13AC5536008825FF /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../libav/libavformat.a; sourceTree = "<group>"; };
+		16A18F9313AC554A008825FF /* avcodec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avcodec.h; path = ../libav/libavcodec/avcodec.h; sourceTree = "<group>"; };
+		16A18F9513AC5554008825FF /* swscale.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swscale.h; path = ../libav/libswscale/swscale.h; sourceTree = "<group>"; };
+		16A18F9713AC555E008825FF /* avutil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avutil.h; path = ../libav/libavutil/avutil.h; sourceTree = "<group>"; };
+		16A18F9913AC556F008825FF /* avformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avformat.h; path = ../libav/libavformat/avformat.h; sourceTree = "<group>"; };
 		16A18FAB13AC567E008825FF /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		16A18FF013AC57CC008825FF /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		16A18FF313AC57E2008825FF /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
@@ -395,7 +395,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "say -v Allison \"Building intel binary.\" &\necho;pwd;echo\n\nTHESDK=\"$DEVELOPER_SDK_DIR/MacOSX10.6.sdk\"\nTHEARC=\"x86_64\"; THECPU=\"core2\"\nTHEOPT=\"-m64 -mtune=core2 \" # -ffast-math -falign-loops=16 -fstrict-aliasing\n\n# Use yasm from MacPort\nPATH=$PATH:/opt/local/bin/\n\ncd libav\n./configure --enable-cross-compile --arch=$THEARC --cpu=$THECPU --cc=clang --enable-small --target-os=darwin \\\n --enable-decoders --disable-encoders --enable-demuxers --disable-muxers --enable-parsers --disable-avdevice \\\n --disable-postproc --disable-avfilter --disable-filters --enable-protocols --enable-network \\\n --enable-pthreads --enable-gpl --disable-ffmpeg --disable-ffprobe --disable-ffserver --disable-ffplay \\\n --extra-ldflags=\" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wl,-syslibroot,$THESDK \" \\\n --extra-cflags=\" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wno-deprecated-declarations $THEOPT \" \\\n --enable-protocol=file \\\n|| { echo -- ERROR on confiure --; tail config.err; exit 1; }\n\necho -- Run make clean --\nmake clean || { echo -- ERROR on make clean --; exit 1; }\n\necho -- Run make lib --\nmake -j4 || { exit 1; }\n\ncp -p lib*/*.a ./\n#strip -x *.a\n\necho;echo \"Done\";echo\nexit 0";
+			shellScript = "say -v Allison \"Building intel binary.\" &\necho;pwd;echo\n\nTHESDK=\"$DEVELOPER_SDK_DIR/MacOSX10.6.sdk\"\nTHEARC=\"x86_64\"; THECPU=\"core2\"\nTHEOPT=\"-m64 -mtune=core2 \" # -ffast-math -falign-loops=16 -fstrict-aliasing\n\n# Use yasm from MacPort\nPATH=$PATH:/opt/local/bin/\n\ncd ../libav\n./configure --enable-cross-compile --arch=$THEARC --cpu=$THECPU --cc=clang --enable-small --target-os=darwin \\\n --enable-decoders --disable-encoders --enable-demuxers --disable-muxers --enable-parsers --disable-avdevice \\\n --disable-postproc --disable-avfilter --disable-filters --enable-protocols --enable-network \\\n --enable-pthreads --enable-gpl --disable-ffmpeg --disable-ffprobe --disable-ffserver --disable-ffplay \\\n --extra-ldflags=\" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wl,-syslibroot,$THESDK \" \\\n --extra-cflags=\" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wno-deprecated-declarations $THEOPT \" \\\n --enable-protocol=file \\\n|| { echo -- ERROR on confiure --; tail config.err; exit 1; }\n\necho -- Run make clean --\nmake clean || { echo -- ERROR on make clean --; exit 1; }\n\necho -- Run make lib --\nmake -j4 || { exit 1; }\n\ncp -p lib*/*.a ./\n#strip -x *.a\n\necho;echo \"Done\";echo\nexit 0";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -501,11 +501,11 @@
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/libav\"",
+					"\"$(SRCROOT)/../libav\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = libavPlayer;
-				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/libav\"/**";
+				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../libav\"/**";
 				WRAPPER_EXTENSION = framework;
 			};
 			name = Debug;
@@ -531,11 +531,11 @@
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"\"$(SRCROOT)/libav\"",
+					"\"$(SRCROOT)/../libav\"",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PRODUCT_NAME = libavPlayer;
-				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/libav\"/**";
+				USER_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../libav\"/**";
 				WRAPPER_EXTENSION = framework;
 			};
 			name = Release;
