@@ -75,7 +75,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 	
 	// Resign observer
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	[[[NSWorkspace sharedWorkspace] notificationCenter] removeObserver:self];
 	
 	// Release stream
 	if (_stream) {
