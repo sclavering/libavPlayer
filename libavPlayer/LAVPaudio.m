@@ -198,22 +198,11 @@ int audio_decode_frame(VideoState *is)
                 else if (is->frame->pkt_pts != AV_NOPTS_VALUE)
                     is->frame->pts = av_rescale_q(is->frame->pkt_pts, is->audio_st->time_base, tb);
                 else if (is->audio_frame_next_pts != AV_NOPTS_VALUE)
-#if 0
-                    // LAVP:
-#else
                     is->frame->pts = av_rescale_q(is->audio_frame_next_pts, (AVRational){1, is->audio_src.freq}, tb);
-#endif
                 if (is->frame->pts != AV_NOPTS_VALUE)
                     is->audio_frame_next_pts = is->frame->pts + is->frame->nb_samples;
                 
-#if 0
-                // LAVP:
-#endif
             }
-#if 0
-            // LAVP:
-#endif
-            
             data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(is->frame),
                                                    is->frame->nb_samples,
                                                    is->frame->format, 1);
@@ -443,7 +432,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     // prepare AudioQueue for Output
     OSStatus err = 0;
     AudioQueueRef outAQ = NULL;
-#if 1
+
     if (!is->audioDispatchQueue) {
         // using dispatch queue and block object
         void (^inCallbackBlock)() = ^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
@@ -458,10 +447,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
         is->audioDispatchQueue = (__bridge_retained void*)audioDispatchQueue;
         err = AudioQueueNewOutputWithDispatchQueue(&outAQ, &is->asbd, 0, (__bridge dispatch_queue_t)is->audioDispatchQueue, inCallbackBlock);
     }
-#else
-    // using direct callback
-    err = AudioQueueNewOutput(&is->asbd, inCallbackProc, is, 0, 0, 0, &outAQ);
-#endif
+
     assert(err == 0 && outAQ != NULL);
     is->outAQ = outAQ;
     
@@ -554,31 +540,9 @@ void LAVPAudioQueueStop(VideoState *is)
 	
 	// Stop AudioQueue
 	if (currentRunning) {
-#if 1
 		// Specifying YES with AudioQueueStop() to wait untill done
 		err = AudioQueueStop(is->outAQ, YES);
 		assert(err == 0);
-#else
-		// Specifying NO with AudioQueueStop() to avoid severe threading issue
-		err = AudioQueueStop(is->outAQ, NO);
-		assert(err == 0);
-		
-		// wait - blocking
-		int retry = 100;	// 1.0 sec max
-		while (retry--) {
-			currentRunning = 0;
-			currentRunningSize = sizeof(currentRunning);
-			
-			usleep(10*1000);
-            
-			err = AudioQueueGetProperty(is->outAQ, kAudioQueueProperty_IsRunning, &currentRunning, &currentRunningSize);
-			if (err == 0 && currentRunning == 0) break;
-		}
-		if (retry < 0) {
-			NSLog(@"ERROR: Failed to stop AudioQueue.");
-			assert(retry>=0);
-		}
-#endif
 	}
     
 	//NSLog(@"DEBUG: LAVPAudioQueueStop done");

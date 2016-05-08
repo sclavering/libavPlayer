@@ -154,6 +154,7 @@ typedef struct PacketQueue {
 
 /* =========================================================== */
 
+// "Frame" in ffplay.c
 typedef struct VideoPicture {
     volatile double pts;             // presentation timestamp for this picture
     double duration;        // estimated duration based on frame rate
@@ -305,8 +306,6 @@ typedef struct VideoState {
     int audio_pkt_temp_serial;
     int audio_last_serial;
     struct AudioParams audio_src;
-#if 0
-#endif
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
     //

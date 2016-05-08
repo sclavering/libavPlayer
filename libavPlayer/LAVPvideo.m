@@ -618,21 +618,16 @@ int video_thread(void *arg)
             if (!ret)
                 continue;
             
-#if 0
-#else
             duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
             ret = queue_picture(is, frame, pts, duration, av_frame_get_pkt_pos(frame), serial);
             av_frame_unref(frame);
-#endif
             
             if (ret < 0)
                 goto the_end;
         }
 	}
 the_end:
-#if 0
-#endif
     av_free_packet(&pkt);
     av_frame_free(&frame);
     

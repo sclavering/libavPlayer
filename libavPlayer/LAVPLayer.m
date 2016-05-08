@@ -498,18 +498,6 @@ bail:
 		//[ciContext drawImage:image inRect:CGRectMake(0, 0, width-1, height-1) fromRect:[image extent]];
 		//[ciContext drawImage:image inRect:CGRectMake(1, 1, width-2, height-2) fromRect:[image extent]];
 		//[ciContext drawImage:image inRect:CGRectMake(0.001, 0.001, width, height) fromRect:[image extent]];
-		
-#if 0
-		// Debug - checkered pattern
-		const size_t unit = 40;
-		static size_t val = 0;
-		val = val<unit ? ++val : 0;
-		glColor3f(0.5f, 0.5f, 0.5f);
-		for (int x = 0; x<textureRect.size.width; x+=unit) 
-			for (int y = 0; y<textureRect.size.height; y+=unit)
-				if ((x + y)/unit & 1) 
-					glRectd(x, y, x+val, y+val);
-#endif
 	}
 	
 	// Unbind FBO 
@@ -697,24 +685,14 @@ bail:
 										  width, height, format, attr, &pb);
 	assert (result == kCVReturnSuccess && pb);
 	
-#if 1
 	// Dummy fill
 	CVPixelBufferLockBaseAddress(pb, 0);
 	char *p = CVPixelBufferGetBaseAddress(pb);
 	size_t rowLength = CVPixelBufferGetBytesPerRow(pb);
 	size_t rowCount = CVPixelBufferGetHeight(pb);
-	{
-#if 1
-		memset(p, 128, rowLength * rowCount);
-#else
-		int row = 0;
-		for (row = 0; row < rowCount; row++) {
-			memset(p + row*rowLength, row & 0xff, rowLength);
-		}
-#endif
-	}
+	memset(p, 128, rowLength * rowCount);
 	CVPixelBufferUnlockBaseAddress(pb, 0);
-#endif
+
 	return pb;
 }
 

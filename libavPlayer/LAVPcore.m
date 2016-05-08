@@ -316,9 +316,6 @@ void stream_component_close(VideoState *is, int stream_index)
                 is->rdft = NULL;
                 is->rdft_bits = 0;
             }
-#if 0
-            // LAVP:
-#endif
 			break;
 		case AVMEDIA_TYPE_VIDEO:
 			packet_queue_abort(&is->videoq);
@@ -926,9 +923,6 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     is->sws_flags = SWS_BICUBIC;
     is->seek_by_bytes = -1;
     is->display_disable = 0;
-#if 0 // LAVP:
-    is->show_status = -1;
-#endif
     is->workaround_bugs = 1;
     is->fast = 0;
     is->genpts = 0;

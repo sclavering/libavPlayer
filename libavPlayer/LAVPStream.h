@@ -72,20 +72,3 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 - (void) gotoEnd;
 
 @end
-
-/* ================================ N/A ================================ */
-
-#if 0
-@interface LAVStream (control)
-- (void) stepForward;
-- (void) stepBackward;
-@end
-
-@interface LAVStream (attributes)
-- (id) attributeForKey:(NSString *)attributeKey;
-- (void) setAttribute:(id)attr ForKey:(id)key;
-- (NSDictionary *) movieAttributes;
-- (void) setMovieAttributes:(NSDictionary *)attrDict;
-- (NSString *)description;
-@end
-#endif

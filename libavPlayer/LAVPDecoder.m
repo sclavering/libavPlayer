@@ -400,24 +400,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
                     /* TODO seems to be NAN always while in pause. Why? */
                     //NSLog(@"DEBUG: %@", isnan(posNow) ? @"NAN" : @"-");
                     
-                    if (!blocking) {
-#if 0
-                        double_t accelarate = 1.0;
-                        [self setRate:accelarate];
-                        
-                        int count = 0, limit = 5, unit = 10;
-                        for (;count<limit;count++) {
-                            double_t posNow = now_s(); // in sec
-                            if (!isnan(posNow) && posNow * 1.0e6 >= pos) {
-                                lastPosition = posNow*1.0e6; // in usec
-                                break;
-                            }
-                            usleep(unit*1000);
-                        }
-                        
-                        [self setRate:0.0];
-#endif
-                    } else {
+                    if (blocking) {
                         double_t accelarate = 5.0;
                         [self setRate:accelarate];
                         
