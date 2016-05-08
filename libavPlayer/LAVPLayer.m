@@ -109,11 +109,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		gravities = NULL;
 	}
 	if (_cglContext) {
-		[self releaseCGLContext:_cglContext];
+		CGLReleaseContext(_cglContext);
 		_cglContext = NULL;
 	}
 	if (_cglPixelFormat) {
-		[self releaseCGLPixelFormat:_cglPixelFormat];
+		CGLReleasePixelFormat(_cglPixelFormat);
 		_cglPixelFormat = NULL;
 	}
 }
@@ -233,20 +233,10 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 	return _cglPixelFormat;
 }
 
-- (void) releaseCGLPixelFormat:(CGLPixelFormatObj)pixelFormat
-{
-	CGLReleasePixelFormat(_cglPixelFormat);
-}
-
 - (CGLContextObj) copyCGLContextForPixelFormat:(CGLPixelFormatObj)pixelFormat
 {
 	CGLRetainContext(_cglContext);
 	return _cglContext;
-}
-
-- (void) releaseCGLContext:(CGLContextObj)glContext
-{
-	CGLReleaseContext(_cglContext);
 }
 
 - (BOOL) canDrawInCGLContext:(CGLContextObj)glContext 
