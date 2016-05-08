@@ -212,9 +212,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
     newPosition = (newPosition<0.0 ? 0.0 : newPosition);
     newPosition = (newPosition>1.0 ? 1.0 : newPosition);
 
-    BOOL muted = [self muted];
-    if (!muted) [self setMuted:YES];
-
     self.busy = YES;
 
     double_t prevRate = [self rate];
@@ -224,8 +221,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
     if (prevRate) [self setRate:prevRate];
 
     self.busy = NO;
-
-    if (!muted) [self setMuted:NO];
 
     //NSLog(@"DEBUG: seek finished");
 
@@ -329,24 +324,7 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 - (void) setVolume:(Float32)volume
 {
     currentVol = volume;
-    if (!_muted)
-        [decoder setVolume:volume];
-}
-
-- (BOOL) muted
-{
-    return _muted;
-}
-
-- (void) setMuted:(BOOL)muted
-{
-    if (muted) {
-        _muted = TRUE;
-        [decoder setVolume:0.0];
-    } else {
-        _muted = FALSE;
-        [decoder setVolume:currentVol];
-    }
+    [decoder setVolume:volume];
 }
 
 @end

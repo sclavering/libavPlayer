@@ -40,7 +40,6 @@ extern NSString * const LAVPStreamUpdateRateNotification;
     uint64_t _htOffset;     // CVHostTime offset when play
     double_t _posOffset;    // movie time in {0.0, 1.0}
     NSTimer *timer;         // notification timer when EndOfMovie reached
-    BOOL _muted;
     Float32 currentVol;
     BOOL _busy;
 }
@@ -53,7 +52,6 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 @property (assign) double_t position;
 @property (assign) double_t rate;
 @property (assign) Float32 volume;
-@property (assign) BOOL muted;
 @property (readonly) BOOL busy;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
