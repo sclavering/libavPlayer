@@ -27,21 +27,21 @@
 #import "LAVPStream.h"
 
 @interface LAVPLayer : CAOpenGLLayer {
-	LAVPStream *_stream;
+    LAVPStream *_stream;
+
 @private
-	CIContext *ciContext;
-	CIImage *image;
-	CVPixelBufferRef pixelbuffer;
-	NSLock *lock;
-	NSRect prevRect;
-	
-	GLuint	FBOid;
-	GLuint	FBOTextureId;
-	GLfloat	imageAspectRatio;
-	CGRect	textureRect;	// Could be smaller than original CIImage extent
-	
-	CGLPixelFormatObj   _cglPixelFormat;
-	CGLContextObj       _cglContext;
+    CIContext *_ciContext;
+    CIImage *_image;
+    CVPixelBufferRef _pixelBuffer;
+    NSLock *_lock;
+
+    GLuint _fboId;
+    GLuint _fboTextureId;
+    GLfloat _imageAspectRatio;
+    CGRect _textureRect; // May be smaller than original CIImage extent
+
+    CGLPixelFormatObj   _cglPixelFormat;
+    CGLContextObj       _cglContext;
 }
 
 @property bool stretchVideoToFitLayer;

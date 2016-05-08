@@ -77,28 +77,19 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		[_stream stop];
 		_stream = NULL;
 	}
-	
-	if (FBOid) {
-		glDeleteTextures(1, &FBOTextureId);
-		glDeleteFramebuffersEXT(1, &FBOid);
-		FBOTextureId = 0;
-		FBOid = 0;
+	if (_fboId) {
+		glDeleteTextures(1, &_fboTextureId);
+		glDeleteFramebuffersEXT(1, &_fboId);
+		_fboTextureId = 0;
+		_fboId = 0;
+	}	
+	if (_lock) _lock = NULL;
+	if (_image) _image = NULL;
+	if (_pixelBuffer) {
+		CVPixelBufferRelease(_pixelBuffer);
+		_pixelBuffer = NULL;
 	}
-	
-	if (lock) {
-		lock = NULL;
-	}
-	if (image) {
-		image = NULL;
-	}
-	if (pixelbuffer) {
-		CVPixelBufferRelease(pixelbuffer);
-		pixelbuffer = NULL;
-	}
-	if (ciContext) {
-		ciContext = NULL;
-	}
-	
+	if (_ciContext) _ciContext = NULL;
 	if (_cglContext) {
 		CGLReleaseContext(_cglContext);
 		_cglContext = NULL;
@@ -177,7 +168,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 		
 		/* ========================================================= */
 		
-		lock = [[NSLock alloc] init];
+		_lock = [[NSLock alloc] init];
 		
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidate:) name:NSApplicationWillTerminateNotification object:nil];
 		
@@ -224,10 +215,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 			  displayTime:(const CVTimeStamp *)timeStamp
 {
 	if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy) {
-		if (!NSEqualRects(prevRect, [self bounds])) {
-			prevRect = [self bounds];
-        }
-        
 		BOOL ready = NO;
 		if (!timeStamp) 
 			ready = [_stream readyForCurrent];
@@ -245,20 +232,20 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 				pb = [_stream getCVPixelBufferForTime:timeStamp asPTS:&pts];
 			
 			if (pb) {
-				[lock lock];
+				[_lock lock];
 				[self setCVPixelBuffer:pb];
 				[self drawImage];
-				[lock unlock];
+				[_lock unlock];
                 goto bail;
             }
         }
     }
         
     // Fallback: Use last shown image
-    if (image) {
-        [lock lock];
+    if (_image) {
+        [_lock lock];
         [self drawImage];
-        [lock unlock];
+        [_lock unlock];
     }
 	
 bail:
@@ -336,13 +323,8 @@ bail:
 
 - (void) setCIContext
 {
-	if (!ciContext) {
-		ciContext = [CIContext contextWithCGLContext:_cglContext
-										  pixelFormat:_cglPixelFormat 
-										   colorSpace:NULL 
-											  options:NULL
-					  ];
-	}
+	if(_ciContext) return;
+	_ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
 }
 
 /*
@@ -350,22 +332,22 @@ bail:
  */
 - (void) setFBO
 {
-	if (!FBOid) {
+	if (!_fboId) {
 		// create FBO object
-		glGenFramebuffersEXT(1, &FBOid);
-		assert(FBOid);
+		glGenFramebuffersEXT(1, &_fboId);
+		assert(_fboId);
 		
 		// create texture
-		glGenTextures(1, &FBOTextureId);
-		assert(FBOTextureId);
+		glGenTextures(1, &_fboTextureId);
+		assert(_fboTextureId);
 		
 		// Bind FBO
-		GLint   savedFBOid = 0;
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &savedFBOid);
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, FBOid);
+		GLint saved_fboId = 0;
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &saved_fboId);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fboId);
 		
 		// Bind texture
-		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, FBOTextureId);
+		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _fboTextureId);
 		
 		// Prepare GL_BGRA texture attached to FBO
 		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -373,11 +355,11 @@ bail:
 		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		
-		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, textureRect.size.width, textureRect.size.height, 
+		glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, _textureRect.size.width, _textureRect.size.height, 
 					 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 		
 		// Attach texture to the FBO as its color destination
-		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_ARB, FBOTextureId, 0);
+		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_ARB, _fboTextureId, 0);
 		
 		// Make sure the FBO was created succesfully.
 		GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
@@ -398,7 +380,7 @@ bail:
 		glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 		
 		// unbind FBO 
-		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, savedFBOid);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, saved_fboId);
 	}
 }
 
@@ -407,14 +389,14 @@ bail:
 	// Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderCoreImageToFBO
 	
 	// Bind FBO 
-	GLint   savedFBOid = 0;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &savedFBOid);
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, FBOid);
+	GLint   saved_fboId = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &saved_fboId);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fboId);
 	
 	{
 		// prepare canvas
-		GLint width = (GLint)ceil(textureRect.size.width);
-		GLint height = (GLint)ceil(textureRect.size.height);
+		GLint width = (GLint)ceil(_textureRect.size.width);
+		GLint height = (GLint)ceil(_textureRect.size.height);
 		
 		glViewport(0, 0, width, height);
 		
@@ -428,11 +410,11 @@ bail:
 		
 		glClear(GL_COLOR_BUFFER_BIT);
 		
-		[ciContext drawImage:image inRect:textureRect fromRect:[image extent]];
+		[_ciContext drawImage:_image inRect:_textureRect fromRect:[_image extent]];
 	}
 	
 	// Unbind FBO 
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, savedFBOid);
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, saved_fboId);
 }
 
 - (void) renderQuad
@@ -473,7 +455,7 @@ bail:
 	glMatrixMode(GL_TEXTURE);
 	glLoadIdentity();
 	
-	glScalef(textureRect.size.width, textureRect.size.height, 1.0f);
+	glScalef(_textureRect.size.width, _textureRect.size.height, 1.0f);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -482,7 +464,7 @@ bail:
 	glClear(GL_COLOR_BUFFER_BIT);
 	
 	// Bind Texture
-	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, FBOTextureId);
+	glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _fboTextureId);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	
 	//glPushMatrix();
@@ -504,11 +486,11 @@ bail:
 }
 
 - (void)unsetFBO {
-    if (FBOid) {
-        glDeleteTextures(1, &FBOTextureId);
-        glDeleteFramebuffersEXT(1, &FBOid);
-        FBOTextureId = 0;
-        FBOid = 0;
+    if (_fboId) {
+        glDeleteTextures(1, &_fboTextureId);
+        glDeleteFramebuffersEXT(1, &_fboId);
+        _fboTextureId = 0;
+        _fboId = 0;
     }
 }
 
@@ -543,27 +525,27 @@ bail:
 
 - (CVPixelBufferRef) getCVPixelBuffer
 {
-	return pixelbuffer;
+	return _pixelBuffer;
 }
 
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb
 {
-	if (image) {
-		image = NULL;
+	if (_image) {
+		_image = NULL;
 	}
-	if (pixelbuffer) {
-		CVPixelBufferRelease(pixelbuffer);
-		pixelbuffer = NULL;
+	if (_pixelBuffer) {
+		CVPixelBufferRelease(_pixelBuffer);
+		_pixelBuffer = NULL;
 	}
 	
 	if (pb) {
 		CVPixelBufferRetain(pb);
-		pixelbuffer = pb;
+		_pixelBuffer = pb;
 	} else {
-		pixelbuffer = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
+		_pixelBuffer = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
 	}
 	
-	image = [CIImage imageWithCVImageBuffer:pixelbuffer];
+	_image = [CIImage imageWithCVImageBuffer:_pixelBuffer];
 }
 
 - (void) streamDidSeek:(NSNotification *)aNotification
@@ -609,13 +591,13 @@ bail:
 - (void) setStream:(LAVPStream *)newStream
 {
 	self.asynchronous = NO;
-	[lock lock];
+	[_lock lock];
 	
-	if (FBOid) {
-		glDeleteTextures(1, &FBOTextureId);
-		glDeleteFramebuffersEXT(1, &FBOid);
-		FBOTextureId = 0;
-		FBOid = 0;
+	if (_fboId) {
+		glDeleteTextures(1, &_fboTextureId);
+		glDeleteFramebuffersEXT(1, &_fboId);
+		_fboTextureId = 0;
+		_fboId = 0;
 	}
 	
 	[_stream stop];
@@ -623,29 +605,29 @@ bail:
 	
 	// Get the size of the image we are going to need throughout
 	if (_stream && [_stream frameSize].width && [_stream frameSize].height)
-		textureRect = CGRectMake(0, 0, [_stream frameSize].width, [_stream frameSize].height);
+		_textureRect = CGRectMake(0, 0, [_stream frameSize].width, [_stream frameSize].height);
 	else
-		textureRect = CGRectMake(0, 0, DUMMY_W, DUMMY_H);
+		_textureRect = CGRectMake(0, 0, DUMMY_W, DUMMY_H);
 	
 	// Get the aspect ratio for possible scaling (e.g. texture coordinates)
-	imageAspectRatio = textureRect.size.width / textureRect.size.height;
+	_imageAspectRatio = _textureRect.size.width / _textureRect.size.height;
 	
 	// Shrink texture size if it is bigger than limit
 	GLint maxTexSize; 
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
-	if (textureRect.size.width > maxTexSize || textureRect.size.height > maxTexSize) {
-		if (imageAspectRatio > 1) {
-			textureRect.size.width = maxTexSize; 
-			textureRect.size.height = maxTexSize / imageAspectRatio;
+	if (_textureRect.size.width > maxTexSize || _textureRect.size.height > maxTexSize) {
+		if (_imageAspectRatio > 1) {
+			_textureRect.size.width = maxTexSize;
+			_textureRect.size.height = maxTexSize / _imageAspectRatio;
 		} else {
-			textureRect.size.width = maxTexSize * imageAspectRatio ;
-			textureRect.size.height = maxTexSize; 
+			_textureRect.size.width = maxTexSize * _imageAspectRatio;
+			_textureRect.size.height = maxTexSize;
 		}
 	}
 	
 	[self setNeedsDisplay];
 	
-	[lock unlock];
+	[_lock unlock];
 	self.asynchronous = YES;
 }
 
