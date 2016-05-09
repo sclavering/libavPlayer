@@ -6,7 +6,9 @@
 //  Copyright 2011 MyCometG3. All rights reserved.
 //
 
-#import <Cocoa/Cocoa.h>
+@import Cocoa;
+
+#import <libavPlayer/libavPlayer.h>
 
 @interface LAVPTestAppDelegate : NSObject <NSApplicationDelegate> {
     LAVPStream *viewstream;
