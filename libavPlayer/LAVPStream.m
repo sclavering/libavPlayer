@@ -26,11 +26,6 @@
 #import "LAVPStream.h"
 #import "LAVPDecoder.h"
 
-NSString * const LAVPStreamDidEndNotification = @"LAVPStreamDidEndNotification";
-NSString * const LAVPStreamDidSeekNotification = @"LAVPStreamDidSeekNotification";
-NSString * const LAVPStreamStartSeekNotification = @"LAVPStreamStartSeekNotification";
-NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotification";
-
 #define AV_TIME_BASE            1000000
 
 // class extension
@@ -195,17 +190,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 {
     // position uses double value between 0.0 and 1.0
 
-    //NSLog(@"DEBUG: seek started");
-
-    {
-        // Post notification
-        //NSLog(@"DEBUG: LAVPStreamStartSeekNotification");
-        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-        NSNotification *notification = [NSNotification notificationWithName:LAVPStreamStartSeekNotification
-                                                                     object:self];
-        [center postNotification:notification];
-    }
-
     int64_t    duration = [decoder duration];    //usec
 
     // clipping
@@ -222,16 +206,7 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 
     self.busy = NO;
 
-    //NSLog(@"DEBUG: seek finished");
-
-    {
-        // Post notification
-        //NSLog(@"DEBUG: LAVPStreamDidSeekNotification");
-        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-        NSNotification *notification = [NSNotification notificationWithName:LAVPStreamDidSeekNotification
-                                                                     object:self];
-        [center postNotification:notification];
-    }
+    if(self.streamOutput) [self.streamOutput streamOutputNeedsSingleUpdate];
 }
 
 - (double_t) rate
@@ -251,7 +226,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 
     if (_htOffset && [decoder rate] == newRate) return;
 
-    // stop notificatino timer
     if (timer) {
         [timer invalidate];
         timer = nil;
@@ -277,11 +251,7 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
     _htOffset = CVGetCurrentHostTime();
     _posOffset = (double)[decoder position] / [decoder duration];
 
-    // Post notification
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    NSNotification *notification = [NSNotification notificationWithName:LAVPStreamUpdateRateNotification
-                                                                 object:self];
-    [center postNotification:notification];
+    if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
 }
 
 - (void)checkEndOfMovie
@@ -289,18 +259,12 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
     if ([decoder eof] && [decoder rate] == 0.0) {
         //NSLog(@"DEBUG: movie finished");
 
-        // stop notificatino timer
         if (timer) {
             [timer invalidate];
             timer = nil;
         }
 
-        // Post notification
-        //NSLog(@"DEBUG: LAVPStreamDidEndNotification");
-        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-        NSNotification *notification = [NSNotification notificationWithName:LAVPStreamDidEndNotification
-                                                                     object:self];
-        [center postNotification:notification];
+        if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating:false];
     }
 
     return;

@@ -26,12 +26,8 @@
 #import <Cocoa/Cocoa.h>
 #import <QTKit/QTTime.h>
 
-extern NSString * const LAVPStreamDidEndNotification;
-extern NSString * const LAVPStreamDidSeekNotification;
-extern NSString * const LAVPStreamStartSeekNotification;
-extern NSString * const LAVPStreamUpdateRateNotification;
-
 @class LAVPDecoder;
+@protocol LAVPStreamOutput;
 
 @interface LAVPStream : NSObject {
     NSURL    *url;
@@ -43,6 +39,9 @@ extern NSString * const LAVPStreamUpdateRateNotification;
     Float32 currentVol;
     BOOL _busy;
 }
+
+// In practice this is an LAVPLayer.  The stream needs to be able to tell it to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.
+@property (weak) id<LAVPStreamOutput> streamOutput;
 
 @property (retain, readonly) NSURL *url;
 
@@ -66,3 +65,14 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 - (CVPixelBufferRef) getCVPixelBufferForTime:(const CVTimeStamp*)ts asPTS:(double_t *)pts;
 
 @end
+
+
+
+@protocol LAVPStreamOutput
+
+// Called e.g. after seeking while paused.
+-(void) streamOutputNeedsSingleUpdate;
+// Called when playback starts or stops for any reason.
+-(void) streamOutputNeedsContinuousUpdating:(bool)continuousUpdating;
+
+@end;

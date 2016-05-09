@@ -46,7 +46,6 @@
 - (CVPixelBufferRef) getCVPixelBuffer;
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb;
 - (void) streamDidSeek:(NSNotification *)aNotification;
-- (void) handleDisplayLink:(NSNotification *)aNotification;
 
 @end
 
@@ -173,14 +172,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         _lock = [[NSLock alloc] init];
 
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidate:) name:NSApplicationWillTerminateNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(streamDidSeek:) name:LAVPStreamDidSeekNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(streamStartSeek:) name:LAVPStreamStartSeekNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleDisplayLink:) name:LAVPStreamDidEndNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(handleDisplayLink:) name:LAVPStreamUpdateRateNotification object:nil];
 
         CGDisplayRegisterReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
     }
@@ -550,37 +541,6 @@ bail:
     _image = [CIImage imageWithCVImageBuffer:_pixelBuffer];
 }
 
-- (void) streamDidSeek:(NSNotification *)aNotification
-{
-    LAVPStream *sender = [aNotification object];
-    if (sender == _stream) {
-        // Give some interval to displayLink updating image
-        //[self performSelector:@selector(handleDisplayLink:) withObject:aNotification afterDelay:0.05];
-        NSNotification * delayed = [NSNotification notificationWithName:@"delayed" object:sender];
-        [self performSelector:@selector(handleDisplayLink:) withObject:delayed afterDelay:0.05];
-    }
-}
-
-- (void) streamStartSeek:(NSNotification *)aNotification
-{
-    LAVPStream *sender = [aNotification object];
-    if (sender == _stream) {
-        if (!self.asynchronous) self.asynchronous = YES;
-    }
-}
-
-- (void) handleDisplayLink:(NSNotification *)aNotification
-{
-    LAVPStream *sender = [aNotification object];
-    if (sender == _stream) {
-        if ([sender rate] > 0.0) {
-            if (!self.asynchronous) self.asynchronous = YES;
-        } else {
-            if (self.asynchronous) self.asynchronous = NO;
-        }
-    }
-}
-
 /* =============================================================================================== */
 #pragma mark -
 #pragma mark public
@@ -602,8 +562,12 @@ bail:
         _fboId = 0;
     }
 
-    _stream.rate = 0.0;
+    if(_stream) {
+        _stream.rate = 0.0;
+        _stream.streamOutput = nil;
+    }
     _stream = newStream;
+    _stream.streamOutput = self;
 
     // Get the size of the image we are going to need throughout
     if (_stream && [_stream frameSize].width && [_stream frameSize].height)
@@ -631,6 +595,22 @@ bail:
 
     [_lock unlock];
     self.asynchronous = YES;
+}
+
+/* =============================================================================================== */
+#pragma mark -
+#pragma mark LAVPStreamOutput impl
+
+// Called e.g. after seeking while paused.
+-(void) streamOutputNeedsSingleUpdate {
+    NSLog(@"streamOutputNeedsSingleUpdate %d");
+    [self setNeedsDisplay];
+}
+
+// Called when playback starts or stops for any reason.
+-(void) streamOutputNeedsContinuousUpdating:(bool)continuousUpdating {
+    NSLog(@"streamOutputNeedsContinuousUpdating %d", continuousUpdating);
+    self.asynchronous = continuousUpdating;
 }
 
 @end

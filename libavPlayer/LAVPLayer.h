@@ -26,7 +26,8 @@
 #import <Cocoa/Cocoa.h>
 #import "LAVPStream.h"
 
-@interface LAVPLayer : CAOpenGLLayer {
+@interface LAVPLayer : CAOpenGLLayer <LAVPStreamOutput>
+{
     LAVPStream *_stream;
 
 @private
