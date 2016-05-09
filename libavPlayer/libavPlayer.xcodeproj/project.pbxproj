@@ -141,7 +141,6 @@
 		16A196F813ADFDC1008825FF /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		16A1971513ADFE22008825FF /* libavPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libavPlayer.h; sourceTree = "<group>"; };
 		16E3B1C113BA0AE4000E6062 /* LAVPutil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = LAVPutil.c; sourceTree = "<group>"; };
-		32DBCF5E0370ADEE00C91783 /* libavPlayer_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libavPlayer_Prefix.pch; sourceTree = "<group>"; };
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* libavPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = libavPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA81D9D61CC6876100827BED /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
@@ -286,7 +285,6 @@
 			isa = PBXGroup;
 			children = (
 				16E3B1C113BA0AE4000E6062 /* LAVPutil.c */,
-				32DBCF5E0370ADEE00C91783 /* libavPlayer_Prefix.pch */,
 				16A1933713ADB4F0008825FF /* LAVPcommon.h */,
 				16A193C413ADC268008825FF /* LAVPaudio.h */,
 				16A193C513ADC268008825FF /* LAVPaudio.m */,
@@ -497,7 +495,6 @@
 				);
 				FRAMEWORK_VERSION = A;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = libavPlayer_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (
@@ -529,7 +526,6 @@
 				);
 				FRAMEWORK_VERSION = A;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = libavPlayer_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (
