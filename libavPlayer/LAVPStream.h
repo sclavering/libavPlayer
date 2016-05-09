@@ -50,7 +50,10 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 @property (readonly) QTTime duration;
 @property (assign) QTTime currentTime;
 @property (assign) double_t position;
+
+// Note: set this to 0 to pause/stop, and to 1.0 to start playing at normal speed.  Read it to determine whether the stream is currently being played.
 @property (assign) double_t rate;
+
 @property (assign) Float32 volume;
 @property (readonly) BOOL busy;
 
@@ -61,8 +64,5 @@ extern NSString * const LAVPStreamUpdateRateNotification;
 - (BOOL) readyForTime:(const CVTimeStamp*)ts;
 - (CVPixelBufferRef) getCVPixelBufferForCurrentAsPTS:(double_t *)pts;
 - (CVPixelBufferRef) getCVPixelBufferForTime:(const CVTimeStamp*)ts asPTS:(double_t *)pts;
-
-- (void) play;
-- (void) stop;
 
 @end

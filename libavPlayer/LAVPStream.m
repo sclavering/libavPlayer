@@ -186,7 +186,7 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
 {
     // If you seek with rate != 0 the seeking takes ages (several seconds).
     double prevRate = self.rate;
-    [self stop];
+    self.rate = 0.0;
     [self _setPosition:newPosition];
     self.rate = prevRate;
 }
@@ -304,16 +304,6 @@ NSString * const LAVPStreamUpdateRateNotification = @"LAVPStreamUpdateRateNotifi
     }
 
     return;
-}
-
-- (void) play
-{
-    [self setRate:1.0];
-}
-
-- (void) stop
-{
-    [self setRate:0.0];
 }
 
 - (Float32) volume

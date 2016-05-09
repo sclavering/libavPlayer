@@ -91,7 +91,7 @@ NSString* formatTime(QTTime qttime)
 #if 1
     if (viewwindow) {
         if (viewstream) {
-            [viewstream stop];
+            viewstream.rate = 0.0;
             [view setStream:nil];
             viewstream = nil;
         }
@@ -105,7 +105,7 @@ NSString* formatTime(QTTime qttime)
 #if 1
     if (layerwindow) {
         if (layerstream) {
-            [layerstream stop];
+            layerstream.rate = 0.0;
             [layer setStream:nil];
             layerstream = nil;
         }
@@ -161,7 +161,7 @@ NSString* formatTime(QTTime qttime)
     NSWindow *obj = [notification object];
     if (obj == layerwindow) {
         NSLog(@"NOTE: layerwindow closing...");
-        [layerstream stop];
+        layerstream.rate = 0.0;
         [layer setStream:nil];
         layerstream = nil;
         layerwindow = nil;
@@ -171,7 +171,7 @@ NSString* formatTime(QTTime qttime)
     }
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
-        [viewstream stop];
+        viewstream.rate = 0.0;
         [view setStream:nil];
         viewstream = nil;
         viewwindow = nil;
@@ -192,7 +192,7 @@ NSString* formatTime(QTTime qttime)
     }
 
     if ([theStream rate]) {
-        [theStream stop];
+        theStream.rate = 0.0;
     } else {
         QTTime currentTime = [theStream currentTime];
         QTTime duration = [theStream duration];
@@ -202,11 +202,7 @@ NSString* formatTime(QTTime qttime)
 
         // test code for playRate support
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
-        if (shiftKey) {
-            [theStream setRate:1.5];
-        } else {
-            [theStream setRate:1.0];
-        }
+        theStream.rate = shiftKey ? 1.5 : 1.0;
     }
 }
 

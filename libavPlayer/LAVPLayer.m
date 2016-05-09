@@ -74,7 +74,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     if (_stream) {
-        [_stream stop];
+        _stream.rate = 0.0;
         _stream = NULL;
     }
     if (_fboId) {
@@ -600,7 +600,7 @@ bail:
         _fboId = 0;
     }
 
-    [_stream stop];
+    _stream.rate = 0.0;
     _stream = newStream;
 
     // Get the size of the image we are going to need throughout
