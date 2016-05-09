@@ -27,6 +27,8 @@
 #import <GLUT/glut.h>
 #import <OpenGL/gl.h>
 
+@import CoreImage;
+
 #define DUMMY_W 640
 #define DUMMY_H 480
 

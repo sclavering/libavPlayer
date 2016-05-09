@@ -4,11 +4,4 @@
 
 #ifdef __OBJC__
 #import <Cocoa/Cocoa.h>
-#import <QTKit/QTKit.h>
 #endif
-
-#import <QuartzCore/QuartzCore.h>
-#import <CoreVideo/CoreVideo.h>
-
-#import <OpenGL/OpenGL.h>
-#import <AudioToolbox/AudioToolbox.h>

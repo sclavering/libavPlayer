@@ -27,6 +27,8 @@
 #ifndef __LAVPCommon_h__
 #define __LAVPCommon_h__
 
+@import AudioToolbox;
+
 #include "avcodec.h"
 #include "avformat.h"
 #include "avutil.h"
