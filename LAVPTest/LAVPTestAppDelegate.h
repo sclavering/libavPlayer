@@ -9,18 +9,18 @@
 #import <Cocoa/Cocoa.h>
 
 @interface LAVPTestAppDelegate : NSObject <NSApplicationDelegate> {
-	LAVPStream *viewstream;
-	double_t viewPos;
-	NSString *viewTitle;
-	
-	LAVPLayer *layer;
-	LAVPStream *layerstream;
-	double_t layerPos;
-	NSString *layerTitle;
-	
-	NSTimer *timer;
-	double_t layerPrev;
-	double_t viewPrev;
+    LAVPStream *viewstream;
+    double_t viewPos;
+    NSString *viewTitle;
+
+    LAVPLayer *layer;
+    LAVPStream *layerstream;
+    double_t layerPos;
+    NSString *layerTitle;
+
+    NSTimer *timer;
+    double_t layerPrev;
+    double_t viewPrev;
 }
 
 @property (unsafe_unretained) IBOutlet NSWindow *viewwindow;
