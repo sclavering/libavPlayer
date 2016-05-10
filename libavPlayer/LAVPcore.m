@@ -421,8 +421,6 @@ int read_thread(void *arg)
         st_index[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1,  aud_index, NULL , 0);
         st_index[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(is->ic, AVMEDIA_TYPE_SUBTITLE, -1, sub_index , NULL, 0);
 
-        // LAVP: show_status is in stream_open()
-
         /* open the streams */
         if (st_index[AVMEDIA_TYPE_AUDIO] >= 0)
             stream_component_open(is, st_index[AVMEDIA_TYPE_AUDIO]);
@@ -877,18 +875,13 @@ void stream_close(VideoState *is)
     }
 
     /* original: do_exit() */
-    BOOL doLF = false;
     if (is) {
-        doLF = (is->show_status);
-
         free(is);
         is = NULL;
     }
     av_lockmgr_register(NULL);
     //
     avformat_network_deinit();
-    if (doLF)
-        printf("\n");
     av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
 
@@ -1022,11 +1015,6 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
 
     // LAVP: av_find_best_stream is moved to read_thread()
-
-    // dump format info
-    if (is->show_status) {
-        av_dump_format(is->ic, 0, is->filename, 0);
-    }
 
     /* ======================================== */
 

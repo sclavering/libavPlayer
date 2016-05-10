@@ -187,7 +187,6 @@ typedef struct Clock {
 typedef struct VideoState {
     /* moved from global parameter */
     volatile int seek_by_bytes;     /* static int seek_by_bytes = -1; */
-    volatile int show_status;       /* static int show_status = -1 */
     volatile int infinite_buffer;            /* static int infinite_buffer = -1; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
 
@@ -309,10 +308,6 @@ typedef struct VideoState {
 
     // LAVPvideo
 
-    /* same order as original struct */
-    int frame_drops_early;
-    int frame_drops_late;
-    //
     volatile double frame_timer;
     volatile double frame_last_returned_time;
     volatile double frame_last_filter_delay;

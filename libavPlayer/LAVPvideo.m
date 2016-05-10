@@ -275,8 +275,6 @@ void video_refresh(void *opaque, double *remaining_time)
                 VideoPicture *nextvp = &is->pictq[(is->pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE];
                 duration = vp_duration(is, vp, nextvp);
                 if(!is->step && (redisplay || (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
-                    if (!redisplay)
-                        is->frame_drops_late++;
                     LAVPUnlockMutex(is->pictq_mutex);
                     pictq_next_picture(is);
                     redisplay = 0;
@@ -324,47 +322,6 @@ display:
         }
     }
     is->force_refresh = 0;
-#if 0
-    if (is->show_status) {
-        static int64_t last_time;
-        int64_t cur_time;
-        int aqsize, vqsize, sqsize;
-        double av_diff;
-
-        cur_time = av_gettime();
-        if (!last_time || (cur_time - last_time) >= 30000) {
-            aqsize = 0;
-            vqsize = 0;
-            sqsize = 0;
-            if (is->audio_st)
-                aqsize = is->audioq.size;
-            if (is->video_st)
-                vqsize = is->videoq.size;
-            if (is->subtitle_st)
-                sqsize = is->subtitleq.size;
-            av_diff = 0;
-            if (is->audio_st && is->video_st)
-                av_diff = get_clock(&is->audclk) - get_clock(&is->vidclk);
-            else if (is->video_st)
-                av_diff = get_master_clock(is) - get_clock(&is->vidclk);
-            else if (is->audio_st)
-                av_diff = get_master_clock(is) - get_clock(&is->audclk);
-            av_log(NULL, AV_LOG_INFO,
-                   "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"PRId64"/%"PRId64"   \r",
-                   get_master_clock(is),
-                   (is->audio_st && is->video_st) ? "A-V" : (is->video_st ? "M-V" : (is->audio_st ? "M-A" : "   ")),
-                   av_diff,
-                   is->frame_drops_early + is->frame_drops_late,
-                   aqsize / 1024,
-                   vqsize / 1024,
-                   sqsize,
-                   is->video_st ? is->video_st->codec->pts_correction_num_faulty_dts : 0,
-                   is->video_st ? is->video_st->codec->pts_correction_num_faulty_pts : 0);
-            fflush(stdout);
-            last_time = cur_time;
-        }
-    }
-#endif
 }
 
 /* allocate a picture (needs to do that in main thread to avoid
@@ -561,7 +518,6 @@ int get_video_frame(VideoState *is, AVFrame *frame, AVPacket *pkt, int *serial)
                     diff - is->frame_last_filter_delay < 0 &&
                     *serial == is->vidclk.serial &&
                     is->videoq.nb_packets) {
-                    is->frame_drops_early++;
                     av_frame_unref(frame);
                     ret = 0;
                 }
