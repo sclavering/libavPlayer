@@ -42,10 +42,6 @@
 - (void) renderQuad;
 - (void) unsetFBO;
 
-- (CVPixelBufferRef) createDummyCVPixelBufferWithSize:(NSSize)size ;
-- (void) setCVPixelBuffer:(CVPixelBufferRef) pb;
-- (void) streamDidSeek:(NSNotification *)aNotification;
-
 @end
 
 @implementation LAVPLayer
@@ -221,7 +217,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
             if (pb) {
                 [_lock lock];
-                [self setCVPixelBuffer:pb];
+                _image = [CIImage imageWithCVImageBuffer:pb];
                 [self drawImage];
                 [_lock unlock];
                 goto bail;
@@ -480,41 +476,6 @@ bail:
         _fboTextureId = 0;
         _fboId = 0;
     }
-}
-
-/* =============================================================================================== */
-#pragma mark -
-
-/*
- new CVPixelBuffer '2vuy' using specified size.
- Caller must call CVPixelBufferRelease() when available.
- */
-- (CVPixelBufferRef) createDummyCVPixelBufferWithSize:(NSSize)size {
-    OSType format = '2vuy';    //k422YpCbCr8CodecType
-    size_t width = size.width, height = size.height;
-    CFDictionaryRef attr = NULL;
-    CVPixelBufferRef pb = NULL;
-
-    assert(width * height > 0);
-    CVReturn result = CVPixelBufferCreate(kCFAllocatorDefault,
-                                          width, height, format, attr, &pb);
-    assert (result == kCVReturnSuccess && pb);
-
-    // Dummy fill
-    CVPixelBufferLockBaseAddress(pb, 0);
-    char *p = CVPixelBufferGetBaseAddress(pb);
-    size_t rowLength = CVPixelBufferGetBytesPerRow(pb);
-    size_t rowCount = CVPixelBufferGetHeight(pb);
-    memset(p, 128, rowLength * rowCount);
-    CVPixelBufferUnlockBaseAddress(pb, 0);
-
-    return pb;
-}
-
-- (void) setCVPixelBuffer:(CVPixelBufferRef) pb
-{
-    if(!pb) pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
-    _image = [CIImage imageWithCVImageBuffer:pb];
 }
 
 /* =============================================================================================== */
