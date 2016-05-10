@@ -155,7 +155,7 @@ int stream_component_open(VideoState *is, int stream_index)
     int sample_rate, nb_channels;
     int64_t channel_layout;
     int ret;
-    int stream_lowres = is->lowres;
+    int stream_lowres = 0;
 
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return -1;
@@ -175,17 +175,16 @@ int stream_component_open(VideoState *is, int stream_index)
     }
 
     avctx->codec_id = codec->id;
-    avctx->workaround_bugs = is->workaround_bugs;
+    avctx->workaround_bugs = 1;
     if(stream_lowres > av_codec_get_max_lowres(codec)){
         av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
                av_codec_get_max_lowres(codec));
         stream_lowres = av_codec_get_max_lowres(codec);
     }
     av_codec_set_lowres(avctx, stream_lowres);
-    avctx->error_concealment= is->error_concealment;
+    avctx->error_concealment = 3;
 
     if(stream_lowres) avctx->flags |= CODEC_FLAG_EMU_EDGE;
-    if (is->fast)   avctx->flags2 |= CODEC_FLAG2_FAST;
     if(codec->capabilities & CODEC_CAP_DR1)
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
 
@@ -920,17 +919,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     is->decoder = (__bridge_retained void*)opaque;    // (LAVPDecoder *)
     is->lastPTScopied = -1;
 
-    is->sws_flags = SWS_BICUBIC;
     is->seek_by_bytes = -1;
-    is->display_disable = 0;
-    is->workaround_bugs = 1;
-    is->fast = 0;
-    is->genpts = 0;
-    is->lowres = 0;
-    is->error_concealment = 3;
-    is->decoder_reorder_pts = -1;
-    is->loop = 1;
-    is->framedrop = -1;
     is->infinite_buffer = -1;
     is->show_mode = SHOW_MODE_NONE;
     is->rdftspeed = 0.02;
@@ -1006,9 +995,6 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
         }
         is->ic = ic;
     }
-
-    if (is->genpts)
-        is->ic->flags |= AVFMT_FLAG_GENPTS;
 
     // Examine stream info
     {

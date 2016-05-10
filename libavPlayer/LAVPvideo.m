@@ -219,7 +219,7 @@ void video_refresh(void *opaque, double *remaining_time)
     if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
         check_external_clock_speed(is);
 
-    if (!is->display_disable && is->show_mode != SHOW_MODE_VIDEO && is->audio_st) {
+    if (is->show_mode != SHOW_MODE_VIDEO && is->audio_st) {
         time = av_gettime() / 1000000.0;
         if (is->force_refresh || is->last_vis_time + is->rdftspeed < time) {
             video_display(is);
@@ -285,7 +285,7 @@ void video_refresh(void *opaque, double *remaining_time)
             if (is->pictq_size > 1) {
                 VideoPicture *nextvp = &is->pictq[(is->pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE];
                 duration = vp_duration(is, vp, nextvp);
-                if(!is->step && (redisplay || is->framedrop>0 || (is->framedrop && get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                if(!is->step && (redisplay || (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
                     if (!redisplay)
                         is->frame_drops_late++;
                     LAVPUnlockMutex(is->pictq_mutex);
@@ -327,7 +327,7 @@ void video_refresh(void *opaque, double *remaining_time)
 
 display:
             /* display picture */
-            if (!is->display_disable && is->show_mode == SHOW_MODE_VIDEO)
+            if (is->show_mode == SHOW_MODE_VIDEO)
                 video_display(is);
 
             pictq_next_picture(is);
@@ -513,7 +513,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
             is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
                                                        vp->width, vp->height, src_frame->format,
                                                        vp->width, vp->height, AV_PIX_FMT_YUV420P,
-                                                       is->sws_flags, NULL, NULL, NULL);
+                                                       SWS_BICUBIC, NULL, NULL, NULL);
             if (is->img_convert_ctx == NULL) {
                 av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
                 exit(1);
@@ -560,20 +560,14 @@ int get_video_frame(VideoState *is, AVFrame *frame, AVPacket *pkt, int *serial)
         int ret = 1;
         double dpts = NAN;
 
-        if (is->decoder_reorder_pts == -1) {
-            frame->pts = av_frame_get_best_effort_timestamp(frame);
-        } else if (is->decoder_reorder_pts) {
-            frame->pts = frame->pkt_pts;
-        } else {
-            frame->pts = frame->pkt_dts;
-        }
+        frame->pts = av_frame_get_best_effort_timestamp(frame);
 
         if (frame->pts != AV_NOPTS_VALUE)
             dpts = av_q2d(is->video_st->time_base) * frame->pts;
 
         frame->sample_aspect_ratio = av_guess_sample_aspect_ratio(is->ic, is->video_st, frame);
 
-        if (is->framedrop>0 || (is->framedrop && get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) {
+        if (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER) {
             if (frame->pts != AV_NOPTS_VALUE) {
                 double diff = dpts - get_master_clock(is);
                 if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&

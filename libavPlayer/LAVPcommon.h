@@ -199,18 +199,8 @@ typedef struct Clock {
 
 typedef struct VideoState {
     /* moved from global parameter */
-    int64_t sws_flags;              /* static int64_t sws_flags = SWS_BICUBIC; */
     volatile int seek_by_bytes;     /* static int seek_by_bytes = -1; */
-    int display_disable;            /* static int display_disable; */
     volatile int show_status;       /* static int show_status = -1 */
-    int workaround_bugs;            /* static int workaround_bugs = 1; */
-    int fast;                       /* static int fast = 0; */
-    int genpts;                     /* static int genpts = 0; */
-    int lowres;                     /* static int lowres = 0; */
-    int error_concealment;          /* static int error_concealment = 3; */
-    int decoder_reorder_pts;        /* static int decoder_reorder_pts = -1; */
-    int loop;                       /* static int loop = 1; */
-    int framedrop;                  /* static int framedrop = -1; */
     volatile int infinite_buffer;            /* static int infinite_buffer = -1; */
     volatile enum ShowMode show_mode;        /* static enum ShowMode show_mode = SHOW_MODE_NONE; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
