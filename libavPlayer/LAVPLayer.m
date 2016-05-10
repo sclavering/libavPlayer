@@ -32,17 +32,6 @@
 #define DUMMY_W 640
 #define DUMMY_H 480
 
-@interface LAVPLayer (private)
-
-- (void) initOpenGL;
-- (void) drawImage;
-- (void) setCIContext;
-- (void) setFBO;
-- (void) renderCoreImageToFBO;
-- (void) renderQuad;
-- (void) unsetFBO;
-
-@end
 
 @implementation LAVPLayer
 
@@ -146,7 +135,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         CGLSetCurrentContext(_cglContext);
         CGLLockContext(_cglContext);
 
-        [self initOpenGL];
+        [self _initOpenGL];
 
         // Turn on VBL syncing for swaps
         self.asynchronous = YES;
@@ -218,7 +207,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
             if (pb) {
                 [_lock lock];
                 _image = [CIImage imageWithCVImageBuffer:pb];
-                [self drawImage];
+                [self _drawImage];
                 [_lock unlock];
                 goto bail;
             }
@@ -228,7 +217,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     // Fallback: Use last shown image
     if (_image) {
         [_lock lock];
-        [self drawImage];
+        [self _drawImage];
         [_lock unlock];
     }
 
@@ -244,7 +233,7 @@ bail:
 #pragma mark -
 #pragma mark private
 
-- (void) initOpenGL {
+- (void) _initOpenGL {
     // Clear to black.
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -263,26 +252,26 @@ bail:
 /*
  Draw CVImageBuffer into CGLContext
  */
-- (void) drawImage {
+- (void) _drawImage {
     CGLContextObj savedContext = CGLGetCurrentContext();
     CGLSetCurrentContext(_cglContext);
     CGLLockContext(_cglContext);
 
     if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize)) {
         // Prepare CIContext
-        [self setCIContext];
+        [self _setCIContext];
 
         // Prepare new texture
-        [self setFBO];
+        [self _setFBO];
 
         // update texture with current CIImage
-        [self renderCoreImageToFBO];
+        [self _renderCoreImageToFBO];
 
         // Render quad
-        [self renderQuad];
+        [self _renderQuad];
 
         // Delete the texture and the FBO
-        [self unsetFBO];
+        [self _unsetFBO];
     } else {
         NSSize dstSize = [self bounds].size;
 
@@ -305,7 +294,7 @@ bail:
     CGLFlushDrawable(_cglContext);
 }
 
-- (void) setCIContext
+- (void) _setCIContext
 {
     if(_ciContext) return;
     _ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
@@ -314,7 +303,7 @@ bail:
 /*
  Set up FBO and new Texture
  */
-- (void) setFBO
+- (void) _setFBO
 {
     if (!_fboId) {
         // create FBO object
@@ -368,7 +357,7 @@ bail:
     }
 }
 
-- (void) renderCoreImageToFBO
+- (void) _renderCoreImageToFBO
 {
     // Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderCoreImageToFBO
 
@@ -401,7 +390,7 @@ bail:
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, saved_fboId);
 }
 
-- (void) renderQuad
+- (void) _renderQuad
 {
     CGSize tr = CGSizeMake( 1.0f,  1.0f);
     CGSize tl = CGSizeMake(-1.0f,  1.0f);
@@ -469,7 +458,7 @@ bail:
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 }
 
-- (void)unsetFBO {
+- (void) _unsetFBO {
     if (_fboId) {
         glDeleteTextures(1, &_fboTextureId);
         glDeleteFramebuffersEXT(1, &_fboId);
