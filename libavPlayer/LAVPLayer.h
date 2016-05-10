@@ -33,7 +33,6 @@
 @private
     CIContext *_ciContext;
     CIImage *_image;
-    CVPixelBufferRef _pixelBuffer;
     NSLock *_lock;
 
     GLuint _fboId;

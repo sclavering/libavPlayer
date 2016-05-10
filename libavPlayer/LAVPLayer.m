@@ -85,10 +85,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
     if (_lock) _lock = NULL;
     if (_image) _image = NULL;
-    if (_pixelBuffer) {
-        CVPixelBufferRelease(_pixelBuffer);
-        _pixelBuffer = NULL;
-    }
     if (_ciContext) _ciContext = NULL;
     if (_cglContext) {
         CGLReleaseContext(_cglContext);
@@ -517,22 +513,8 @@ bail:
 
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb
 {
-    if (_image) {
-        _image = NULL;
-    }
-    if (_pixelBuffer) {
-        CVPixelBufferRelease(_pixelBuffer);
-        _pixelBuffer = NULL;
-    }
-
-    if (pb) {
-        CVPixelBufferRetain(pb);
-        _pixelBuffer = pb;
-    } else {
-        _pixelBuffer = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
-    }
-
-    _image = [CIImage imageWithCVImageBuffer:_pixelBuffer];
+    if(!pb) pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(DUMMY_W, DUMMY_H)];
+    _image = [CIImage imageWithCVImageBuffer:pb];
 }
 
 /* =============================================================================================== */
