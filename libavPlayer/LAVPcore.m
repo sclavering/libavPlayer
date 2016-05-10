@@ -919,7 +919,6 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     is->decoder = (__bridge_retained void*)opaque;    // (LAVPDecoder *)
     is->lastPTScopied = -1;
 
-    is->seek_by_bytes = -1;
     is->infinite_buffer = -1;
     is->show_mode = SHOW_MODE_NONE;
     is->rdftspeed = 0.02;
@@ -1021,8 +1020,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     if (is->ic->pb)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use url_feof() to test for the end
 
-    if (is->seek_by_bytes < 0)
-        is->seek_by_bytes = !!(is->ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", is->ic->iformat->name);
+    is->seek_by_bytes = !!(is->ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", is->ic->iformat->name);
 
     is->max_frame_duration = (is->ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
 
