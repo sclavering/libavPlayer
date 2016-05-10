@@ -78,11 +78,6 @@
 /* we use about AUDIO_DIFF_AVG_NB A-V differences to make the average */
 #define AUDIO_DIFF_AVG_NB   20
 
-/* polls for possible required screen refresh at least this often, should be less than 1/fps */
-#define REFRESH_RATE 0.01
-
-#define CURSOR_HIDE_DELAY 1000000
-
 /* =========================================================== */
 
 #define VIDEO_PICTURE_QUEUE_SIZE 15 /* LAVP: no-overrun patch in refresh_loop_wait_event() applied */
