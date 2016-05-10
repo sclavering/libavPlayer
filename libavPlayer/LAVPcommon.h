@@ -81,10 +81,6 @@
 /* polls for possible required screen refresh at least this often, should be less than 1/fps */
 #define REFRESH_RATE 0.01
 
-/* NOTE: the size must be big enough to compensate the hardware audio buffersize size */
-/* TODO: We assume that a decoded and resampled frame fits into this buffer */
-#define SAMPLE_ARRAY_SIZE (8 * 65536)
-
 #define CURSOR_HIDE_DELAY 1000000
 
 /* =========================================================== */
@@ -129,10 +125,6 @@ enum {
     AV_SYNC_VIDEO_MASTER,
     AV_SYNC_EXTERNAL_CLOCK, /* synchronize to an external clock */
 };
-
-enum ShowMode {
-    SHOW_MODE_NONE = -1, SHOW_MODE_VIDEO = 0, SHOW_MODE_WAVES, SHOW_MODE_RDFT, SHOW_MODE_NB
-} show_mode;
 
 /* =========================================================== */
 
@@ -202,7 +194,6 @@ typedef struct VideoState {
     volatile int seek_by_bytes;     /* static int seek_by_bytes = -1; */
     volatile int show_status;       /* static int show_status = -1 */
     volatile int infinite_buffer;            /* static int infinite_buffer = -1; */
-    volatile enum ShowMode show_mode;        /* static enum ShowMode show_mode = SHOW_MODE_NONE; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
 
     volatile int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
@@ -303,16 +294,6 @@ typedef struct VideoState {
     //
     AVFrame *frame;
     int64_t audio_frame_next_pts;
-
-    /* video audio display support */
-    int16_t sample_array[SAMPLE_ARRAY_SIZE];
-    int sample_array_index;
-    int last_i_start;
-    RDFTContext *rdft;
-    int rdft_bits;
-    FFTSample *rdft_data;
-    int xpos;
-    double last_vis_time;
 
     /* LAVP: extension */
     AudioQueueRef outAQ;

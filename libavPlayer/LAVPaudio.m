@@ -34,7 +34,6 @@
 
 /* =========================================================== */
 
-static void update_sample_display(VideoState *is, short *samples, int samples_size);
 static int synchronize_audio(VideoState *is, int nb_samples);
 int audio_decode_frame(VideoState *is);
 
@@ -72,25 +71,6 @@ int audio_open(void *opaque, int64_t wanted_channel_layout, int wanted_nb_channe
         return -1;
     }
     return SDL_AUDIO_BUFFER_SIZE * audio_hw_params->channels * av_get_bytes_per_sample(audio_hw_params->fmt);
-}
-
-/* copy samples for viewing in editor window */
-static void update_sample_display(VideoState *is, short *samples, int samples_size)
-{
-    int size, len;
-
-    size = samples_size / sizeof(short);
-    while (size > 0) {
-        len = SAMPLE_ARRAY_SIZE - is->sample_array_index;
-        if (len > size)
-            len = size;
-        memcpy(is->sample_array + is->sample_array_index, samples, len * sizeof(short));
-        samples += len;
-        is->sample_array_index += len;
-        if (is->sample_array_index >= SAMPLE_ARRAY_SIZE)
-            is->sample_array_index = 0;
-        size -= len;
-    }
 }
 
 /* return the wanted number of samples to get better sync if sync_type is video
@@ -342,8 +322,6 @@ static void inCallbackProc (void *inUserData, AudioQueueRef inAQ, AudioQueueBuff
                     is->audio_buf      = is->silence_buf;
                     is->audio_buf_size = sizeof(is->silence_buf) / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
                 } else {
-                    if (is->show_mode != SHOW_MODE_VIDEO)
-                        update_sample_display(is, (int16_t *)is->audio_buf, audio_size);
                     is->audio_buf_size = audio_size;
                 }
                 is->audio_buf_index = 0;

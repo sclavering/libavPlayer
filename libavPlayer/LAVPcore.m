@@ -309,12 +309,6 @@ void stream_component_close(VideoState *is, int stream_index)
             is->audio_buf = NULL;
             av_frame_free(&is->frame);
 
-            if (is->rdft) {
-                av_rdft_end(is->rdft);
-                av_freep(&is->rdft_data);
-                is->rdft = NULL;
-                is->rdft_bits = 0;
-            }
             break;
         case AVMEDIA_TYPE_VIDEO:
             packet_queue_abort(&is->videoq);
@@ -436,9 +430,6 @@ int read_thread(void *arg)
         ret = -1;
         if (st_index[AVMEDIA_TYPE_VIDEO] >= 0)
             ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
-
-        if (is->show_mode == SHOW_MODE_NONE)
-            is->show_mode = ret >= 0 ? SHOW_MODE_VIDEO : SHOW_MODE_RDFT;
 
         if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0)
             stream_component_open(is, st_index[AVMEDIA_TYPE_SUBTITLE]);
@@ -920,7 +911,6 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     is->lastPTScopied = -1;
 
     is->infinite_buffer = -1;
-    is->show_mode = SHOW_MODE_NONE;
     is->rdftspeed = 0.02;
 
     is->paused = 0;
@@ -1086,7 +1076,6 @@ bail:
  TODO:
  stream_cycle_channel()
  toggle_audio_display()
- opt_show_mode()
  */
 
 double_t stream_playRate(VideoState *is)

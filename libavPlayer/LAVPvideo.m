@@ -82,10 +82,8 @@ void free_picture(VideoPicture *vp)
 /* display the current picture, if any */
 void video_display(VideoState *is)
 {
-    if (0 == is->width * is->height ) // LAVP: zero rect is not allowed
+    if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
         video_open(is, NULL);
-    if (is->audio_st && is->show_mode != SHOW_MODE_VIDEO) {
-        //video_audio_display(is); /* TODO */
     } else if (is->video_st) {
         //video_image_display(is); /* TODO */
     }
@@ -201,7 +199,7 @@ void refresh_loop_wait_event(VideoState *is) {
     if (is->remaining_time > 1.0)
         return;
 
-    if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
+    if (!is->paused || is->force_refresh)
         video_refresh(is, &remaining_time);
 
     //
@@ -218,15 +216,6 @@ void video_refresh(void *opaque, double *remaining_time)
 
     if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
         check_external_clock_speed(is);
-
-    if (is->show_mode != SHOW_MODE_VIDEO && is->audio_st) {
-        time = av_gettime() / 1000000.0;
-        if (is->force_refresh || is->last_vis_time + is->rdftspeed < time) {
-            video_display(is);
-            is->last_vis_time = time;
-        }
-        *remaining_time = FFMIN(*remaining_time, is->last_vis_time + is->rdftspeed - time);
-    }
 
     if (is->video_st) {
         int redisplay = 0;
@@ -326,9 +315,7 @@ void video_refresh(void *opaque, double *remaining_time)
             }
 
 display:
-            /* display picture */
-            if (is->show_mode == SHOW_MODE_VIDEO)
-                video_display(is);
+            video_display(is);
 
             pictq_next_picture(is);
 
