@@ -43,7 +43,6 @@
 - (void) unsetFBO;
 
 - (CVPixelBufferRef) createDummyCVPixelBufferWithSize:(NSSize)size ;
-- (CVPixelBufferRef) getCVPixelBuffer;
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb;
 - (void) streamDidSeek:(NSNotification *)aNotification;
 
@@ -514,11 +513,6 @@ bail:
     CVPixelBufferUnlockBaseAddress(pb, 0);
 
     return pb;
-}
-
-- (CVPixelBufferRef) getCVPixelBuffer
-{
-    return _pixelBuffer;
 }
 
 - (void) setCVPixelBuffer:(CVPixelBufferRef) pb
