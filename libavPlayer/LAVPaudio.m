@@ -257,15 +257,6 @@ int audio_decode_frame(VideoState *is)
             else
                 is->audio_clock = NAN;
             is->audio_clock_serial = is->audio_pkt_temp_serial;
-#ifdef DEBUG
-            {
-                static double last_clock;
-                printf("audio: delay=%0.3f clock=%0.3f clock0=%0.3f\n",
-                       is->audio_clock - last_clock,
-                       is->audio_clock, audio_clock0);
-                last_clock = is->audio_clock;
-            }
-#endif
             return resampled_data_size;
         }
 

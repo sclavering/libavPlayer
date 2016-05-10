@@ -362,11 +362,6 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 {
     VideoPicture *vp;
 
-#if defined(DEBUG_SYNC) && 0
-    printf("frame_type=%c pts=%0.3f\n",
-           av_get_picture_type_char(src_frame->pict_type), pts);
-#endif
-
     /* wait until we have space to put a new picture */
     LAVPLockMutex(is->pictq_mutex);
 
