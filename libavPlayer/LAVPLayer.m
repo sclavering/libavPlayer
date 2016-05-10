@@ -529,13 +529,11 @@ bail:
 
 // Called e.g. after seeking while paused.
 -(void) streamOutputNeedsSingleUpdate {
-    NSLog(@"streamOutputNeedsSingleUpdate %d");
     [self setNeedsDisplay];
 }
 
 // Called when playback starts or stops for any reason.
 -(void) streamOutputNeedsContinuousUpdating:(bool)continuousUpdating {
-    NSLog(@"streamOutputNeedsContinuousUpdating %d", continuousUpdating);
     self.asynchronous = continuousUpdating;
 }
 
