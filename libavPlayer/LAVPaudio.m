@@ -303,7 +303,7 @@ static void inCallbackProc (void *inUserData, AudioQueueRef inAQ, AudioQueueBuff
         VideoState *is = inUserData;
         int audio_size, len1;
 
-        is->audio_callback_time = av_gettime();
+        is->audio_callback_time = av_gettime_relative();
 
         while (len > 0) {
             if (is->audio_buf_index >= is->audio_buf_size) {

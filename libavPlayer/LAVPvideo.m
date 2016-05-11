@@ -243,7 +243,7 @@ void video_refresh(void *opaque, double *remaining_time)
             }
 
             if (lastvp->serial != vp->serial && !redisplay)
-                is->frame_timer = av_gettime() / 1000000.0;
+                is->frame_timer = av_gettime_relative() / 1000000.0;
 
             if (is->paused) {
                 LAVPUnlockMutex(is->pictq_mutex);
@@ -257,7 +257,7 @@ void video_refresh(void *opaque, double *remaining_time)
             else
                 delay = compute_target_delay(last_duration, is);
 
-            time= av_gettime()/1000000.0;
+            time = av_gettime_relative() / 1000000.0;
             if (time < is->frame_timer + delay && !redisplay) {
                 LAVPUnlockMutex(is->pictq_mutex);
                 *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);

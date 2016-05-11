@@ -661,7 +661,7 @@ double get_clock(Clock *c)
     if (c->paused) {
         return c->pts;
     } else {
-        double time = av_gettime() / 1000000.0;
+        double time = av_gettime_relative() / 1000000.0;
         return c->pts_drift + time - (time - c->last_updated) * (1.0 - c->speed);
     }
 }
@@ -676,7 +676,7 @@ void set_clock_at(Clock *c, double pts, int serial, double time)
 
 void set_clock(Clock *c, double pts, int serial)
 {
-    double time = av_gettime() / 1000000.0;
+    double time = av_gettime_relative() / 1000000.0;
     set_clock_at(c, pts, serial, time);
 }
 
@@ -773,7 +773,7 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes)
 void stream_toggle_pause(VideoState *is)
 {
     if (is->paused) {
-        is->frame_timer += av_gettime() / 1000000.0 + is->vidclk.pts_drift - is->vidclk.pts;
+        is->frame_timer += av_gettime_relative() / 1000000.0 + is->vidclk.pts_drift - is->vidclk.pts;
         if (is->read_pause_return != AVERROR(ENOSYS)) {
             is->vidclk.paused = 0;
         }
