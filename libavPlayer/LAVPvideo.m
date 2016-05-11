@@ -45,7 +45,6 @@ void video_refresh(void *opaque, double *remaining_time);
 
 extern void stream_toggle_pause(VideoState *is);
 extern void toggle_pause(VideoState *is);
-extern void free_subpicture(SubPicture *sp);
 
 #if ALLOW_GPL_CODE
 extern void copy_planar_YUV420_to_2vuy(size_t width, size_t height,
@@ -60,7 +59,7 @@ extern void CVF_CopyPlane(const UInt8* Sbase, int Sstride, int Srow, UInt8* Dbas
 
 #pragma mark -
 
-void free_picture(VideoPicture *vp)
+void free_picture(Frame *vp)
 {
     if (vp->bmp) {
         avpicture_free((AVPicture*)vp->bmp);
@@ -91,7 +90,7 @@ void video_display(VideoState *is)
 
 #pragma mark -
 
-int video_open(VideoState *is, VideoPicture *vp){
+int video_open(VideoState *is, Frame *vp){
     /* LAVP: No need for SDL support; Independent from screen rect */
     int w,h;
 
@@ -142,7 +141,7 @@ double compute_target_delay(double delay, VideoState *is)
     return delay;
 }
 
-static double vp_duration(VideoState *is, VideoPicture *vp, VideoPicture *nextvp) {
+static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
     if (vp->serial == nextvp->serial) {
         double duration = nextvp->pts - vp->pts;
         if (isnan(duration) || duration <= 0 || duration > is->max_frame_duration)
@@ -152,17 +151,6 @@ static double vp_duration(VideoState *is, VideoPicture *vp, VideoPicture *nextvp
     } else {
         return 0.0;
     }
-}
-
-static void pictq_next_picture(VideoState *is) {
-    /* update queue size and signal for next picture */
-    LAVPLockMutex(is->pictq_mutex);
-    if (++is->pictq_rindex == VIDEO_PICTURE_QUEUE_SIZE)
-        is->pictq_rindex = 0;
-
-    is->pictq_size--;
-    LAVPCondSignal(is->pictq_cond);
-    LAVPUnlockMutex(is->pictq_mutex);
 }
 
 static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial) {
@@ -193,7 +181,7 @@ void video_refresh(void *opaque, double *remaining_time)
     VideoState *is = opaque;
     double time;
 
-    SubPicture *sp, *sp2;
+    Frame *sp, *sp2;
 
     if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
         check_external_clock_speed(is);
@@ -201,21 +189,18 @@ void video_refresh(void *opaque, double *remaining_time)
     if (is->video_st) {
         int redisplay = 0;
     retry:
-        if (is->pictq_size == 0) {
+        if (frame_queue_nb_remaining(&is->pictq) == 0) {
             // nothing to do, no picture to display in the queue
         } else {
             double last_duration, duration, delay;
-            VideoPicture *vp, *lastvp;
-
-            LAVPLockMutex(is->pictq_mutex);
+            Frame *vp, *lastvp;
 
             /* dequeue the picture */
-            vp = &is->pictq[is->pictq_rindex];
-            lastvp = &is->pictq[(is->pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE];
+            lastvp = frame_queue_peek_last(&is->pictq);
+            vp = frame_queue_peek(&is->pictq);
 
             if (vp->serial != is->videoq.serial) {
-                LAVPUnlockMutex(is->pictq_mutex);
-                pictq_next_picture(is);
+                frame_queue_next(&is->pictq);
                 is->video_current_pos = -1;
                 redisplay = 0;
                 goto retry;
@@ -224,10 +209,8 @@ void video_refresh(void *opaque, double *remaining_time)
             if (lastvp->serial != vp->serial && !redisplay)
                 is->frame_timer = av_gettime_relative() / 1000000.0;
 
-            if (is->paused) {
-                LAVPUnlockMutex(is->pictq_mutex);
+            if (is->paused)
                 goto display;
-            }
 
             /* compute nominal last_duration */
             last_duration = vp_duration(is, lastvp, vp);
@@ -238,7 +221,6 @@ void video_refresh(void *opaque, double *remaining_time)
 
             time = av_gettime_relative() / 1000000.0;
             if (time < is->frame_timer + delay && !redisplay) {
-                LAVPUnlockMutex(is->pictq_mutex);
                 *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
                 return;
             }
@@ -247,28 +229,28 @@ void video_refresh(void *opaque, double *remaining_time)
             if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
                 is->frame_timer = time;
 
+            LAVPLockMutex(is->pictq.mutex);
             if (!redisplay && !isnan(vp->pts))
                 update_video_pts(is, vp->pts, vp->pos, vp->serial);
+            LAVPUnlockMutex(is->pictq.mutex);
 
-            if (is->pictq_size > 1) {
-                VideoPicture *nextvp = &is->pictq[(is->pictq_rindex + 1) % VIDEO_PICTURE_QUEUE_SIZE];
+            if (frame_queue_nb_remaining(&is->pictq) > 1) {
+                Frame *nextvp = frame_queue_peek_next(&is->pictq);
+
                 duration = vp_duration(is, vp, nextvp);
                 if(!is->step && (redisplay || (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
-                    LAVPUnlockMutex(is->pictq_mutex);
-                    pictq_next_picture(is);
+                    frame_queue_next(&is->pictq);
                     redisplay = 0;
                     goto retry;
                 }
             }
-            LAVPUnlockMutex(is->pictq_mutex);
 
             if(is->subtitle_st) {
-                LAVPLockMutex(is->subpq_mutex);
-                while (is->subpq_size > 0) {
-                    sp = &is->subpq[is->subpq_rindex];
+                while (frame_queue_nb_remaining(&is->subpq) > 0) {
+                    sp = frame_queue_peek(&is->subpq);
 
-                    if (is->subpq_size > 1)
-                        sp2 = &is->subpq[(is->subpq_rindex + 1) % SUBPICTURE_QUEUE_SIZE];
+                    if (frame_queue_nb_remaining(&is->subpq) > 1)
+                        sp2 = frame_queue_peek_next(&is->subpq);
                     else
                         sp2 = NULL;
 
@@ -276,25 +258,17 @@ void video_refresh(void *opaque, double *remaining_time)
                         || (is->vidclk.pts > (sp->pts + ((float) sp->sub.end_display_time / 1000)))
                         || (sp2 && is->vidclk.pts > (sp2->pts + ((float) sp2->sub.start_display_time / 1000))))
                     {
-                        free_subpicture(sp);
-
-                        /* update queue size and signal for next picture */
-                        if (++is->subpq_rindex == SUBPICTURE_QUEUE_SIZE)
-                            is->subpq_rindex = 0;
-
-                        is->subpq_size--;
-                        LAVPCondSignal(is->subpq_cond);
+                        frame_queue_next(&is->subpq);
                     } else {
                         break;
                     }
                 }
-                LAVPUnlockMutex(is->subpq_mutex);
             }
 
 display:
             video_display(is);
 
-            pictq_next_picture(is);
+            frame_queue_next(&is->pictq);
 
             if (is->step && !is->paused)
                 stream_toggle_pause(is);
@@ -316,11 +290,11 @@ void alloc_picture(void *opaque)
     assert(ret > 0);
 
     //
-    VideoPicture *vp;
+    Frame *vp;
 
-    LAVPLockMutex(is->pictq_mutex);
+    LAVPLockMutex(is->pictq.mutex);
 
-    vp = &is->pictq[is->pictq_windex];
+    vp = &is->pictq.queue[is->pictq.windex];
 
     free_picture(vp);
 
@@ -332,28 +306,15 @@ void alloc_picture(void *opaque)
     vp->bmp = picture;
     vp->allocated = 1;
 
-    LAVPCondSignal(is->pictq_cond);
-    LAVPUnlockMutex(is->pictq_mutex);
+    LAVPCondSignal(is->pictq.cond);
+    LAVPUnlockMutex(is->pictq.mutex);
 }
 
 int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
 {
-    VideoPicture *vp;
+    Frame *vp;
 
-    /* wait until we have space to put a new picture */
-    LAVPLockMutex(is->pictq_mutex);
-
-    /* keep the last already displayed picture in the queue */
-    while (is->pictq_size >= VIDEO_PICTURE_QUEUE_SIZE / 2 && // LAVP: keep some picts left in queue
-           !is->videoq.abort_request) {
-        LAVPCondWait(is->pictq_cond, is->pictq_mutex);
-    }
-
-    vp = &is->pictq[is->pictq_windex];
-
-    LAVPUnlockMutex(is->pictq_mutex);
-
-    if (is->videoq.abort_request)
+    if (!(vp = frame_queue_peek_writable(&is->pictq)))
         return -1;
 
     vp->sar = src_frame->sample_aspect_ratio;
@@ -376,17 +337,17 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         [decoder performSelector:@selector(allocPicture) onThread:thread withObject:nil waitUntilDone:NO];
 
         /* wait until the picture is allocated */
-        LAVPLockMutex(is->pictq_mutex);
+        LAVPLockMutex(is->pictq.mutex);
         while (!vp->allocated && !is->videoq.abort_request) {
-            LAVPCondWait(is->pictq_cond, is->pictq_mutex);
+            LAVPCondWait(is->pictq.cond, is->pictq.mutex);
         }
         /* if the queue is aborted, we have to pop the pending ALLOC event or wait for the allocation to complete */
         if (is->videoq.abort_request) {
             while (!vp->allocated && !is->abort_request) {
-                LAVPCondWait(is->pictq_cond, is->pictq_mutex);
+                LAVPCondWait(is->pictq.cond, is->pictq.mutex);
             }
         }
-        LAVPUnlockMutex(is->pictq_mutex);
+        LAVPUnlockMutex(is->pictq.mutex);
 
         if (is->videoq.abort_request)
             return -1;
@@ -408,7 +369,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         pict.linesize[2] = vp->bmp->linesize[2];
 
         /* LAVP: duplicate or create YUV420P picture */
-        LAVPLockMutex(is->pictq_mutex);
+        LAVPLockMutex(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
 #if ALLOW_GPL_CODE
             CVF_CopyPlane((const UInt8 *)src_frame->data[0], src_frame->linesize[0], vp->height, pict.data[0], pict.linesize[0], vp->height);
@@ -438,6 +399,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
             sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize,
                       0, vp->height, pict.data, pict.linesize);
         }
+        LAVPUnlockMutex(is->pictq.mutex);
 
         vp->pts = pts;
         vp->duration = duration;
@@ -445,11 +407,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         vp->serial = serial;
 
         /* now we can update the picture count */
-        if (++is->pictq_windex == VIDEO_PICTURE_QUEUE_SIZE)
-            is->pictq_windex = 0;
-
-        is->pictq_size++;
-        LAVPUnlockMutex(is->pictq_mutex);
+        frame_queue_push(&is->pictq);
     }
     return 0;
 }
@@ -559,16 +517,16 @@ int hasImage(void *opaque, double_t targetpts)
 {
     VideoState *is = opaque;
 
-    LAVPLockMutex(is->pictq_mutex);
+    LAVPLockMutex(is->pictq.mutex);
 
-    if (is->pictq_size > 0) {
-        VideoPicture *vp = NULL;
-        VideoPicture *tmp = NULL;
+    if (frame_queue_nb_remaining(&is->pictq) > 0) {
+        Frame *vp = NULL;
+        Frame *tmp = NULL;
 
         if (1) {
-            int index = is->pictq_windex;
-            while (index != is->pictq_rindex) {
-                VideoPicture *tmp = &is->pictq[index];
+            int index = is->pictq.windex;
+            while (index != is->pictq.rindex) {
+                Frame *tmp = &is->pictq.queue[index];
                 if (tmp && tmp->bmp && tmp->allocated) {
                     if (0.0 <= tmp->pts && tmp->pts <= targetpts) {
                         if (!vp) {
@@ -578,13 +536,13 @@ int hasImage(void *opaque, double_t targetpts)
                         }
                     }
                 }
-                index = (++index) % VIDEO_PICTURE_QUEUE_SIZE;
+                index = (++index) % is->pictq.max_size;
             }
         }
         if (!is->paused) { // LAVP: No advance while paused
-            for (int offset = 0; offset < is->pictq_size; offset++) {
-                int index = (is->pictq_rindex + offset) % VIDEO_PICTURE_QUEUE_SIZE;
-                tmp = &is->pictq[index];
+            for (int offset = 0; offset < frame_queue_nb_remaining(&is->pictq); offset++) {
+                int index = (is->pictq.rindex + offset) % is->pictq.max_size;
+                tmp = &is->pictq.queue[index];
 
                 if (0.0 <= tmp->pts && tmp->pts <= targetpts) {
                     if (!vp) {
@@ -595,23 +553,19 @@ int hasImage(void *opaque, double_t targetpts)
                 }
             }
         }
-        if (!vp) {
-            // Workaround: When all pictures in pictq are later time stamp then targetpts
-            vp = &is->pictq[is->pictq_rindex];
-        }
+        // Workaround: When all pictures in pictq are later time stamp then targetpts
+        if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
         if (vp) {
             //NSLog(@"DEBUG: hasImage(%.3lf) => (%.3lf); delta=%.3lf)", *targetpts, vp->pts, vp->pts - *targetpts);
 
-            LAVPUnlockMutex(is->pictq_mutex);
+            LAVPUnlockMutex(is->pictq.mutex);
             return 1;
         }
-    } else {
-        //NSLog(@"ERROR: is->pictq_size == 0 (%s)", __FUNCTION__);
     }
 
 bail:
-    LAVPUnlockMutex(is->pictq_mutex);
+    LAVPUnlockMutex(is->pictq.mutex);
     return 0;
 }
 
@@ -634,16 +588,16 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
     }
 #endif
 
-    LAVPLockMutex(is->pictq_mutex);
+    LAVPLockMutex(is->pictq.mutex);
 
-    if (is->pictq_size > 0) {
-        VideoPicture *vp = NULL;
-        VideoPicture *tmp = NULL;
+    if (frame_queue_nb_remaining(&is->pictq) > 0) {
+        Frame *vp = NULL;
+        Frame *tmp = NULL;
 
         if (1) {
-            int index = is->pictq_windex;
-            while (index != is->pictq_rindex) {
-                VideoPicture *tmp = &is->pictq[index];
+            int index = is->pictq.windex;
+            while (index != is->pictq.rindex) {
+                Frame *tmp = &is->pictq.queue[index];
                 if (tmp && tmp->bmp && tmp->allocated) {
                     if (0.0 <= tmp->pts && tmp->pts <= *targetpts) {
                         if (!vp) {
@@ -653,13 +607,13 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
                         }
                     }
                 }
-                index = (++index) % VIDEO_PICTURE_QUEUE_SIZE;
+                index = (++index) % is->pictq.max_size;
             }
         }
         if (!is->paused) { // LAVP: No advance while paused
-            for (int offset = 0; offset < is->pictq_size; offset++) {
-                int index = (is->pictq_rindex + offset) % VIDEO_PICTURE_QUEUE_SIZE;
-                tmp = &is->pictq[index];
+            for (int offset = 0; offset < frame_queue_nb_remaining(&is->pictq); offset++) {
+                int index = (is->pictq.rindex + offset) % is->pictq.max_size;
+                tmp = &is->pictq.queue[index];
 
                 if (0.0 <= tmp->pts && tmp->pts <= *targetpts) {
                     if (!vp) {
@@ -670,12 +624,7 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
                 }
             }
         }
-        if (!vp) {
-            int index = is->pictq_rindex;
-            vp = &is->pictq[index];
-
-            //NSLog(@"DEBUG: is->pictq_size = %d", is->pictq_size);
-        }
+        if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
         if (vp) {
             int result = 0;
@@ -687,7 +636,7 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
             //}
 
             if (vp->pts >= 0 && vp->pts == is->lastPTScopied) {
-                LAVPUnlockMutex(is->pictq_mutex);
+                LAVPUnlockMutex(is->pictq.mutex);
                 return 2;
             }
 
@@ -715,7 +664,7 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
                 is->lastPTScopied = vp->pts;
                 *targetpts = vp->pts;
 
-                LAVPUnlockMutex(is->pictq_mutex);
+                LAVPUnlockMutex(is->pictq.mutex);
                 return 1;
             } else {
                 NSLog(@"ERROR: result != 0 (%s)", __FUNCTION__);
@@ -723,12 +672,10 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
         } else {
             NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
         }
-    } else {
-        //NSLog(@"ERROR: is->pictq_size == 0 (%s)", __FUNCTION__);
     }
 
 bail:
-    LAVPUnlockMutex(is->pictq_mutex);
+    LAVPUnlockMutex(is->pictq.mutex);
     return 0;
 }
 
@@ -736,13 +683,13 @@ int hasImageCurrent(void *opaque)
 {
     VideoState *is = opaque;
 
-    LAVPLockMutex(is->pictq_mutex);
+    LAVPLockMutex(is->pictq.mutex);
 
-    if (is->pictq_size > 0) {
-        VideoPicture *vp = NULL;
+    if (frame_queue_nb_remaining(&is->pictq) > 0) {
+        Frame *vp = NULL;
         if (1) {
-            int lastindex = (is->pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE;
-            VideoPicture *tmp = &is->pictq[lastindex];
+            int lastindex = (is->pictq.rindex + is->pictq.max_size - 1) % is->pictq.max_size;
+            Frame *tmp = &is->pictq.queue[lastindex];
             if (tmp && tmp->bmp && tmp->allocated) {
                 if (0.0 <= tmp->pts) {
                     vp = tmp;
@@ -750,23 +697,21 @@ int hasImageCurrent(void *opaque)
             }
         }
         if (!vp) {
-            int index = is->pictq_rindex;
-            vp = &is->pictq[index];
+            int index = is->pictq.rindex;
+            vp = &is->pictq.queue[index];
         }
         if(vp) {
             //NSLog(@"DEBUG: hasImageCurrent() => (%.3lf)", vp->pts);
 
-            LAVPUnlockMutex(is->pictq_mutex);
+            LAVPUnlockMutex(is->pictq.mutex);
             return 1;
         } else {
             NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
         }
-    } else {
-        //NSLog(@"ERROR: is->pictq_size == 0 (%s)", __FUNCTION__);
     }
 
 bail:
-    LAVPUnlockMutex(is->pictq_mutex);
+    LAVPUnlockMutex(is->pictq.mutex);
     return 0;
 }
 
@@ -788,29 +733,26 @@ int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch
     }
 #endif
 
-    LAVPLockMutex(is->pictq_mutex);
+    LAVPLockMutex(is->pictq.mutex);
 
-    if (is->pictq_size > 0) {
-        VideoPicture *vp = NULL;
+    if (frame_queue_nb_remaining(&is->pictq) > 0) {
+        Frame *vp = NULL;
         if (1) {
-            int lastindex = (is->pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE;
-            VideoPicture *tmp = &is->pictq[lastindex];
+            int lastindex = (is->pictq.rindex + is->pictq.max_size - 1) % is->pictq.max_size;
+            Frame *tmp = &is->pictq.queue[lastindex];
             if (tmp && tmp->bmp && tmp->allocated) {
                 if (0.0 <= tmp->pts) {
                     vp = tmp;
                 }
             }
         }
-        if (!vp) {
-            int index = is->pictq_rindex;
-            vp = &is->pictq[index];
-        }
+        if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
         if (vp) {
             int result = 0;
 
             if (vp->pts >= 0 && vp->pts == is->lastPTScopied) {
-                LAVPUnlockMutex(is->pictq_mutex);
+                LAVPUnlockMutex(is->pictq.mutex);
                 return 2;
             }
 
@@ -838,7 +780,7 @@ int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch
                 is->lastPTScopied = vp->pts;
                 *targetpts = vp->pts;
 
-                LAVPUnlockMutex(is->pictq_mutex);
+                LAVPUnlockMutex(is->pictq.mutex);
                 return 1;
             } else {
                 NSLog(@"ERROR: result != 0 (%s)", __FUNCTION__);
@@ -846,11 +788,9 @@ int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch
         } else {
             NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
         }
-    } else {
-        //NSLog(@"ERROR: is->pictq_size == 0 (%s)", __FUNCTION__);
     }
 
 bail:
-    LAVPUnlockMutex(is->pictq_mutex);
+    LAVPUnlockMutex(is->pictq.mutex);
     return 0;
 }

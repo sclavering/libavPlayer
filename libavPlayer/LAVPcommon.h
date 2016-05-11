@@ -83,6 +83,8 @@
 #define VIDEO_PICTURE_QUEUE_SIZE 15 /* LAVP: no-overrun patch in refresh_loop_wait_event() applied */
 #define SUBPICTURE_QUEUE_SIZE 16
 
+#define FRAME_QUEUE_SIZE FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE)
+
 /* =========================================================== */
 
 #define ALPHA_BLEND(a, oldp, newp, s)\
@@ -143,25 +145,9 @@ typedef struct PacketQueue {
 
 /* =========================================================== */
 
-// "Frame" in ffplay.c
-typedef struct VideoPicture {
-    volatile double pts;             // presentation timestamp for this picture
-    double duration;        // estimated duration based on frame rate
-    int64_t pos;            // byte position in file
-    AVFrame *bmp;
-    volatile int width, height; /* source height & width */
-    volatile int allocated;
-    volatile int reallocate;
-    volatile int serial;
+#import "framequeue.h"
 
-    AVRational sar;
-} VideoPicture;
-
-typedef struct SubPicture {
-    volatile double pts; /* presentation time stamp for this picture */
-    AVSubtitle sub;
-    volatile int serial;
-} SubPicture;
+/* =========================================================== */
 
 typedef struct AudioParams {
     volatile int freq;
@@ -217,7 +203,10 @@ typedef struct VideoState {
     Clock audclk;
     Clock vidclk;
     Clock extclk;
-    //
+
+    FrameQueue pictq;
+    FrameQueue subpq;
+
     volatile int av_sync_type;
     //
     char* filename; /* LAVP: char filename[1024] */
@@ -295,16 +284,6 @@ typedef struct VideoState {
 
     /* =========================================================== */
 
-    // LAVPsubs
-
-    /* same order as original struct */
-    SubPicture subpq[SUBPICTURE_QUEUE_SIZE];
-    volatile int subpq_size, subpq_rindex, subpq_windex;
-    LAVPmutex *subpq_mutex;
-    LAVPcond *subpq_cond;
-
-    /* =========================================================== */
-
     // LAVPvideo
 
     volatile double frame_timer;
@@ -313,10 +292,7 @@ typedef struct VideoState {
     //
     volatile int64_t video_current_pos;      ///<current displayed file pos
     volatile double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
-    VideoPicture pictq[VIDEO_PICTURE_QUEUE_SIZE];
-    volatile int pictq_size, pictq_rindex, pictq_windex;
-    LAVPmutex *pictq_mutex;
-    LAVPcond *pictq_cond;
+
     struct SwsContext *img_convert_ctx;
 
     /* LAVP: extension */

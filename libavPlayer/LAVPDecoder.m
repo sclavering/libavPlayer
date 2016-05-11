@@ -65,7 +65,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
             int retry = 2000/msec;    // 2.0 sec max
             while(retry--) {
                 usleep(msec*1000);
-                if (!isnan(get_master_clock(is)) && is->pictq_size)
+                if (!isnan(get_master_clock(is)) && frame_queue_nb_remaining(&is->pictq))
                     break;
             }
             if (retry < 0)

@@ -30,7 +30,6 @@
 #include "LAVPcommon.h"
 
 void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int imgh);
-void free_subpicture(SubPicture *sp);
 int subtitle_thread(void *arg);
 
 #endif

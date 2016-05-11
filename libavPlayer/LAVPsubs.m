@@ -37,11 +37,6 @@
 
 #pragma mark -
 
-void free_subpicture(SubPicture *sp)
-{
-    avsubtitle_free(&sp->sub);
-}
-
 void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int imgh)
 {
     int wrap, wrap3, width2, skip2;
@@ -245,7 +240,7 @@ void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int img
 int subtitle_thread(void *arg)
 {
     VideoState *is = arg;
-    SubPicture *sp;
+    Frame *sp;
     AVPacket pkt1, *pkt = &pkt1;
     int got_subtitle;
     int serial;
@@ -267,18 +262,9 @@ int subtitle_thread(void *arg)
                 avcodec_flush_buffers(is->subtitle_st->codec);
                 continue;
             }
-            LAVPLockMutex(is->subpq_mutex);
-            while (is->subpq_size >= SUBPICTURE_QUEUE_SIZE &&
-                   !is->subtitleq.abort_request) {
-                LAVPCondWait(is->subpq_cond, is->subpq_mutex);
-            }
-            LAVPUnlockMutex(is->subpq_mutex);
 
-            if (is->subtitleq.abort_request) {
+            if (!(sp = frame_queue_peek_writable(&is->subpq)))
                 goto the_end;
-            }
-
-            sp = &is->subpq[is->subpq_windex];
 
             /* NOTE: ipts is the PTS of the _first_ picture beginning in
              this packet, if any */
@@ -307,11 +293,7 @@ int subtitle_thread(void *arg)
                 }
 
                 /* now we can update the picture count */
-                if (++is->subpq_windex == SUBPICTURE_QUEUE_SIZE)
-                    is->subpq_windex = 0;
-                LAVPLockMutex(is->subpq_mutex);
-                is->subpq_size++;
-                LAVPUnlockMutex(is->subpq_mutex);
+                frame_queue_push(&is->subpq);
             } else if (got_subtitle) {
                 avsubtitle_free(&sp->sub);
             }

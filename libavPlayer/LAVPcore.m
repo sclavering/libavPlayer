@@ -40,8 +40,7 @@ void step_to_next_frame(VideoState *is);
 
 double get_external_clock(VideoState *is);
 
-extern void free_picture(VideoPicture *vp);
-extern void free_subpicture(SubPicture *sp);
+extern void free_picture(Frame *vp);
 extern int audio_open(void *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
 /* =========================================================== */
@@ -306,9 +305,7 @@ void stream_component_close(VideoState *is, int stream_index)
 
             /* note: we also signal this mutex to make sure we deblock the
              video thread in all cases */
-            LAVPLockMutex(is->pictq_mutex);
-            LAVPCondSignal(is->pictq_cond);
-            LAVPUnlockMutex(is->pictq_mutex);
+            frame_queue_signal(&is->pictq);
 
             // LAVP: release dispatch queue
             dispatch_group_wait((__bridge dispatch_group_t)is->video_group, DISPATCH_TIME_FOREVER);
@@ -327,9 +324,7 @@ void stream_component_close(VideoState *is, int stream_index)
 
             /* note: we also signal this mutex to make sure we deblock the
              video thread in all cases */
-            LAVPLockMutex(is->subpq_mutex);
-            LAVPCondSignal(is->subpq_cond);
-            LAVPUnlockMutex(is->subpq_mutex);
+            frame_queue_signal(&is->subpq);
 
             // LAVP: release dispatch queue
             dispatch_group_wait((__bridge dispatch_group_t)is->subtitle_group, DISPATCH_TIME_FOREVER);
@@ -543,7 +538,7 @@ int read_thread(void *arg)
                 }
                 if (!is->paused &&
                     (!is->audio_st || is->audio_finished == is->audioq.serial) &&
-                    (!is->video_st || (is->video_finished == is->videoq.serial && is->pictq_size == 0))) {
+                    (!is->video_st || (is->video_finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
 
@@ -816,8 +811,6 @@ void stream_close(VideoState *is)
 {
     /* original: stream_close() */
     if (is) {
-        int i;
-
         /* XXX: use a special url_shutdown call to abort parse cleanly */
         is->abort_request = 1;
 
@@ -836,16 +829,9 @@ void stream_close(VideoState *is)
         packet_queue_destroy(&is->subtitleq);
 
         /* free all pictures */
-        for (i = 0; i < VIDEO_PICTURE_QUEUE_SIZE; i++)
-            free_picture(&is->pictq[i]);
-        for (i = 0; i < SUBPICTURE_QUEUE_SIZE; i++)
-            free_subpicture(&is->subpq[i]);
+        frame_queue_destory(&is->pictq);
+        frame_queue_destory(&is->subpq);
 
-        //
-        LAVPDestroyMutex(is->pictq_mutex);
-        LAVPDestroyCond(is->pictq_cond);
-        LAVPDestroyMutex(is->subpq_mutex);
-        LAVPDestroyCond(is->subpq_cond);
         LAVPDestroyCond(is->continue_read_thread);
 
         // LAVP: free image converter
@@ -1011,11 +997,10 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
 
     /* original: stream_open() */
     {
-        is->pictq_mutex = LAVPCreateMutex();
-        is->pictq_cond = LAVPCreateCond();
-
-        is->subpq_mutex = LAVPCreateMutex();
-        is->subpq_cond = LAVPCreateCond();
+        if (frame_queue_init(&is->pictq, &is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
+            goto fail;
+        if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
+            goto fail;
 
         packet_queue_init(&is->audioq);
         packet_queue_init(&is->videoq);
@@ -1048,6 +1033,10 @@ bail:
     if (is->filename)
         free(is->filename);
     free (is);
+    return NULL;
+
+fail:
+    stream_close(is);
     return NULL;
 }
 
