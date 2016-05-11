@@ -25,6 +25,8 @@
 
 #import "LAVPDecoder.h"
 
+#import "framequeue.h"
+
 extern double get_master_clock(VideoState *is);
 extern double get_clock(Clock *c);
 extern void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
@@ -298,12 +300,13 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
             int64_t size =  avio_size(is->ic->pb);
 
-            int64_t current_b = 0, target_b = 0; // in byte
-            if (is->video_stream >= 0 && is->video_current_pos >= 0) {
-                current_b = is->video_current_pos;
-            } else if (is->audio_stream >= 0 && is->audio_pkt.pos >= 0) {
+            int64_t target_b = 0; // in bytes
+            int64_t current_b = -1;
+            if (current_b < 0 && is->video_stream >= 0)
+                current_b = frame_queue_last_pos(&is->pictq);
+            if (current_b < 0 && is->audio_stream >= 0)
                 current_b = is->audio_pkt.pos;
-            } else
+            if (current_b < 0)
                 current_b = avio_tell(is->ic->pb);
 
             target_b = FFMIN(size, current_b * frac); // in byte

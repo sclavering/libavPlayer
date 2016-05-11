@@ -41,3 +41,4 @@ void frame_queue_next(FrameQueue *f);
 int frame_queue_prev(FrameQueue *f);
 /* return the number of undisplayed frames in the queue */
 int frame_queue_nb_remaining(FrameQueue *f);
+int64_t frame_queue_last_pos(FrameQueue *f);

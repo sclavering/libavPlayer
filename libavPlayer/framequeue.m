@@ -113,3 +113,13 @@ int frame_queue_nb_remaining(FrameQueue *f)
 {
     return f->size - f->rindex_shown;
 }
+
+/* return last shown position */
+int64_t frame_queue_last_pos(FrameQueue *f)
+{
+    Frame *fp = &f->queue[f->rindex];
+    if (f->rindex_shown && fp->serial == f->pktq->serial)
+        return fp->pos;
+    else
+        return -1;
+}

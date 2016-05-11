@@ -290,7 +290,6 @@ typedef struct VideoState {
     volatile double frame_last_returned_time;
     volatile double frame_last_filter_delay;
     //
-    volatile int64_t video_current_pos;      ///<current displayed file pos
     volatile double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
     struct SwsContext *img_convert_ctx;

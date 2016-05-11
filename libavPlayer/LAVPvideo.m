@@ -157,7 +157,6 @@ static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial
     /* update current video pts */
     set_clock(&is->vidclk, pts, serial);
     sync_clock_to_slave(&is->extclk, &is->vidclk);
-    is->video_current_pos = pos;
 }
 
 /* LAVP: called from LAVPDecoder.m in RunLoop under is->decoderThread */
@@ -201,7 +200,6 @@ void video_refresh(void *opaque, double *remaining_time)
 
             if (vp->serial != is->videoq.serial) {
                 frame_queue_next(&is->pictq);
-                is->video_current_pos = -1;
                 redisplay = 0;
                 goto retry;
             }
