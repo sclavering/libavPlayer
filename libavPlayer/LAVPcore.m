@@ -567,7 +567,7 @@ int read_thread(void *arg)
                 // Read file
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
-                    if (ret == AVERROR_EOF || url_feof(is->ic->pb))
+                    if (ret == AVERROR_EOF || avio_feof(is->ic->pb))
                         eof=1;
                     if (is->ic->pb && is->ic->pb->error) {
                         break;
@@ -992,7 +992,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
     }
 
     if (is->ic->pb)
-        is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use url_feof() to test for the end
+        is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
     is->seek_by_bytes = !!(is->ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", is->ic->iformat->name);
 
