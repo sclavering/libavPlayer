@@ -81,7 +81,7 @@
 /* =========================================================== */
 
 #define VIDEO_PICTURE_QUEUE_SIZE 15 /* LAVP: no-overrun patch in refresh_loop_wait_event() applied */
-#define SUBPICTURE_QUEUE_SIZE 4
+#define SUBPICTURE_QUEUE_SIZE 16
 
 /* =========================================================== */
 
