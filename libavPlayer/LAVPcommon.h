@@ -201,7 +201,6 @@ typedef struct VideoState {
     AVInputFormat *iformat;
     //
     volatile int abort_request;
-    volatile int force_refresh;
     volatile int paused;
     volatile int last_paused;
     volatile int queue_attachments_req;

@@ -165,25 +165,6 @@ static void pictq_next_picture(VideoState *is) {
     LAVPUnlockMutex(is->pictq_mutex);
 }
 
-static int pictq_prev_picture(VideoState *is) {
-    VideoPicture *prevvp;
-    int ret = 0;
-    /* update queue size and signal for the previous picture */
-    LAVPLockMutex(is->pictq_mutex);
-    prevvp = &is->pictq[(is->pictq_rindex + VIDEO_PICTURE_QUEUE_SIZE - 1) % VIDEO_PICTURE_QUEUE_SIZE];
-    if (prevvp->allocated && prevvp->serial == is->videoq.serial) {
-        if (is->pictq_size < VIDEO_PICTURE_QUEUE_SIZE) {
-            if (--is->pictq_rindex == -1)
-                is->pictq_rindex = VIDEO_PICTURE_QUEUE_SIZE - 1;
-            is->pictq_size++;
-            ret = 1;
-        }
-        LAVPCondSignal(is->pictq_cond);
-    }
-    LAVPUnlockMutex(is->pictq_mutex);
-    return ret;
-}
-
 static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial) {
     /* update current video pts */
     set_clock(&is->vidclk, pts, serial);
@@ -199,7 +180,7 @@ void refresh_loop_wait_event(VideoState *is) {
     if (is->remaining_time > 1.0)
         return;
 
-    if (!is->paused || is->force_refresh)
+    if (!is->paused)
         video_refresh(is, &remaining_time);
 
     //
@@ -219,8 +200,6 @@ void video_refresh(void *opaque, double *remaining_time)
 
     if (is->video_st) {
         int redisplay = 0;
-        if (is->force_refresh)
-            redisplay = pictq_prev_picture(is);
     retry:
         if (is->pictq_size == 0) {
             // nothing to do, no picture to display in the queue
@@ -321,7 +300,6 @@ display:
                 stream_toggle_pause(is);
         }
     }
-    is->force_refresh = 0;
 }
 
 /* allocate a picture (needs to do that in main thread to avoid
