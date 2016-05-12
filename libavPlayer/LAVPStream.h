@@ -61,8 +61,7 @@
 
 - (BOOL) readyForCurrent;
 - (BOOL) readyForTime:(const CVTimeStamp*)ts;
-- (CVPixelBufferRef) getCVPixelBufferForCurrentAsPTS:(double_t *)pts;
-- (CVPixelBufferRef) getCVPixelBufferForTime:(const CVTimeStamp*)ts asPTS:(double_t *)pts;
+- (CVPixelBufferRef) getCVPixelBuffer;
 
 @end
 

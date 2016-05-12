@@ -107,35 +107,9 @@
     return [decoder readyForPTS:position];
 }
 
-- (CVPixelBufferRef) getCVPixelBufferForCurrentAsPTS:(double_t *)pts;
+- (CVPixelBufferRef) getCVPixelBuffer
 {
-    *pts = -1.0;
-    CVPixelBufferRef pb = [decoder getPixelBufferForCurrent:pts];
-    return pb;
-}
-
-- (CVPixelBufferRef) getCVPixelBufferForTime:(const CVTimeStamp*)ts asPTS:(double_t *)pts;
-{
-    /*
-     LAVP: CVDisplayLink could be delayed by other issue. It will cause HostTime in CVTimeStamp expired.
-     App should check this before calculation because HostTime is described in uint64_t.
-     */
-    double_t offset = 0.0;
-    uint64_t currentHostTime = CVGetCurrentHostTime();
-    if (ts->hostTime > currentHostTime)
-        offset = (double)(ts->hostTime - currentHostTime) / CVGetHostClockFrequency(); // in sec
-
-    double_t position = (double)[decoder position]/AV_TIME_BASE + offset; // in sec
-    double_t duration = (double)[decoder duration]/AV_TIME_BASE; // in sec
-
-    // clipping
-    position = (position < 0 ? 0 : position);
-    position = (position > duration ? duration : position);
-
-    //
-    CVPixelBufferRef pb = [decoder getPixelBufferForPTS:&position];
-    if (pb) *pts = position;
-    return pb;
+    return [decoder getPixelBuffer];
 }
 
 - (QTTime) duration;

@@ -36,7 +36,7 @@ extern VideoState* stream_open(id opaque, NSURL *sourceURL);
 extern void alloc_picture(void *opaque);
 extern void refresh_loop_wait_event(VideoState *is);
 extern int hasImage(void *opaque);
-extern int copyImage(void *opaque, double_t *targetpts, uint8_t* data, const int pitch) ;
+extern int copyImage(void *opaque, uint8_t* data, const int pitch);
 extern AudioQueueParameterValue getVolume(VideoState *is);
 extern void setVolume(VideoState *is, AudioQueueParameterValue volume);
 extern double_t stream_playRate(VideoState *is);
@@ -165,37 +165,19 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     return hasImage(is);
 }
 
-- (CVPixelBufferRef) getPixelBufferForPTS:(double_t*)pts
-{
-    return [self _getPixelBuffer:pts current:false];
-}
-
-- (CVPixelBufferRef) getPixelBufferForCurrent:(double_t*)pts
-{
-    return [self _getPixelBuffer:pts current:true];
-}
-
-- (CVPixelBufferRef) _getPixelBuffer:(double_t*)pts current:(bool)current
+- (CVPixelBufferRef) getPixelBuffer
 {
     if (!pb) {
         pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(is->width, is->height)];
     }
 
-    double_t currentpts = current ? 0.0 : *pts;
-
     CVPixelBufferLockBaseAddress(pb, 0);
     uint8_t* data = CVPixelBufferGetBaseAddress(pb);
     int pitch = CVPixelBufferGetBytesPerRow(pb);
-    int ret = copyImage(is, &currentpts, data, pitch);
+    int ret = copyImage(is, data, pitch);
     CVPixelBufferUnlockBaseAddress(pb, 0);
 
-    if (ret == 1) {
-        *pts = currentpts;
-        return pb;
-    } else if (ret == 2) {
-        *pts = currentpts;
-        return pb;
-    }
+    if (ret == 1 || ret == 2) return pb;
     return NULL;
 }
 

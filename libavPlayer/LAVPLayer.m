@@ -196,13 +196,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         if (ready) {
             // Prepare CIImage
-            CVPixelBufferRef pb = NULL;
-            double_t pts = -2;
-
-            if (!timeStamp)
-                pb = [_stream getCVPixelBufferForCurrentAsPTS:&pts];
-            else
-                pb = [_stream getCVPixelBufferForTime:timeStamp asPTS:&pts];
+            CVPixelBufferRef pb = [_stream getCVPixelBuffer];
 
             if (pb) {
                 [_lock lock];

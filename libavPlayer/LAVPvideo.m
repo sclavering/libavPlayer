@@ -531,7 +531,7 @@ bail:
     return 0;
 }
 
-int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
+int copyImage(void *opaque, uint8_t* data, int pitch)
 {
     VideoState *is = opaque;
     uint8_t * out[4] = {0};
@@ -583,8 +583,6 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
 
             if (result > 0) {
                 is->lastPTScopied = vp->pts;
-                *targetpts = vp->pts;
-
                 LAVPUnlockMutex(is->pictq.mutex);
                 return 1;
             } else {
