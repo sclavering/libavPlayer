@@ -24,6 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "LAVPcommon.h"
 #include "LAVPcore.h"
 #include "LAVPvideo.h"
 #include "LAVPqueue.h"
@@ -237,6 +238,7 @@ int stream_component_open(VideoState *is, int stream_index)
             is->video_st = ic->streams[stream_index];
 
             packet_queue_start(&is->videoq);
+            decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
 
             // LAVP: Using dispatch queue
             {
@@ -253,6 +255,7 @@ int stream_component_open(VideoState *is, int stream_index)
             is->subtitle_st = ic->streams[stream_index];
 
             packet_queue_start(&is->subtitleq);
+            decoder_init(&is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
 
             // LAVP: Using dispatch queue
             {
@@ -317,6 +320,7 @@ void stream_component_close(VideoState *is, int stream_index)
                 is->video_group = NULL;
                 is->video_queue = NULL;
             }
+            decoder_destroy(&is->viddec);
             packet_queue_flush(&is->videoq);
             break;
         case AVMEDIA_TYPE_SUBTITLE:
@@ -336,6 +340,7 @@ void stream_component_close(VideoState *is, int stream_index)
                 is->subtitle_group = NULL;
                 is->subtitle_queue = NULL;
             }
+            decoder_destroy(&is->subdec);
             packet_queue_flush(&is->subtitleq);
             break;
         default:
@@ -538,7 +543,7 @@ int read_thread(void *arg)
                 }
                 if (!is->paused &&
                     (!is->audio_st || is->audio_finished == is->audioq.serial) &&
-                    (!is->video_st || (is->video_finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
+                    (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
 

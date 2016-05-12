@@ -24,6 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "LAVPcommon.h"
 #include "LAVPcore.h"
 #include "LAVPvideo.h"
 #include "LAVPqueue.h"
@@ -241,9 +242,7 @@ int subtitle_thread(void *arg)
 {
     VideoState *is = arg;
     Frame *sp;
-    AVPacket pkt1, *pkt = &pkt1;
     int got_subtitle;
-    int serial;
     double pts;
     int i, j;
     int r, g, b, y, u, v, a;
@@ -253,32 +252,20 @@ int subtitle_thread(void *arg)
             while (is->paused && !is->subtitleq.abort_request) {
                 usleep(10*1000);
             }
-            if (packet_queue_get(&is->subtitleq, pkt, 1, &serial) < 0) {
-                break;
-            }
-
-            /* LAVP: Queue specific flush packet */
-            if(pkt->data == is->subtitleq.flush_pkt.data){
-                avcodec_flush_buffers(is->subtitle_st->codec);
-                continue;
-            }
 
             if (!(sp = frame_queue_peek_writable(&is->subpq)))
                 goto the_end;
 
-            /* NOTE: ipts is the PTS of the _first_ picture beginning in
-             this packet, if any */
-            pts = 0;
-            if (pkt->pts != AV_NOPTS_VALUE)
-                pts = av_q2d(is->subtitle_st->time_base)*pkt->pts;
+            if ((got_subtitle = decoder_decode_frame(&is->subdec, &sp->sub)) < 0)
+                break;
 
-            avcodec_decode_subtitle2(is->subtitle_st->codec, &sp->sub,
-                                     &got_subtitle, pkt);
+            pts = 0;
+
             if (got_subtitle && sp->sub.format == 0) {
                 if (sp->sub.pts != AV_NOPTS_VALUE)
                     pts = sp->sub.pts / (double)AV_TIME_BASE;
                 sp->pts = pts;
-                sp->serial = serial;
+                sp->serial = is->subdec.pkt_serial;
 
                 for (i = 0; i < sp->sub.num_rects; i++)
                 {
@@ -297,7 +284,6 @@ int subtitle_thread(void *arg)
             } else if (got_subtitle) {
                 avsubtitle_free(&sp->sub);
             }
-            av_free_packet(pkt);
         }
     }
 the_end:

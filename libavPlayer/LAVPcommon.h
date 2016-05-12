@@ -145,7 +145,8 @@ typedef struct PacketQueue {
 
 /* =========================================================== */
 
-#import "framequeue.h"
+#include "framequeue.h"
+#include "decoder.h"
 
 /* =========================================================== */
 
@@ -198,7 +199,6 @@ typedef struct VideoState {
     AVFormatContext *ic;
     int realtime;
     int audio_finished; /* AVPacket serial */
-    int video_finished; /* AVPacket serial */
     //
     Clock audclk;
     Clock vidclk;
@@ -206,6 +206,9 @@ typedef struct VideoState {
 
     FrameQueue pictq;
     FrameQueue subpq;
+
+    Decoder viddec;
+    Decoder subdec;
 
     int av_sync_type;
     //
