@@ -256,7 +256,7 @@ int subtitle_thread(void *arg)
             if (!(sp = frame_queue_peek_writable(&is->subpq)))
                 goto the_end;
 
-            if ((got_subtitle = decoder_decode_frame(&is->subdec, &sp->sub)) < 0)
+            if ((got_subtitle = decoder_decode_frame(&is->subdec, NULL, &sp->sub)) < 0)
                 break;
 
             pts = 0;

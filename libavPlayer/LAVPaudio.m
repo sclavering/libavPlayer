@@ -230,7 +230,7 @@ int audio_decode_frame(VideoState *is)
             return resampled_data_size;
         }
 
-        if ((got_frame = decoder_decode_frame(&is->auddec, is->frame)) < 0)
+        if ((got_frame = decoder_decode_frame(&is->auddec, is->frame, NULL)) < 0)
             return -1;
 
         if (is->auddec.flushed)

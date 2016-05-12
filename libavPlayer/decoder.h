@@ -15,5 +15,5 @@ typedef struct Decoder {
 } Decoder;
 
 void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond);
-int decoder_decode_frame(Decoder *d, void *fframe);
+int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub);
 void decoder_destroy(Decoder *d);

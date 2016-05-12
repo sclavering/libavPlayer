@@ -415,7 +415,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 {
     int got_picture;
 
-    if ((got_picture = decoder_decode_frame(&is->viddec, frame)) < 0)
+    if ((got_picture = decoder_decode_frame(&is->viddec, frame, NULL)) < 0)
         return -1;
 
     if (got_picture) {
