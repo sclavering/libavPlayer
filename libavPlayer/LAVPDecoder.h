@@ -25,7 +25,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-#include "LAVPCommon.h"
+#include "LAVPcommon.h"
 
 @interface LAVPDecoder : NSObject {
 @private
