@@ -213,9 +213,6 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     }
 
     if (rate > 0) {
-        if ([self eof]) {
-            [self setPosition:0.0 blocking:TRUE];
-        }
         stream_setPlayRate(is, rate);
         if (is && is->paused) {
             stream_pause(is);
