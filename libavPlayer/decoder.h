@@ -8,6 +8,10 @@ typedef struct Decoder {
     int flushed;
     int packet_pending;
     LAVPcond *empty_queue_cond;
+    int64_t start_pts;
+    AVRational start_pts_tb;
+    int64_t next_pts;
+    AVRational next_pts_tb;
 } Decoder;
 
 void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond);

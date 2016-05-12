@@ -204,6 +204,10 @@ int stream_component_open(VideoState *is, int stream_index)
 
             packet_queue_start(&is->audioq);
             decoder_init(&is->auddec, avctx, &is->audioq, is->continue_read_thread);
+            if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
+                is->auddec.start_pts = is->audio_st->start_time;
+                is->auddec.start_pts_tb = is->audio_st->time_base;
+            }
 
             //
             sample_rate    = avctx->sample_rate;

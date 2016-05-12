@@ -7,10 +7,12 @@ void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcon
     d->avctx = avctx;
     d->queue = queue;
     d->empty_queue_cond = empty_queue_cond;
+    d->start_pts = AV_NOPTS_VALUE;
 }
 
 int decoder_decode_frame(Decoder *d, void *fframe) {
     int got_frame = 0;
+    AVFrame *frame = fframe;
 
     d->flushed = 0;
 
@@ -31,6 +33,8 @@ int decoder_decode_frame(Decoder *d, void *fframe) {
                     avcodec_flush_buffers(d->avctx);
                     d->finished = 0;
                     d->flushed = 1;
+                    d->next_pts = d->start_pts;
+                    d->next_pts_tb = d->start_pts_tb;
                 }
             } while (pkt.data == d->queue->flush_pkt.data || d->queue->serial != d->pkt_serial);
             av_free_packet(&d->pkt);
@@ -40,10 +44,26 @@ int decoder_decode_frame(Decoder *d, void *fframe) {
 
         switch (d->avctx->codec_type) {
             case AVMEDIA_TYPE_VIDEO:
-                ret = avcodec_decode_video2(d->avctx, fframe, &got_frame, &d->pkt_temp);
+                ret = avcodec_decode_video2(d->avctx, frame, &got_frame, &d->pkt_temp);
+                if (got_frame) {
+                    frame->pts = av_frame_get_best_effort_timestamp(frame);
+                }
                 break;
             case AVMEDIA_TYPE_AUDIO:
-                ret = avcodec_decode_audio4(d->avctx, fframe, &got_frame, &d->pkt_temp);
+                ret = avcodec_decode_audio4(d->avctx, frame, &got_frame, &d->pkt_temp);
+                if (got_frame) {
+                    AVRational tb = (AVRational){1, frame->sample_rate};
+                    if (frame->pts != AV_NOPTS_VALUE)
+                        frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
+                    else if (frame->pkt_pts != AV_NOPTS_VALUE)
+                        frame->pts = av_rescale_q(frame->pkt_pts, d->avctx->pkt_timebase, tb);
+                    else if (d->next_pts != AV_NOPTS_VALUE)
+                        frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
+                    if (frame->pts != AV_NOPTS_VALUE) {
+                        d->next_pts = frame->pts + frame->nb_samples;
+                        d->next_pts_tb = tb;
+                    }
+                }
                 break;
             case AVMEDIA_TYPE_SUBTITLE:
                 ret = avcodec_decode_subtitle2(d->avctx, fframe, &got_frame, &d->pkt_temp);

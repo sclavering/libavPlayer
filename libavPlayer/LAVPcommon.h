@@ -275,7 +275,6 @@ typedef struct VideoState {
     struct SwrContext *swr_ctx;
     //
     AVFrame *frame;
-    int64_t audio_frame_next_pts;
 
     /* LAVP: extension */
     AudioQueueRef outAQ;

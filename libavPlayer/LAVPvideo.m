@@ -421,8 +421,6 @@ int get_video_frame(VideoState *is, AVFrame *frame)
     if (got_picture) {
         double dpts = NAN;
 
-        frame->pts = av_frame_get_best_effort_timestamp(frame);
-
         if (frame->pts != AV_NOPTS_VALUE)
             dpts = av_q2d(is->video_st->time_base) * frame->pts;
 

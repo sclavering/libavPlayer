@@ -125,7 +125,6 @@ static int synchronize_audio(VideoState *is, int nb_samples)
  */
 int audio_decode_frame(VideoState *is)
 {
-    AVCodecContext *dec = is->audio_st->codec;
     int data_size, resampled_data_size;
     int64_t dec_channel_layout;
     int got_frame = 0;
@@ -152,16 +151,8 @@ int audio_decode_frame(VideoState *is)
             if (!is->audio_buf_frames_pending) {
                 got_frame = 0;
                 tb = (AVRational){1, is->frame->sample_rate};
-                if (is->frame->pts != AV_NOPTS_VALUE)
-                    is->frame->pts = av_rescale_q(is->frame->pts, dec->time_base, tb);
-                else if (is->frame->pkt_pts != AV_NOPTS_VALUE)
-                    is->frame->pts = av_rescale_q(is->frame->pkt_pts, is->audio_st->time_base, tb);
-                else if (is->audio_frame_next_pts != AV_NOPTS_VALUE)
-                    is->frame->pts = av_rescale_q(is->audio_frame_next_pts, (AVRational){1, is->audio_src.freq}, tb);
-                if (is->frame->pts != AV_NOPTS_VALUE)
-                    is->audio_frame_next_pts = is->frame->pts + is->frame->nb_samples;
-
             }
+
             data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(is->frame),
                                                    is->frame->nb_samples,
                                                    is->frame->format, 1);
@@ -242,12 +233,8 @@ int audio_decode_frame(VideoState *is)
         if ((got_frame = decoder_decode_frame(&is->auddec, is->frame)) < 0)
             return -1;
 
-        if (is->auddec.flushed) {
+        if (is->auddec.flushed)
             is->audio_buf_frames_pending = 0;
-            is->audio_frame_next_pts = AV_NOPTS_VALUE;
-            if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek)
-                is->audio_frame_next_pts = is->audio_st->start_time;
-        }
     }
 }
 
