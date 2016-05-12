@@ -681,7 +681,7 @@ void set_clock_speed(Clock *c, double speed)
     c->speed = speed;
 }
 
-void init_clock(Clock *c, volatile int *queue_serial)
+void init_clock(Clock *c, int *queue_serial)
 {
     c->speed = 1.0;
     c->paused = 0;

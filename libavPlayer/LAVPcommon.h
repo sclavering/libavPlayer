@@ -128,15 +128,15 @@ enum {
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList *next;
-    volatile int serial;
+    int serial;
 } MyAVPacketList;
 
 typedef struct PacketQueue {
     MyAVPacketList *first_pkt, *last_pkt;
-    volatile int nb_packets;
-    volatile int size;
-    volatile int abort_request;
-    volatile int serial;
+    int nb_packets;
+    int size;
+    int abort_request;
+    int serial;
     LAVPmutex *mutex;
     LAVPcond *cond;
 
@@ -150,55 +150,55 @@ typedef struct PacketQueue {
 /* =========================================================== */
 
 typedef struct AudioParams {
-    volatile int freq;
-    volatile int channels;
-    volatile int64_t channel_layout;
+    int freq;
+    int channels;
+    int64_t channel_layout;
     enum AVSampleFormat fmt;
-    volatile int frame_size;
-    volatile int bytes_per_sec;
+    int frame_size;
+    int bytes_per_sec;
 } AudioParams;
 
 typedef struct Clock {
-    volatile double pts;           /* clock base */
-    volatile double pts_drift;     /* clock base minus time at which we updated the clock */
-    volatile double last_updated;
-    volatile double speed;
-    volatile int serial;           /* clock is based on a packet with this serial */
-    volatile int paused;
-    volatile int *queue_serial;    /* pointer to the current packet queue serial, used for obsolete clock detection */
+    double pts;           /* clock base */
+    double pts_drift;     /* clock base minus time at which we updated the clock */
+    double last_updated;
+    double speed;
+    int serial;           /* clock is based on a packet with this serial */
+    int paused;
+    int *queue_serial;    /* pointer to the current packet queue serial, used for obsolete clock detection */
 } Clock;
 
 /* =========================================================== */
 
 typedef struct VideoState {
     /* moved from global parameter */
-    volatile int seek_by_bytes;     /* static int seek_by_bytes = -1; */
-    volatile int infinite_buffer;            /* static int infinite_buffer = -1; */
+    int seek_by_bytes;     /* static int seek_by_bytes = -1; */
+    int infinite_buffer;            /* static int infinite_buffer = -1; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
 
-    volatile int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
+    int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
 
     /* moved from local valuable */
-    volatile double remaining_time;
+    double remaining_time;
 
     // LAVPcore
 
     /* same order as original struct */
     AVInputFormat *iformat;
     //
-    volatile int abort_request;
-    volatile int paused;
-    volatile int last_paused;
-    volatile int queue_attachments_req;
-    volatile int seek_req;
-    volatile int seek_flags;
-    volatile int64_t seek_pos;
-    volatile int64_t seek_rel;
-    volatile int read_pause_return;
+    int abort_request;
+    int paused;
+    int last_paused;
+    int queue_attachments_req;
+    int seek_req;
+    int seek_flags;
+    int64_t seek_pos;
+    int64_t seek_rel;
+    int read_pause_return;
     AVFormatContext *ic;
-    volatile int realtime;
-    volatile int audio_finished; /* AVPacket serial */
-    volatile int video_finished; /* AVPacket serial */
+    int realtime;
+    int audio_finished; /* AVPacket serial */
+    int video_finished; /* AVPacket serial */
     //
     Clock audclk;
     Clock vidclk;
@@ -207,17 +207,17 @@ typedef struct VideoState {
     FrameQueue pictq;
     FrameQueue subpq;
 
-    volatile int av_sync_type;
+    int av_sync_type;
     //
     char* filename; /* LAVP: char filename[1024] */
-    volatile int width, height, xleft, ytop;
-    volatile int step;
+    int width, height, xleft, ytop;
+    int step;
     //
     LAVPcond *continue_read_thread;
 
     /* stream index */
-    volatile int video_stream, audio_stream, subtitle_stream;
-    volatile int last_video_stream, last_audio_stream, last_subtitle_stream;
+    int video_stream, audio_stream, subtitle_stream;
+    int last_video_stream, last_audio_stream, last_subtitle_stream;
 
     /* AVStream */
     AVStream *audio_st;
@@ -231,7 +231,7 @@ typedef struct VideoState {
 
     /* Extension; playRate */
     double_t playRate;
-    volatile int eof_flag;
+    int eof_flag;
 
     /* Extension; Sub thread */
     void* parse_queue; // dispatch_queue_t
@@ -250,8 +250,8 @@ typedef struct VideoState {
     // LAVPaudio
 
     /* same order as original struct */
-    volatile double audio_clock;
-    volatile int audio_clock_serial;
+    double audio_clock;
+    int audio_clock_serial;
     double audio_diff_cum; /* used for AV difference average computation */
     double audio_diff_avg_coef;
     double audio_diff_threshold;
@@ -286,16 +286,16 @@ typedef struct VideoState {
 
     // LAVPvideo
 
-    volatile double frame_timer;
-    volatile double frame_last_returned_time;
-    volatile double frame_last_filter_delay;
+    double frame_timer;
+    double frame_last_returned_time;
+    double frame_last_filter_delay;
     //
-    volatile double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
+    double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
     struct SwsContext *img_convert_ctx;
 
     /* LAVP: extension */
-    volatile double lastPTScopied;
+    double lastPTScopied;
     struct SwsContext *sws420to422;
 
     /* =========================================================== */
