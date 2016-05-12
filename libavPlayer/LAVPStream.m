@@ -204,7 +204,6 @@
 
     // current host time
     _htOffset = CVGetCurrentHostTime();
-    _posOffset = (double)[decoder position] / [decoder duration];
 
     if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
 }
