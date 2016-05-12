@@ -35,9 +35,8 @@ extern void stream_close(VideoState *is);
 extern VideoState* stream_open(id opaque, NSURL *sourceURL);
 extern void alloc_picture(void *opaque);
 extern void refresh_loop_wait_event(VideoState *is);
-extern int hasImage(void *opaque, double_t targetpts);
+extern int hasImage(void *opaque);
 extern int copyImage(void *opaque, double_t *targetpts, uint8_t* data, const int pitch) ;
-extern int hasImageCurrent(void *opaque);
 extern int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch) ;
 extern AudioQueueParameterValue getVolume(VideoState *is);
 extern void setVolume(VideoState *is, AudioQueueParameterValue volume);
@@ -159,12 +158,12 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
 - (BOOL) readyForPTS:(double_t)pts
 {
-    return !!hasImage(is, pts);
+    return hasImage(is);
 }
 
 - (BOOL) readyForCurrent
 {
-    return !!hasImageCurrent(is);
+    return hasImage(is);
 }
 
 - (CVPixelBufferRef) getPixelBufferForPTS:(double_t*)pts

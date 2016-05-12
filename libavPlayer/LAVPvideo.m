@@ -511,52 +511,16 @@ the_end:
 
 #pragma mark -
 
-int hasImage(void *opaque, double_t targetpts)
+int hasImage(void *opaque)
 {
     VideoState *is = opaque;
 
     LAVPLockMutex(is->pictq.mutex);
 
     if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = NULL;
-        Frame *tmp = NULL;
-
-        if (1) {
-            int index = is->pictq.windex;
-            while (index != is->pictq.rindex) {
-                Frame *tmp = &is->pictq.queue[index];
-                if (tmp && tmp->bmp && tmp->allocated) {
-                    if (0.0 <= tmp->pts && tmp->pts <= targetpts) {
-                        if (!vp) {
-                            vp = tmp;
-                        } else if (vp->pts < tmp->pts) {
-                            vp = tmp;
-                        }
-                    }
-                }
-                index = (++index) % is->pictq.max_size;
-            }
-        }
-        if (!is->paused) { // LAVP: No advance while paused
-            for (int offset = 0; offset < frame_queue_nb_remaining(&is->pictq); offset++) {
-                int index = (is->pictq.rindex + offset) % is->pictq.max_size;
-                tmp = &is->pictq.queue[index];
-
-                if (0.0 <= tmp->pts && tmp->pts <= targetpts) {
-                    if (!vp) {
-                        vp = tmp;
-                    } else if (vp->pts < tmp->pts) {
-                        vp = tmp;
-                    }
-                }
-            }
-        }
-        // Workaround: When all pictures in pictq are later time stamp then targetpts
+        Frame *vp = frame_queue_peek(&is->pictq);
         if (!vp) vp = frame_queue_peek_last(&is->pictq);
-
         if (vp) {
-            //NSLog(@"DEBUG: hasImage(%.3lf) => (%.3lf); delta=%.3lf)", *targetpts, vp->pts, vp->pts - *targetpts);
-
             LAVPUnlockMutex(is->pictq.mutex);
             return 1;
         }
@@ -589,39 +553,7 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
     LAVPLockMutex(is->pictq.mutex);
 
     if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = NULL;
-        Frame *tmp = NULL;
-
-        if (1) {
-            int index = is->pictq.windex;
-            while (index != is->pictq.rindex) {
-                Frame *tmp = &is->pictq.queue[index];
-                if (tmp && tmp->bmp && tmp->allocated) {
-                    if (0.0 <= tmp->pts && tmp->pts <= *targetpts) {
-                        if (!vp) {
-                            vp = tmp;
-                        } else if (vp->pts < tmp->pts) {
-                            vp = tmp;
-                        }
-                    }
-                }
-                index = (++index) % is->pictq.max_size;
-            }
-        }
-        if (!is->paused) { // LAVP: No advance while paused
-            for (int offset = 0; offset < frame_queue_nb_remaining(&is->pictq); offset++) {
-                int index = (is->pictq.rindex + offset) % is->pictq.max_size;
-                tmp = &is->pictq.queue[index];
-
-                if (0.0 <= tmp->pts && tmp->pts <= *targetpts) {
-                    if (!vp) {
-                        vp = tmp;
-                    } else if (vp->pts < tmp->pts) {
-                        vp = tmp;
-                    }
-                }
-            }
-        }
+        Frame *vp = frame_queue_peek(&is->pictq);
         if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
         if (vp) {
@@ -677,42 +609,6 @@ bail:
     return 0;
 }
 
-int hasImageCurrent(void *opaque)
-{
-    VideoState *is = opaque;
-
-    LAVPLockMutex(is->pictq.mutex);
-
-    if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = NULL;
-        if (1) {
-            int lastindex = (is->pictq.rindex + is->pictq.max_size - 1) % is->pictq.max_size;
-            Frame *tmp = &is->pictq.queue[lastindex];
-            if (tmp && tmp->bmp && tmp->allocated) {
-                if (0.0 <= tmp->pts) {
-                    vp = tmp;
-                }
-            }
-        }
-        if (!vp) {
-            int index = is->pictq.rindex;
-            vp = &is->pictq.queue[index];
-        }
-        if(vp) {
-            //NSLog(@"DEBUG: hasImageCurrent() => (%.3lf)", vp->pts);
-
-            LAVPUnlockMutex(is->pictq.mutex);
-            return 1;
-        } else {
-            NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
-        }
-    }
-
-bail:
-    LAVPUnlockMutex(is->pictq.mutex);
-    return 0;
-}
-
 int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
 {
     VideoState *is = opaque;
@@ -734,16 +630,7 @@ int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch
     LAVPLockMutex(is->pictq.mutex);
 
     if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = NULL;
-        if (1) {
-            int lastindex = (is->pictq.rindex + is->pictq.max_size - 1) % is->pictq.max_size;
-            Frame *tmp = &is->pictq.queue[lastindex];
-            if (tmp && tmp->bmp && tmp->allocated) {
-                if (0.0 <= tmp->pts) {
-                    vp = tmp;
-                }
-            }
-        }
+        Frame *vp = frame_queue_peek(&is->pictq);
         if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
         if (vp) {
