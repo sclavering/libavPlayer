@@ -539,84 +539,6 @@ int copyImage(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
     assert(data);
 
 #if !ALLOW_GPL_CODE
-    /* LAVP: Prepare 420422 converter */
-    if (!is->sws420to422) {
-        is->sws420to422 = sws_getContext(is->width, is->height,
-                                         PIX_FMT_YUV420P,
-                                         is->width, is->height,
-                                         PIX_FMT_UYVY422,
-                                         SWS_BILINEAR,NULL, NULL, NULL);
-        assert (is->sws420to422);
-    }
-#endif
-
-    LAVPLockMutex(is->pictq.mutex);
-
-    if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = frame_queue_peek(&is->pictq);
-        if (!vp) vp = frame_queue_peek_last(&is->pictq);
-
-        if (vp) {
-            int result = 0;
-
-            //if (vp->pts >= 0 && vp->pts < is->lastPTScopied) {
-            //    NSLog(@"DEBUG: %8.3f %s %8.3f < %8.3f (rev)",vp->pts , (vp->pts <= *targetpts?" =<":">  "), *targetpts, is->lastPTScopied);
-            //} else {
-            //    NSLog(@"DEBUG: %8.3f %s %8.3f", vp->pts, (vp->pts <= *targetpts?" =<":">  "), *targetpts);
-            //}
-
-            if (vp->pts >= 0 && vp->pts == is->lastPTScopied) {
-                LAVPUnlockMutex(is->pictq.mutex);
-                return 2;
-            }
-
-            // TODO Add support to call blend_subrect() for subq (original:video_image_display())
-
-#if ALLOW_GPL_CODE
-            uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
-            size_t inpitch[4] = {vp->bmp->linesize[0], vp->bmp->linesize[1], vp->bmp->linesize[2], vp->bmp->linesize[3]};
-            copy_planar_YUV420_to_2vuy(vp->width, vp->height,
-                                       in[0], inpitch[0],
-                                       in[1], inpitch[1],
-                                       in[2], inpitch[2],
-                                       data, pitch);
-            result = 1;
-#else
-            const uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
-            result = sws_scale(is->sws420to422,
-                               in, vp->bmp->linesize, 0, vp->height,
-                               out, &pitch);
-#endif
-
-            if (result > 0) {
-                //NSLog(@"DEBUG: copyImage(%.3lf) => (%.3lf); delta=%.3lf)", *targetpts, vp->pts, vp->pts - *targetpts);
-
-                is->lastPTScopied = vp->pts;
-                *targetpts = vp->pts;
-
-                LAVPUnlockMutex(is->pictq.mutex);
-                return 1;
-            } else {
-                NSLog(@"ERROR: result != 0 (%s)", __FUNCTION__);
-            }
-        } else {
-            NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
-        }
-    }
-
-bail:
-    LAVPUnlockMutex(is->pictq.mutex);
-    return 0;
-}
-
-int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch)
-{
-    VideoState *is = opaque;
-    uint8_t * out[4] = {0};
-    out[0] = data;
-    assert(data);
-
-#if !ALLOW_GPL_CODE
     if (!is->sws420to422) {
         is->sws420to422 = sws_getContext(is->width, is->height,
                                          PIX_FMT_YUV420P,
@@ -660,8 +582,6 @@ int copyImageCurrent(void *opaque, double_t *targetpts, uint8_t* data, int pitch
 #endif
 
             if (result > 0) {
-                //NSLog(@"DEBUG: copyImageCurrent() => (%.3lf)", vp->pts);
-
                 is->lastPTScopied = vp->pts;
                 *targetpts = vp->pts;
 
