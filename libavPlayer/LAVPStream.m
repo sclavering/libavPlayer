@@ -88,25 +88,6 @@
     return size;
 }
 
-- (BOOL) readyForCurrent
-{
-    return [decoder readyForCurrent];
-}
-
-- (BOOL) readyForTime:(const CVTimeStamp*)ts
-{
-    double_t offset = (double)(ts->hostTime - CVGetCurrentHostTime()) / CVGetHostClockFrequency(); // in sec
-    double_t position = (double)[decoder position]/AV_TIME_BASE + offset; // in sec
-    double_t duration = (double)[decoder duration]/AV_TIME_BASE; // in sec
-
-    // clipping
-    position = (position < 0 ? 0 : position);
-    position = (position > duration ? duration : position);
-
-    //
-    return [decoder readyForPTS:position];
-}
-
 - (CVPixelBufferRef) getCVPixelBuffer
 {
     return [decoder getPixelBuffer];

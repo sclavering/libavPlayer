@@ -188,13 +188,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
               displayTime:(const CVTimeStamp *)timeStamp
 {
     if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy) {
-        BOOL ready = NO;
-        if (!timeStamp)
-            ready = [_stream readyForCurrent];
-        else
-            ready = [_stream readyForTime:timeStamp];
-
-        if (ready) {
             // Prepare CIImage
             CVPixelBufferRef pb = [_stream getCVPixelBuffer];
 
@@ -205,7 +198,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
                 [_lock unlock];
                 goto bail;
             }
-        }
     }
 
     // Fallback: Use last shown image

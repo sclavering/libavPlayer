@@ -59,8 +59,6 @@
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 + (id) streamWithURL:(NSURL *)url error:(NSError **)errorPtr;
 
-- (BOOL) readyForCurrent;
-- (BOOL) readyForTime:(const CVTimeStamp*)ts;
 - (CVPixelBufferRef) getCVPixelBuffer;
 
 @end

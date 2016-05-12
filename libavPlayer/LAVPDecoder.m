@@ -155,18 +155,9 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     return pixelbuffer;
 }
 
-- (BOOL) readyForPTS:(double_t)pts
-{
-    return hasImage(is);
-}
-
-- (BOOL) readyForCurrent
-{
-    return hasImage(is);
-}
-
 - (CVPixelBufferRef) getPixelBuffer
 {
+    if(!hasImage(is)) return NULL;
     if (!pb) {
         pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(is->width, is->height)];
     }
