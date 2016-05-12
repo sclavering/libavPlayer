@@ -454,9 +454,6 @@ int video_thread(void *arg)
 
     for(;;) {
         @autoreleasepool {
-            while (is->paused && !is->videoq.abort_request)
-                usleep(10*1000);
-
             ret = get_video_frame(is, frame);
             if (ret < 0) {
                 goto the_end;

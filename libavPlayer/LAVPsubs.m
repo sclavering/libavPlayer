@@ -249,10 +249,6 @@ int subtitle_thread(void *arg)
 
     for(;;) {
         @autoreleasepool {
-            while (is->paused && !is->subtitleq.abort_request) {
-                usleep(10*1000);
-            }
-
             if (!(sp = frame_queue_peek_writable(&is->subpq)))
                 goto the_end;
 
