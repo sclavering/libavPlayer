@@ -272,8 +272,8 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
             int64_t current_b = -1;
             if (current_b < 0 && is->video_stream >= 0)
                 current_b = frame_queue_last_pos(&is->pictq);
-            if (current_b < 0 && is->audio_stream >= 0)
-                current_b = is->audio_pkt.pos;
+            if (current_b < 0 && is->audio_stream >= 0 && is->frame)
+                current_b = av_frame_get_pkt_pos(is->frame);
             if (current_b < 0)
                 current_b = avio_tell(is->ic->pb);
 

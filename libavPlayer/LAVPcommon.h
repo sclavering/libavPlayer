@@ -198,8 +198,7 @@ typedef struct VideoState {
     int read_pause_return;
     AVFormatContext *ic;
     int realtime;
-    int audio_finished; /* AVPacket serial */
-    //
+
     Clock audclk;
     Clock vidclk;
     Clock extclk;
@@ -207,6 +206,7 @@ typedef struct VideoState {
     FrameQueue pictq;
     FrameQueue subpq;
 
+    Decoder auddec;
     Decoder viddec;
     Decoder subdec;
 
@@ -269,9 +269,6 @@ typedef struct VideoState {
     int audio_buf_index; /* in bytes */
     int audio_write_buf_size;
     int audio_buf_frames_pending;
-    AVPacket audio_pkt_temp;
-    AVPacket audio_pkt;
-    int audio_pkt_temp_serial;
     int audio_last_serial;
     struct AudioParams audio_src;
     struct AudioParams audio_tgt;

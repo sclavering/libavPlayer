@@ -125,53 +125,32 @@ static int synchronize_audio(VideoState *is, int nb_samples)
  */
 int audio_decode_frame(VideoState *is)
 {
-    AVPacket *pkt_temp = &is->audio_pkt_temp;
-    AVPacket *pkt = &is->audio_pkt;
     AVCodecContext *dec = is->audio_st->codec;
-    int len1, data_size, resampled_data_size;
+    int data_size, resampled_data_size;
     int64_t dec_channel_layout;
-    int got_frame;
+    int got_frame = 0;
     av_unused double audio_clock0;
     int wanted_nb_samples;
     AVRational tb = { 0 }; /* LAVP: should be initialized */
+
+    if (!is->frame)
+        if (!(is->frame = av_frame_alloc()))
+            return AVERROR(ENOMEM);
+
     // LAVP:
-
     for(;;) {
-        /* NOTE: the audio packet can contain several frames */
-        while (pkt_temp->stream_index != -1 || is->audio_buf_frames_pending) {
-            if (!is->frame) {
-                if (!(is->frame = av_frame_alloc()))
-                    return AVERROR(ENOMEM);
-            } else {
-                av_frame_unref(is->frame);
-            }
+        if (is->audioq.serial != is->auddec.pkt_serial)
+            is->audio_buf_frames_pending = got_frame = 0;
 
-            if (is->audioq.serial != is->audio_pkt_temp_serial)
-                break;
+        if (!got_frame)
+            av_frame_unref(is->frame);
 
-            if (is->paused)
-                return -1;
+        if (is->paused)
+            return -1;
 
+        while (is->audio_buf_frames_pending || got_frame) {
             if (!is->audio_buf_frames_pending) {
-                len1 = avcodec_decode_audio4(dec, is->frame, &got_frame, pkt_temp);
-                if (len1 < 0) {
-                    /* if error, we skip the frame */
-                    pkt_temp->size = 0;
-                    break;
-                }
-
-                pkt_temp->dts =
-                pkt_temp->pts = AV_NOPTS_VALUE;
-                pkt_temp->data += len1;
-                pkt_temp->size -= len1;
-                if ((pkt_temp->data && pkt_temp->size <= 0) || (!pkt_temp->data && !got_frame))
-                    pkt_temp->stream_index = -1;
-                if (!pkt_temp->data && !got_frame)
-                    is->audio_finished = is->audio_pkt_temp_serial;
-
-                if (!got_frame)
-                    continue;
-
+                got_frame = 0;
                 tb = (AVRational){1, is->frame->sample_rate};
                 if (is->frame->pts != AV_NOPTS_VALUE)
                     is->frame->pts = av_rescale_q(is->frame->pts, dec->time_base, tb);
@@ -256,36 +235,19 @@ int audio_decode_frame(VideoState *is)
                 is->audio_clock = is->frame->pts * av_q2d(tb) + (double) is->frame->nb_samples / is->frame->sample_rate;
             else
                 is->audio_clock = NAN;
-            is->audio_clock_serial = is->audio_pkt_temp_serial;
+            is->audio_clock_serial = is->auddec.pkt_serial;
             return resampled_data_size;
         }
 
-        /* free the current packet */
-        if (pkt->data)
-            av_free_packet(pkt);
-        memset(pkt_temp, 0, sizeof(*pkt_temp));
-        pkt_temp->stream_index = -1;
-
-        if (is->audioq.abort_request) {
-            return -1;
-        }
-
-        if (is->audioq.nb_packets == 0)
-            LAVPCondSignal(is->continue_read_thread);
-
-        /* read next packet */
-        if ((packet_queue_get(&is->audioq, pkt, 1, &is->audio_pkt_temp_serial)) < 0)
+        if ((got_frame = decoder_decode_frame(&is->auddec, is->frame)) < 0)
             return -1;
 
-        if (pkt->data == is->audioq.flush_pkt.data) {
-            avcodec_flush_buffers(dec);
+        if (is->auddec.flushed) {
             is->audio_buf_frames_pending = 0;
             is->audio_frame_next_pts = AV_NOPTS_VALUE;
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek)
                 is->audio_frame_next_pts = is->audio_st->start_time;
         }
-
-        *pkt_temp = *pkt;
     }
 }
 

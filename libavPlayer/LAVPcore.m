@@ -203,6 +203,7 @@ int stream_component_open(VideoState *is, int stream_index)
             is->audio_st = ic->streams[stream_index];
 
             packet_queue_start(&is->audioq);
+            decoder_init(&is->auddec, avctx, &is->audioq, is->continue_read_thread);
 
             //
             sample_rate    = avctx->sample_rate;
@@ -223,10 +224,6 @@ int stream_component_open(VideoState *is, int stream_index)
             /* since we do not have a precise anough audio fifo fullness,
              we correct audio sync only if larger than this threshold */
             is->audio_diff_threshold = 2.0 * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec;
-
-            memset(&is->audio_pkt, 0, sizeof(is->audio_pkt));
-            memset(&is->audio_pkt_temp, 0, sizeof(is->audio_pkt_temp));
-            is->audio_pkt_temp.stream_index = -1;
 
             // LAVP: start AudioQueue
             LAVPAudioQueueInit(is, avctx);
@@ -293,9 +290,8 @@ void stream_component_close(VideoState *is, int stream_index)
             LAVPAudioQueueStop(is);
             LAVPAudioQueueDealloc(is);
 
-            //
+            decoder_destroy(&is->auddec);
             packet_queue_flush(&is->audioq);
-            av_free_packet(&is->audio_pkt);
             swr_free(&is->swr_ctx);
             av_freep(&is->audio_buf1);
             is->audio_buf1_size = 0;
@@ -542,7 +538,7 @@ int read_thread(void *arg)
                     continue;
                 }
                 if (!is->paused &&
-                    (!is->audio_st || is->audio_finished == is->audioq.serial) &&
+                    (!is->audio_st || is->auddec.finished == is->audioq.serial) &&
                     (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
