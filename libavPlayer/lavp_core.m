@@ -550,23 +550,18 @@ int read_thread(VideoState* is)
 
                     [is->decoder haveReachedEOF];
                 }
-                if(eof) {
-                    if (is->video_stream >= 0)
-                        packet_queue_put_nullpacket(&is->videoq, is->video_stream);
-                    if (is->audio_stream >= 0)
-                        packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
-                    if (is->subtitle_stream >= 0)
-                        packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
-                    usleep(10*1000);
-                    eof=0;
-                    continue;
-                }
 
-                // Read file
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
-                    if (ret == AVERROR_EOF || avio_feof(is->ic->pb))
-                        eof=1;
+                    if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !eof) {
+                        if (is->video_stream >= 0)
+                            packet_queue_put_nullpacket(&is->videoq, is->video_stream);
+                        if (is->audio_stream >= 0)
+                            packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
+                        if (is->subtitle_stream >= 0)
+                            packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
+                        eof = 1;
+                    }
                     if (is->ic->pb && is->ic->pb->error) {
                         break;
                     }
@@ -574,6 +569,8 @@ int read_thread(VideoState* is)
                     LAVPCondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
                     LAVPUnlockMutex(wait_mutex);
                     continue;
+                } else {
+                    eof = 0;
                 }
 
                 // Queue packet
