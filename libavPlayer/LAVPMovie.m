@@ -27,9 +27,8 @@
 {
     self = [super init];
     if (self) {
-        url = [sourceURL copy];
         currentVol = 1.0;
-        decoder = [[LAVPDecoder alloc] initWithURL:url error:errorPtr];
+        decoder = [[LAVPDecoder alloc] initWithURL:[sourceURL copy] error:errorPtr];
         if (!decoder) return nil;
         decoder.owningStream = self;
     }

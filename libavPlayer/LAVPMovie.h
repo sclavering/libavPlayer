@@ -29,7 +29,6 @@
 @protocol LAVPMovieOutput;
 
 @interface LAVPMovie : NSObject {
-    NSURL    *url;
 @private
     LAVPDecoder *decoder;
     float currentVol;
