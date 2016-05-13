@@ -23,14 +23,7 @@
 
 #define AV_TIME_BASE            1000000
 
-// class extension
-@interface LAVPStream ()
-@property (readwrite) BOOL busy;
-@end
-
 @implementation LAVPStream
-@synthesize url;
-@synthesize busy = _busy;
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
 {

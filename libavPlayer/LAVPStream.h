@@ -34,7 +34,6 @@
 @private
     LAVPDecoder *decoder;
     Float32 currentVol;
-    BOOL _busy;
 }
 
 // In practice this is an LAVPLayer.  The stream needs to be able to tell it to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.
@@ -51,7 +50,7 @@
 @property (assign) double_t rate;
 
 @property (assign) Float32 volume;
-@property (readonly) BOOL busy;
+@property BOOL busy;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 + (id) streamWithURL:(NSURL *)url error:(NSError **)errorPtr;
