@@ -235,7 +235,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     return 0;
 }
 
-- (int64_t) setPosition:(int64_t)pos blocking:(BOOL)blocking;
+- (void) setPosition:(int64_t)pos blocking:(BOOL)blocking;
 {
     // position is in AV_TIME_BASE value.
     // avutil.h defines timebase for AVFormatContext - in usec.
@@ -353,10 +353,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
         double_t posFinal = now_s(); // in sec
         //NSLog(@"DEBUG: pos=%.3f, lastPosition=%.3f", posFinal/1.0e6, lastPosition/1.0e6); // in sec
         lastPosition = isnan(posFinal) ? pos : posFinal*1.0e6; // in usec
-
-        return lastPosition;
     }
-    return 0;
 }
 
 - (Float32) volume
