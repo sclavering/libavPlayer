@@ -356,16 +356,16 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     }
 }
 
-- (Float32) volume
+- (float) volume
 {
-    Float32 volume = 0.0;
+    float volume = 0.0;
     if (is && is->audio_stream >= 0) {
         volume = getVolume(is);
     }
     return volume;
 }
 
-- (void) setVolume:(Float32)volume
+- (void) setVolume:(float)volume
 {
     AudioQueueParameterValue newVolume = volume;
     if (is && is->audio_stream >= 0) {

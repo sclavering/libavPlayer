@@ -136,12 +136,12 @@
     if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
 }
 
-- (Float32) volume
+- (float) volume
 {
     return currentVol;
 }
 
-- (void) setVolume:(Float32)volume
+- (void) setVolume:(float)volume
 {
     currentVol = volume;
     [decoder setVolume:volume];

@@ -50,8 +50,8 @@
 - (int64_t) duration;
 - (int64_t) position;
 - (void) setPosition:(int64_t)pos blocking:(BOOL)blocking;
-- (Float32) volume;
-- (void) setVolume:(Float32)volume;
+- (float) volume;
+- (void) setVolume:(float)volume;
 
 - (void) haveReachedEOF;
 @end

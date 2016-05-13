@@ -517,7 +517,7 @@ BOOL audio_isPitchChanged(VideoState *is)
     OSStatus err = 0;
 
     // Compare current playrate b/w AudioQueue and VideoState
-    Float32 currentRate = 0;
+    float currentRate = 0;
     err = AudioQueueGetParameter(is->outAQ, kAudioQueueParam_PlayRate, &currentRate);    // acceleration
     assert(err == 0);
 
