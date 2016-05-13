@@ -41,9 +41,8 @@
 
         //
         decoder = [[LAVPDecoder alloc] initWithURL:url error:errorPtr];
-        if (!decoder) {
-            return nil;
-        }
+        if (!decoder) return nil;
+        decoder.owningStream = self;
 
         // Queue selector to make initial notification.
         [self performSelector:@selector(setRate:) withObject:NULL afterDelay:0.0];
@@ -56,11 +55,6 @@
 {
     Class myClass = [self class];
     return [[myClass alloc] initWithURL:sourceURL error:errorPtr];
-}
-
-- (void) dealloc
-{
-    if(timer) [timer invalidate];
 }
 
 #pragma mark -
@@ -164,47 +158,15 @@
 
     if (_htOffset && [decoder rate] == newRate) return;
 
-    if (timer) {
-        [timer invalidate];
-        timer = nil;
-    }
-
     // pause first
     if ([decoder rate]) [decoder setRate:0.0];
 
-    if (newRate != 0.0) {
-        //NSLog(@"DEBUG: movie started");
-
-        [decoder setRate:newRate];
-
-        // setup EndOfMovie Checker
-        timer = [NSTimer scheduledTimerWithTimeInterval:0.1
-                                                 target:self
-                                               selector:@selector(checkEndOfMovie)
-                                               userInfo:nil
-                                                repeats:YES];
-    }
+    if (newRate != 0.0) [decoder setRate:newRate];
 
     // current host time
     _htOffset = CVGetCurrentHostTime();
 
     if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
-}
-
-- (void)checkEndOfMovie
-{
-    if ([decoder eof] && [decoder rate] == 0.0) {
-        //NSLog(@"DEBUG: movie finished");
-
-        if (timer) {
-            [timer invalidate];
-            timer = nil;
-        }
-
-        if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating:false];
-    }
-
-    return;
 }
 
 - (Float32) volume

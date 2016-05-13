@@ -421,7 +421,6 @@ int read_thread(VideoState* is)
         /* ================================================================================== */
 
         // decode loop
-        is->eof_flag = 0; // LAVP:
         int eof = 0;
         AVPacket pkt1, *pkt = &pkt1;
         for(;;) {
@@ -489,9 +488,6 @@ int read_thread(VideoState* is)
                     is->queue_attachments_req = 1;
                     eof = 0;
 
-                    // LAVP: reset eof (referenced from LAVPDecoder)
-                    is->eof_flag = 0;
-
                     if (is->paused)
                         step_to_next_frame(is);
                 }
@@ -521,21 +517,13 @@ int read_thread(VideoState* is)
                          continue;
                      }
 
-                // LAVP: EOF reached
-                if (is->eof_flag) {
-                    usleep(50*1000);
-                    continue;
-                }
                 if (!is->paused &&
                     (!is->audio_st || is->auddec.finished == is->audioq.serial) &&
                     (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
 
-                    // LAVP: finally mark end of stream flag (reset when seek performed)
-                    is->eof_flag = 1;
-
-                    //NSLog(@"DEBUG: eof_flag = 1 on %f", get_master_clock(is));
+                    [is->decoder haveReachedEOF];
                 }
                 if(eof) {
                     if (is->video_stream >= 0)

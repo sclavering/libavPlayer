@@ -34,7 +34,6 @@
 @private
     LAVPDecoder *decoder;
     uint64_t _htOffset;     // CVHostTime offset when play
-    NSTimer *timer;         // notification timer when EndOfMovie reached
     Float32 currentVol;
     BOOL _busy;
 }

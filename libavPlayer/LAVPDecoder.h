@@ -26,6 +26,9 @@
 #import <Cocoa/Cocoa.h>
 
 #include "lavp_common.h"
+#import "LAVPStream.h"
+
+@class VideoState;
 
 @interface LAVPDecoder : NSObject {
 @private
@@ -33,6 +36,8 @@
     CVPixelBufferRef pb;
     double lastPosition;
 }
+
+@property (weak) LAVPStream* owningStream;
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr;
 - (void) threadMain;
@@ -48,5 +53,5 @@
 - (Float32) volume;
 - (void) setVolume:(Float32)volume;
 
-- (BOOL) eof;
+- (void) haveReachedEOF;
 @end

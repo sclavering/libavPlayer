@@ -47,6 +47,8 @@
 
 #include "lavp_thread.h"
 
+#import "LAVPDecoder.h"
+
 #define ALLOW_GPL_CODE 1 /* LAVP: enable my pictformat code in GPL */
 
 /* =========================================================== */

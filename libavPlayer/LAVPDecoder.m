@@ -376,9 +376,9 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     }
 }
 
-- (BOOL) eof
+- (void) haveReachedEOF
 {
-    return (is->eof_flag ? YES : NO);
+    if(self.owningStream && self.owningStream.streamOutput) [self.owningStream.streamOutput streamOutputNeedsContinuousUpdating:false];
 }
 
 @end
