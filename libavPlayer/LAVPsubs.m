@@ -238,9 +238,8 @@ void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int img
     }
 }
 
-int subtitle_thread(void *arg)
+int subtitle_thread(VideoState *is)
 {
-    VideoState *is = arg;
     Frame *sp;
     int got_subtitle;
     double pts;

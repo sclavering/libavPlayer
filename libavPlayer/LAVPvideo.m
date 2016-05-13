@@ -42,7 +42,7 @@ double compute_target_delay(double delay, VideoState *is);
 
 int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial);
 int get_video_frame(VideoState *is, AVFrame *frame);
-void video_refresh(void *opaque, double *remaining_time);
+void video_refresh(VideoState *is, double *remaining_time);
 
 extern void stream_toggle_pause(VideoState *is);
 extern void toggle_pause(VideoState *is);
@@ -176,9 +176,8 @@ void refresh_loop_wait_event(VideoState *is) {
 }
 
 /* called to display each frame */
-void video_refresh(void *opaque, double *remaining_time)
+void video_refresh(VideoState *is, double *remaining_time)
 {
-    VideoState *is = opaque;
     double time;
 
     Frame *sp, *sp2;
@@ -277,11 +276,8 @@ display:
 
 /* allocate a picture (needs to do that in main thread to avoid
  potential locking problems */
-void alloc_picture(void *opaque)
+void alloc_picture(VideoState *is)
 {
-    /* LAVP: Called via LAVPDecoder.allocPicture in is->decoderThread */
-    VideoState *is = opaque;
-
     /* LAVP: Use AVFrame instead of SDL_YUVOverlay */
     AVFrame *picture = av_frame_alloc();
     int ret = av_image_alloc(picture->data, picture->linesize,
@@ -331,8 +327,8 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         /* the allocation must be done in the main thread to avoid
          locking problems. */
         /* LAVP: Using is->decoderThread */
-        id decoder = (__bridge id)is->decoder;
-        NSThread *thread = (__bridge NSThread*)is->decoderThread;
+        id decoder = is->decoder;
+        NSThread *thread = is->decoderThread;
         [decoder performSelector:@selector(allocPicture) onThread:thread withObject:nil waitUntilDone:NO];
 
         /* wait until the picture is allocated */
@@ -442,9 +438,8 @@ int get_video_frame(VideoState *is, AVFrame *frame)
     return got_picture;
 }
 
-int video_thread(void *arg)
+int video_thread(VideoState *is)
 {
-    VideoState *is = arg;
     AVFrame *frame= av_frame_alloc();
     double pts;
     double duration;
@@ -487,10 +482,8 @@ the_end:
 
 #pragma mark -
 
-int hasImage(void *opaque)
+int hasImage(VideoState *is)
 {
-    VideoState *is = opaque;
-
     LAVPLockMutex(is->pictq.mutex);
 
     if (frame_queue_nb_remaining(&is->pictq) > 0) {
@@ -507,9 +500,8 @@ bail:
     return 0;
 }
 
-int copyImage(void *opaque, uint8_t* data, int pitch)
+int copyImage(VideoState *is, uint8_t* data, int pitch)
 {
-    VideoState *is = opaque;
     uint8_t * out[4] = {0};
     out[0] = data;
     assert(data);

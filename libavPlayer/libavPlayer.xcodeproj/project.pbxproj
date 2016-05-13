@@ -67,6 +67,7 @@
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
 		AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12251CE3B2D400716F94 /* framequeue.m */; };
 		AA4F122A1CE5096C00716F94 /* decoder.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12281CE508FC00716F94 /* decoder.m */; };
+		AA4F122C1CE54F8100716F94 /* VideoState.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F122B1CE54F7A00716F94 /* VideoState.m */; };
 		AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D61CC6876100827BED /* CoreMedia.framework */; };
 		AA81D9D91CC6879700827BED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D81CC6879700827BED /* Security.framework */; };
 		AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */; };
@@ -149,6 +150,7 @@
 		AA4F12271CE3BB0F00716F94 /* framequeue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = framequeue.h; sourceTree = "<group>"; };
 		AA4F12281CE508FC00716F94 /* decoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = decoder.m; sourceTree = "<group>"; };
 		AA4F12291CE508FC00716F94 /* decoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = decoder.h; sourceTree = "<group>"; };
+		AA4F122B1CE54F7A00716F94 /* VideoState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VideoState.m; sourceTree = "<group>"; };
 		AA81D9D61CC6876100827BED /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		AA81D9D81CC6879700827BED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
@@ -231,6 +233,7 @@
 		08FB77AEFE84172EC02AAC07 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				AA4F122B1CE54F7A00716F94 /* VideoState.m */,
 				16A1971513ADFE22008825FF /* libavPlayer.h */,
 				16A18F4713AC466F008825FF /* LAVPStream.h */,
 				16A18F4813AC466F008825FF /* LAVPStream.m */,
@@ -412,6 +415,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA4F122C1CE54F8100716F94 /* VideoState.m in Sources */,
 				AA4F122A1CE5096C00716F94 /* decoder.m in Sources */,
 				AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */,
 				16A18F4A13AC466F008825FF /* LAVPStream.m in Sources */,

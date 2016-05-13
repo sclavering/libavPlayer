@@ -33,7 +33,7 @@ int video_open(VideoState *is, Frame *vp);
 
 double get_video_clock(VideoState *is);
 void refresh_loop_wait_event(VideoState *is);
-void alloc_picture(void *opaque);
-int video_thread(void *arg);
+void alloc_picture(VideoState *is);
+int video_thread(VideoState *is);
 
 #endif

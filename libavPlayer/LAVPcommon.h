@@ -171,7 +171,9 @@ typedef struct Clock {
 
 /* =========================================================== */
 
-typedef struct VideoState {
+// LAVP: in ffplay.c, this is just a struct, but we want to have dispatch_queue_t members, and Xcode says ARC prohibits storing those in a struct.
+@interface VideoState : NSObject {
+@public
     /* moved from global parameter */
     int seek_by_bytes;     /* static int seek_by_bytes = -1; */
     int infinite_buffer;            /* static int infinite_buffer = -1; */
@@ -237,16 +239,16 @@ typedef struct VideoState {
     int eof_flag;
 
     /* Extension; Sub thread */
-    void* parse_queue; // dispatch_queue_t
-    void* parse_group; // dispatch_group_t
-    void* video_queue; // dispatch_queue_t
-    void* video_group; // dispatch_group_t
-    void* subtitle_queue; // dispatch_queue_t
-    void* subtitle_group; // dispatch_group_t
+    dispatch_queue_t parse_queue;
+    dispatch_group_t parse_group;
+    dispatch_queue_t video_queue;
+    dispatch_group_t video_group;
+    dispatch_queue_t subtitle_queue;
+    dispatch_group_t subtitle_group;
 
     /* Extension; Obj-C Instance */
-    void* decoder;  // LAVPDecoder*
-    void* decoderThread;    // NSThread*
+    id decoder;  // LAVPDecoder*
+    NSThread* decoderThread;
 
     /* =========================================================== */
 
@@ -296,9 +298,7 @@ typedef struct VideoState {
     /* LAVP: extension */
     double lastPTScopied;
     struct SwsContext *sws420to422;
-
-    /* =========================================================== */
-
-} VideoState;
+}
+@end;
 
 #endif

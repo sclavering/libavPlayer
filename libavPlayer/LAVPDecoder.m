@@ -32,11 +32,11 @@ extern double get_clock(Clock *c);
 extern void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
 extern void stream_pause(VideoState *is);
 extern void stream_close(VideoState *is);
-extern VideoState* stream_open(id opaque, NSURL *sourceURL);
-extern void alloc_picture(void *opaque);
+extern VideoState* stream_open(/* LAVPDecoder* */ id is, NSURL *sourceURL);
+extern void alloc_picture(VideoState *is);
 extern void refresh_loop_wait_event(VideoState *is);
-extern int hasImage(void *opaque);
-extern int copyImage(void *opaque, uint8_t* data, const int pitch);
+extern int hasImage(VideoState *is);
+extern int copyImage(VideoState *is, uint8_t* data, const int pitch);
 extern AudioQueueParameterValue getVolume(VideoState *is);
 extern void setVolume(VideoState *is, AudioQueueParameterValue volume);
 extern double_t stream_playRate(VideoState *is);
@@ -83,7 +83,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 {
     // perform clean up
     if (is && is->decoderThread) {
-        NSThread *dt = (__bridge_transfer NSThread*)(is->decoderThread);
+        NSThread *dt = is->decoderThread;
         [dt cancel];
         while (![dt isFinished]) {
             usleep(10*1000);
@@ -110,7 +110,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
         // Prepare thread runloop
         NSRunLoop* runLoop = [NSRunLoop currentRunLoop];
 
-        is->decoderThread = (__bridge_retained void*)[NSThread currentThread];
+        is->decoderThread = [NSThread currentThread];
 
         NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:1.0/120
                                                           target:self

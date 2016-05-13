@@ -36,13 +36,13 @@
 int stream_component_open(VideoState *is, int stream_index);
 void stream_component_close(VideoState *is, int stream_index);
 int is_realtime(AVFormatContext *s);
-int read_thread(void *arg);
+int read_thread(VideoState *is);
 void step_to_next_frame(VideoState *is);
 
 double get_external_clock(VideoState *is);
 
 extern void free_picture(Frame *vp);
-extern int audio_open(void *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
+extern int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
 /* =========================================================== */
 
@@ -243,12 +243,10 @@ int stream_component_open(VideoState *is, int stream_index)
 
             // LAVP: Using dispatch queue
             {
-                dispatch_queue_t video_queue = dispatch_queue_create("video", NULL);
-                dispatch_group_t video_group = dispatch_group_create();
-                is->video_queue = (__bridge_retained void*)video_queue;
-                is->video_group = (__bridge_retained void*)video_group;
+                is->video_queue = dispatch_queue_create("video", NULL);
+                is->video_group = dispatch_group_create();
+                dispatch_group_async(is->video_group, is->video_queue, ^(void){video_thread(is);});
             }
-            dispatch_group_async((__bridge dispatch_group_t)is->video_group, (__bridge dispatch_queue_t)is->video_queue, ^(void){video_thread(is);});
             is->queue_attachments_req = 1;
             break;
         case AVMEDIA_TYPE_SUBTITLE:
@@ -260,12 +258,10 @@ int stream_component_open(VideoState *is, int stream_index)
 
             // LAVP: Using dispatch queue
             {
-                dispatch_queue_t subtitle_queue = dispatch_queue_create("subtitle", NULL);
-                dispatch_group_t subtitle_group = dispatch_group_create();
-                is->subtitle_queue = (__bridge_retained void*)subtitle_queue;
-                is->subtitle_group = (__bridge_retained void*)subtitle_group;
+                is->subtitle_queue = dispatch_queue_create("subtitle", NULL);
+                is->subtitle_group = dispatch_group_create();
+                dispatch_group_async(is->subtitle_group, is->subtitle_queue, ^(void){subtitle_thread(is);});
             }
-            dispatch_group_async((__bridge dispatch_group_t)is->subtitle_group, (__bridge dispatch_queue_t)is->subtitle_queue, ^(void){subtitle_thread(is);});
             break;
         default:
             break;
@@ -311,15 +307,10 @@ void stream_component_close(VideoState *is, int stream_index)
             frame_queue_signal(&is->pictq);
 
             // LAVP: release dispatch queue
-            dispatch_group_wait((__bridge dispatch_group_t)is->video_group, DISPATCH_TIME_FOREVER);
-            {
-                dispatch_group_t video_group = (__bridge_transfer dispatch_group_t)is->video_group;
-                dispatch_queue_t video_queue = (__bridge_transfer dispatch_queue_t)is->video_queue;
-                video_group = NULL; // ARC
-                video_queue = NULL; // ARC
-                is->video_group = NULL;
-                is->video_queue = NULL;
-            }
+            dispatch_group_wait(is->video_group, DISPATCH_TIME_FOREVER);
+            is->video_group = NULL;
+            is->video_queue = NULL;
+
             decoder_destroy(&is->viddec);
             packet_queue_flush(&is->videoq);
             break;
@@ -331,15 +322,10 @@ void stream_component_close(VideoState *is, int stream_index)
             frame_queue_signal(&is->subpq);
 
             // LAVP: release dispatch queue
-            dispatch_group_wait((__bridge dispatch_group_t)is->subtitle_group, DISPATCH_TIME_FOREVER);
-            {
-                dispatch_group_t subtitle_group = (__bridge_transfer dispatch_group_t)is->subtitle_group;
-                dispatch_queue_t subtitle_queue = (__bridge_transfer dispatch_queue_t)is->subtitle_queue;
-                subtitle_group = NULL; // ARC
-                subtitle_queue = NULL; // ARC
-                is->subtitle_group = NULL;
-                is->subtitle_queue = NULL;
-            }
+            dispatch_group_wait(is->subtitle_group, DISPATCH_TIME_FOREVER);
+            is->subtitle_group = NULL;
+            is->subtitle_queue = NULL;
+
             decoder_destroy(&is->subdec);
             packet_queue_flush(&is->subtitleq);
             break;
@@ -371,7 +357,7 @@ void stream_component_close(VideoState *is, int stream_index)
 
 static int decode_interrupt_cb(void *ctx)
 {
-    VideoState *is = ctx;
+    VideoState *is = (__bridge VideoState *)(ctx);
     return is->abort_request;
 }
 
@@ -392,12 +378,11 @@ int is_realtime(AVFormatContext *s)
 }
 
 /* this thread gets the stream from the disk or the network */
-int read_thread(void *arg)
+int read_thread(VideoState* is)
 {
     @autoreleasepool {
 
         int ret;
-        VideoState *is = (VideoState *)arg;
 
         int st_index[AVMEDIA_TYPE_NB] = {-1};
 
@@ -819,12 +804,8 @@ void stream_close(VideoState *is)
         /* XXX: use a special url_shutdown call to abort parse cleanly */
         is->abort_request = 1;
 
-        dispatch_group_wait((__bridge dispatch_group_t)is->parse_group, DISPATCH_TIME_FOREVER);
+        dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
         {
-            dispatch_group_t parse_group = (__bridge_transfer dispatch_group_t)is->parse_group;
-            dispatch_queue_t parse_queue = (__bridge_transfer dispatch_queue_t)is->parse_queue;
-            parse_group = NULL; // ARC
-            parse_queue = NULL; // ARC
             is->parse_group = NULL;
             is->parse_queue = NULL;
         }
@@ -849,31 +830,21 @@ void stream_close(VideoState *is)
             is->ic = NULL;
         }
 
-        {
-            id decoder = (__bridge_transfer id)is->decoder;
-            decoder = NULL; // ARC
-            is->decoder = NULL;
-        }
+        is->decoder = NULL;
     }
 
-    /* original: do_exit() */
-    if (is) {
-        free(is);
-        is = NULL;
-    }
     av_lockmgr_register(NULL);
     //
     avformat_network_deinit();
     av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
 
-VideoState* stream_open(id opaque, NSURL *sourceURL)
+VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
 {
     int err, i, ret;
 
     // Initialize VideoState struct
-    VideoState *is = calloc(1, sizeof(VideoState));
-    assert(is);
+    VideoState *is = [[VideoState alloc] init];
 
     const char* path = [[sourceURL path] fileSystemRepresentation];
     if (path) {
@@ -882,7 +853,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
 
     /* ======================================== */
 
-    is->decoder = (__bridge_retained void*)opaque;    // (LAVPDecoder *)
+    is->decoder = decoder;
     is->lastPTScopied = -1;
 
     is->infinite_buffer = -1;
@@ -937,7 +908,7 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
 
         ic = avformat_alloc_context();
         ic->interrupt_callback.callback = decode_interrupt_cb;
-        ic->interrupt_callback.opaque = is;
+        ic->interrupt_callback.opaque = (__bridge void *)(is);
         err = avformat_open_input(&ic, is->filename, is->iformat, &format_opts);
         if (err < 0) {
             // LAVP: inline for print_error(is->filename, err);
@@ -1023,13 +994,9 @@ VideoState* stream_open(id opaque, NSURL *sourceURL)
         is->av_sync_type = AV_SYNC_AUDIO_MASTER; // LAVP: fixed value
 
         // LAVP: Using dispatch queue
-        {
-            dispatch_queue_t parse_queue = dispatch_queue_create("parse", NULL);
-            dispatch_group_t parse_group = dispatch_group_create();
-            is->parse_queue = (__bridge_retained void*)parse_queue;
-            is->parse_group = (__bridge_retained void*)parse_group;
-        }
-        dispatch_group_async((__bridge dispatch_group_t)is->parse_group, (__bridge dispatch_queue_t)is->parse_queue, ^(void){read_thread(is);});
+        is->parse_queue = dispatch_queue_create("parse", NULL);
+        is->parse_group = dispatch_group_create();
+        dispatch_group_async(is->parse_group, is->parse_queue, ^(void){read_thread(is);});
     }
     return is;
 
@@ -1037,7 +1004,7 @@ bail:
     av_log(NULL, AV_LOG_ERROR, "ret = %d, err = %d\n", ret, err);
     if (is->filename)
         free(is->filename);
-    free (is);
+    is = NULL;
     return NULL;
 
 fail:

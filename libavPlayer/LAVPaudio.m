@@ -44,7 +44,7 @@ void audio_updatePitch(VideoState *is);
 
 #pragma mark -
 
-int audio_open(void *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params)
+int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params)
 {
     /* LAVP: TODO Simple 48KHz stereo output by default */
     if (wanted_sample_rate <= 0) {
@@ -242,16 +242,13 @@ int audio_decode_frame(VideoState *is)
 
 /* prepare a new audio buffer */
 /* LAVP: original: sdl_audio_callback() */
-static void inCallbackProc (void *inUserData, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
+static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
 {
     @autoreleasepool {
-        //NSLog(@"DEBUG: inCallbackProc");
-
         uint8_t *stream = inBuffer->mAudioData;
         int len = inBuffer->mAudioDataBytesCapacity;
 
         //
-        VideoState *is = inUserData;
         int audio_size, len1;
 
         is->audio_callback_time = av_gettime_relative();
@@ -360,7 +357,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
             /* AudioQueue Callback should be ignored when closing */
             if (is->abort_request) return;
 
-            inCallbackProc(is, inAQ, inBuffer);
+            audio_callback(is, inAQ, inBuffer);
         };
 
         dispatch_queue_t audioDispatchQueue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
