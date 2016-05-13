@@ -38,14 +38,9 @@
     if (self) {
         url = [sourceURL copy];
         currentVol = 1.0;
-
-        //
         decoder = [[LAVPDecoder alloc] initWithURL:url error:errorPtr];
         if (!decoder) return nil;
         decoder.owningStream = self;
-
-        // Queue selector to make initial notification.
-        [self performSelector:@selector(setRate:) withObject:NULL afterDelay:0.0];
     }
 
     return self;
@@ -149,23 +144,10 @@
 
 - (void) setRate:(double_t) newRate
 {
-    //NSLog(@"DEBUG: setRate: %.3f at %.3f", newRate, [decoder position]/1.0e6);
-
-    if (!_htOffset) {
-        // Inital call. Cancel remaining setRate: queued on mainthread if exists.
-        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(setRate:) object:NULL];
-    }
-
-    if (_htOffset && [decoder rate] == newRate) return;
-
+    if (decoder.rate == newRate) return;
     // pause first
-    if ([decoder rate]) [decoder setRate:0.0];
-
+    if (decoder.rate) [decoder setRate:0.0];
     if (newRate != 0.0) [decoder setRate:newRate];
-
-    // current host time
-    _htOffset = CVGetCurrentHostTime();
-
     if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
 }
 

@@ -33,7 +33,6 @@
     NSURL    *url;
 @private
     LAVPDecoder *decoder;
-    uint64_t _htOffset;     // CVHostTime offset when play
     Float32 currentVol;
     BOOL _busy;
 }
