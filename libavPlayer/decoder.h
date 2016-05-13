@@ -5,7 +5,6 @@ typedef struct Decoder {
     AVCodecContext *avctx;
     int pkt_serial;
     int finished;
-    int flushed;
     int packet_pending;
     LAVPcond *empty_queue_cond;
     int64_t start_pts;
