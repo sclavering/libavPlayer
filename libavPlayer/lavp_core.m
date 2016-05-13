@@ -245,7 +245,11 @@ int stream_component_open(VideoState *is, int stream_index)
             {
                 is->video_queue = dispatch_queue_create("video", NULL);
                 is->video_group = dispatch_group_create();
-                dispatch_group_async(is->video_group, is->video_queue, ^(void){video_thread(is);});
+                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+                dispatch_group_async(is->video_group, is->video_queue, ^(void) {
+                    __strong VideoState* is = weakIs;
+                    if(is) video_thread(is);
+                });
             }
             is->queue_attachments_req = 1;
             break;
@@ -260,7 +264,11 @@ int stream_component_open(VideoState *is, int stream_index)
             {
                 is->subtitle_queue = dispatch_queue_create("subtitle", NULL);
                 is->subtitle_group = dispatch_group_create();
-                dispatch_group_async(is->subtitle_group, is->subtitle_queue, ^(void){subtitle_thread(is);});
+                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+                dispatch_group_async(is->subtitle_group, is->subtitle_queue, ^(void) {
+                    __strong VideoState* is = weakIs;
+                    if(is) subtitle_thread(is);
+                });
             }
             break;
         default:
@@ -984,7 +992,13 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
         // LAVP: Using dispatch queue
         is->parse_queue = dispatch_queue_create("parse", NULL);
         is->parse_group = dispatch_group_create();
-        dispatch_group_async(is->parse_group, is->parse_queue, ^(void){read_thread(is);});
+        {
+            __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+            dispatch_group_async(is->parse_group, is->parse_queue, ^(void) {
+                __strong VideoState* is = weakIs;
+                if(is) read_thread(is);
+            });
+        }
     }
     return is;
 

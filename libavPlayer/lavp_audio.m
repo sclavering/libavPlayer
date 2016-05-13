@@ -347,18 +347,17 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     AudioQueueRef outAQ = NULL;
 
     if (!is->audioDispatchQueue) {
-        // using dispatch queue and block object
-        void (^inCallbackBlock)() = ^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
-        {
+        __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+        void (^audioCallbackBlock)() = ^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer) {
+            __strong VideoState* is = weakIs;
             /* AudioQueue Callback should be ignored when closing */
-            if (is->abort_request) return;
-
+            if (!is || is->abort_request) return;
             audio_callback(is, inAQ, inBuffer);
         };
 
         dispatch_queue_t audioDispatchQueue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
         is->audioDispatchQueue = (__bridge_retained void*)audioDispatchQueue;
-        err = AudioQueueNewOutputWithDispatchQueue(&outAQ, &is->asbd, 0, (__bridge dispatch_queue_t)is->audioDispatchQueue, inCallbackBlock);
+        err = AudioQueueNewOutputWithDispatchQueue(&outAQ, &is->asbd, 0, (__bridge dispatch_queue_t)is->audioDispatchQueue, audioCallbackBlock);
     }
 
     assert(err == 0 && outAQ != NULL);
