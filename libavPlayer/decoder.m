@@ -1,6 +1,6 @@
-#include "LAVPcommon.h"
+#include "lavp_common.h"
 
-#include "LAVPqueue.h" // for packet_queue_get()
+#include "lavp_queue.h" // for packet_queue_get()
 
 void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond) {
     memset(d, 0, sizeof(Decoder));

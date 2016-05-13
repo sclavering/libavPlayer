@@ -1,10 +1,5 @@
-//
-//  LAVPStream.m
-//  libavPlayer
-//
 //  Created by Takashi Mochizuki on 11/06/18.
 //  Copyright 2011 MyCometG3. All rights reserved.
-//
 /*
  This file is part of livavPlayer.
 

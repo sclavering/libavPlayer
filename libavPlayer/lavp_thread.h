@@ -1,11 +1,10 @@
-/*
- *  LAVPqueue.h
- *  libavPlayer
- *
- *  Created by Takashi Mochizuki on 11/06/18.
- *  Copyright 2011 MyCometG3. All rights reserved.
- *
- */
+//
+//  lavp_thread.h
+//  libavPlayer
+//
+//  Created by Takashi Mochizuki on 11/07/27.
+//  Copyright 2011 MyCometG3. All rights reserved.
+//
 /*
  This file is part of livavPlayer.
 
@@ -24,18 +23,23 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPqueue_h__
-#define __LAVPqueue_h__
+#ifndef __LAVPthread_h__
+#define __LAVPthread_h__
 
-#include "LAVPcommon.h"
+#include <pthread.h>
 
-void packet_queue_init(PacketQueue *q);
-void packet_queue_start(PacketQueue *q);
-void packet_queue_flush(PacketQueue *q);
-void packet_queue_abort(PacketQueue *q);
-void packet_queue_destroy(PacketQueue *q);
-int packet_queue_put(PacketQueue *q, AVPacket *pkt);
-int packet_queue_put_nullpacket(PacketQueue *q, int stream_index);
-int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial);
+typedef pthread_cond_t LAVPcond;
+typedef pthread_mutex_t LAVPmutex;
+
+LAVPcond* LAVPCreateCond(void);
+void LAVPDestroyCond(LAVPcond *cond);
+void LAVPCondWait(LAVPcond *cond, LAVPmutex *mutex);
+void LAVPCondWaitTimeout(LAVPcond *cond, LAVPmutex *mutex, int ms);
+void LAVPCondSignal(LAVPcond *cond);
+
+LAVPmutex* LAVPCreateMutex(void);
+void LAVPDestroyMutex(LAVPmutex *mutex);
+void LAVPLockMutex(LAVPmutex *mutex);
+void LAVPUnlockMutex(LAVPmutex *mutex);
 
 #endif

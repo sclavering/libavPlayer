@@ -1,10 +1,6 @@
 /*
- *  LAVPutil.c.c
- *  libavPlayer
- *
  *  Created by Takashi Mochizuki on 11/06/28.
  *  Copyright 2011 MyCometG3. All rights reserved.
- *
  */
 /*
  This file is part of livavPlayer.

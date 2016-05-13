@@ -1,8 +1,8 @@
 /*
- *  LAVPaudio.h
+ *  lavp_queue.h
  *  libavPlayer
  *
- *  Created by Takashi Mochizuki on 11/06/19.
+ *  Created by Takashi Mochizuki on 11/06/18.
  *  Copyright 2011 MyCometG3. All rights reserved.
  *
  */
@@ -24,19 +24,18 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPaudio_h__
-#define __LAVPaudio_h__
+#ifndef __LAVPqueue_h__
+#define __LAVPqueue_h__
 
-#include "LAVPcommon.h"
+#include "lavp_common.h"
 
-int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
-
-void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx);
-void LAVPAudioQueueStart(VideoState *is);
-void LAVPAudioQueuePause(VideoState *is);
-void LAVPAudioQueueStop(VideoState *is);
-void LAVPAudioQueueDealloc(VideoState *is);
-AudioQueueParameterValue getVolume(VideoState *is);
-void setVolume(VideoState *is, AudioQueueParameterValue volume);
+void packet_queue_init(PacketQueue *q);
+void packet_queue_start(PacketQueue *q);
+void packet_queue_flush(PacketQueue *q);
+void packet_queue_abort(PacketQueue *q);
+void packet_queue_destroy(PacketQueue *q);
+int packet_queue_put(PacketQueue *q, AVPacket *pkt);
+int packet_queue_put_nullpacket(PacketQueue *q, int stream_index);
+int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial);
 
 #endif

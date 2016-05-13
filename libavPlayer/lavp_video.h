@@ -1,5 +1,5 @@
 /*
- *  LAVPsubs.h
+ *  lavp_video.h
  *  libavPlayer
  *
  *  Created by Takashi Mochizuki on 11/06/19.
@@ -24,12 +24,16 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPsubs_h__
-#define __LAVPsubs_h__
+#ifndef __LAVPvideo_h__
+#define __LAVPvideo_h__
 
-#include "LAVPcommon.h"
+#include "lavp_common.h"
 
-void blend_subrect(AVPicture *dst, const AVSubtitleRect *rect, int imgw, int imgh);
-int subtitle_thread(VideoState *is);
+int video_open(VideoState *is, Frame *vp);
+
+double get_video_clock(VideoState *is);
+void refresh_loop_wait_event(VideoState *is);
+void alloc_picture(VideoState *is);
+int video_thread(VideoState *is);
 
 #endif

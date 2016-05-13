@@ -1,5 +1,5 @@
 /*
- *  LAVPcommon.h
+ *  lavp_common.h
  *  libavPlayer
  *
  *  Created by Takashi Mochizuki on 11/06/19.
@@ -45,7 +45,7 @@
 #include "libavutil/avstring.h"
 #include "libswresample/swresample.h"
 
-#include "LAVPthread.h"
+#include "lavp_thread.h"
 
 #define ALLOW_GPL_CODE 1 /* LAVP: enable my pictformat code in GPL */
 

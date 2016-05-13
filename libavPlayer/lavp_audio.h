@@ -1,10 +1,11 @@
-//
-//  LAVPthread.h
-//  libavPlayer
-//
-//  Created by Takashi Mochizuki on 11/07/27.
-//  Copyright 2011 MyCometG3. All rights reserved.
-//
+/*
+ *  lavp_audio.h
+ *  libavPlayer
+ *
+ *  Created by Takashi Mochizuki on 11/06/19.
+ *  Copyright 2011 MyCometG3. All rights reserved.
+ *
+ */
 /*
  This file is part of livavPlayer.
 
@@ -23,23 +24,19 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPthread_h__
-#define __LAVPthread_h__
+#ifndef __LAVPaudio_h__
+#define __LAVPaudio_h__
 
-#include <pthread.h>
+#include "lavp_common.h"
 
-typedef pthread_cond_t LAVPcond;
-typedef pthread_mutex_t LAVPmutex;
+int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
-LAVPcond* LAVPCreateCond(void);
-void LAVPDestroyCond(LAVPcond *cond);
-void LAVPCondWait(LAVPcond *cond, LAVPmutex *mutex);
-void LAVPCondWaitTimeout(LAVPcond *cond, LAVPmutex *mutex, int ms);
-void LAVPCondSignal(LAVPcond *cond);
-
-LAVPmutex* LAVPCreateMutex(void);
-void LAVPDestroyMutex(LAVPmutex *mutex);
-void LAVPLockMutex(LAVPmutex *mutex);
-void LAVPUnlockMutex(LAVPmutex *mutex);
+void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx);
+void LAVPAudioQueueStart(VideoState *is);
+void LAVPAudioQueuePause(VideoState *is);
+void LAVPAudioQueueStop(VideoState *is);
+void LAVPAudioQueueDealloc(VideoState *is);
+AudioQueueParameterValue getVolume(VideoState *is);
+void setVolume(VideoState *is, AudioQueueParameterValue volume);
 
 #endif

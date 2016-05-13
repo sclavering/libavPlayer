@@ -1,5 +1,5 @@
 /*
- *  LAVPcore.h
+ *  lavp_core.h
  *  libavPlayer
  *
  *  Created by Takashi Mochizuki on 11/06/19.
@@ -27,7 +27,7 @@
 #ifndef __LAVPcore_h__
 #define __LAVPcore_h__
 
-#include "LAVPcommon.h"
+#include "lavp_common.h"
 
 double get_clock(Clock *c);
 void set_clock_at(Clock *c, double pts, int serial, double time);

@@ -24,12 +24,12 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "LAVPcommon.h"
-#include "LAVPcore.h"
-#include "LAVPvideo.h"
-#include "LAVPqueue.h"
-#include "LAVPsubs.h"
-#include "LAVPaudio.h"
+#include "lavp_common.h"
+#include "lavp_core.h"
+#include "lavp_video.h"
+#include "lavp_queue.h"
+#include "lavp_subs.h"
+#include "lavp_audio.h"
 
 /* =========================================================== */
 
