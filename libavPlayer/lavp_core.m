@@ -304,13 +304,11 @@ void stream_component_close(VideoState *is, int stream_index)
     switch(avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             packet_queue_abort(&is->audioq);
+            frame_queue_signal(&is->sampq);
 
             // LAVP: Stop Audio Queue
             LAVPAudioQueueStop(is);
             LAVPAudioQueueDealloc(is);
-
-            frame_queue_signal(&is->sampq);
-
             // LAVP: release dispatch queue
             dispatch_group_wait(is->audio_group, DISPATCH_TIME_FOREVER);
             is->audio_group = NULL;
