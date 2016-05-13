@@ -36,6 +36,7 @@
 
     FrameQueue pictq;
     FrameQueue subpq;
+    FrameQueue sampq;
 
     Decoder auddec;
     Decoder viddec;
@@ -74,6 +75,8 @@
     dispatch_group_t video_group;
     dispatch_queue_t subtitle_queue;
     dispatch_group_t subtitle_group;
+    dispatch_queue_t audio_queue;
+    dispatch_group_t audio_group;
 
     /* Extension; Obj-C Instance */
     __weak LAVPDecoder* decoder;
@@ -99,13 +102,9 @@
     unsigned int audio_buf1_size;
     int audio_buf_index; /* in bytes */
     int audio_write_buf_size;
-    int audio_buf_frames_pending;
-    int audio_last_serial;
     struct AudioParams audio_src;
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
-    //
-    AVFrame *frame;
 
     /* LAVP: extension */
     AudioQueueRef outAQ;

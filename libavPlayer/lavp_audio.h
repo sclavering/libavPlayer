@@ -39,4 +39,6 @@ void LAVPAudioQueueDealloc(VideoState *is);
 AudioQueueParameterValue getVolume(VideoState *is);
 void setVolume(VideoState *is, AudioQueueParameterValue volume);
 
+int audio_thread(VideoState *is);
+
 #endif

@@ -60,6 +60,21 @@ Frame *frame_queue_peek_last(FrameQueue *f)
     return &f->queue[f->rindex];
 }
 
+Frame *frame_queue_peek_readable(FrameQueue *f)
+{
+    /* wait until we have a readable a new frame */
+    LAVPLockMutex(f->mutex);
+    while (f->size - f->rindex_shown <= 0 && !f->pktq->abort_request) {
+        LAVPCondWait(f->cond, f->mutex);
+    }
+    LAVPUnlockMutex(f->mutex);
+
+    if (f->pktq->abort_request)
+        return NULL;
+
+    return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
+}
+
 Frame *frame_queue_peek_writable(FrameQueue *f)
 {
     /* wait until we have space to put a new frame */
@@ -82,6 +97,7 @@ void frame_queue_push(FrameQueue *f)
         f->windex = 0;
     LAVPLockMutex(f->mutex);
     f->size++;
+    LAVPCondSignal(f->cond);
     LAVPUnlockMutex(f->mutex);
 }
 

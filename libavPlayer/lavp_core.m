@@ -209,6 +209,17 @@ int stream_component_open(VideoState *is, int stream_index)
                 is->auddec.start_pts_tb = is->audio_st->time_base;
             }
 
+            // LAVP: Use a dispatch queue instead of an SDL thread.
+            {
+                is->audio_queue = dispatch_queue_create("audio", NULL);
+                is->audio_group = dispatch_group_create();
+                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+                dispatch_group_async(is->audio_group, is->audio_queue, ^(void) {
+                    __strong VideoState* is = weakIs;
+                    if(is) audio_thread(is);
+                });
+            }
+
             //
             sample_rate    = avctx->sample_rate;
             nb_channels    = avctx->channels;
@@ -241,7 +252,7 @@ int stream_component_open(VideoState *is, int stream_index)
             packet_queue_start(&is->videoq);
             decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
 
-            // LAVP: Using dispatch queue
+            // LAVP: Use a dispatch queue instead of an SDL thread.
             {
                 is->video_queue = dispatch_queue_create("video", NULL);
                 is->video_group = dispatch_group_create();
@@ -260,7 +271,7 @@ int stream_component_open(VideoState *is, int stream_index)
             packet_queue_start(&is->subtitleq);
             decoder_init(&is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
 
-            // LAVP: Using dispatch queue
+            // LAVP: Use a dispatch queue instead of an SDL thread.
             {
                 is->subtitle_queue = dispatch_queue_create("subtitle", NULL);
                 is->subtitle_group = dispatch_group_create();
@@ -298,13 +309,19 @@ void stream_component_close(VideoState *is, int stream_index)
             LAVPAudioQueueStop(is);
             LAVPAudioQueueDealloc(is);
 
+            frame_queue_signal(&is->sampq);
+
+            // LAVP: release dispatch queue
+            dispatch_group_wait(is->audio_group, DISPATCH_TIME_FOREVER);
+            is->audio_group = NULL;
+            is->audio_queue = NULL;
+
             decoder_destroy(&is->auddec);
             packet_queue_flush(&is->audioq);
             swr_free(&is->swr_ctx);
             av_freep(&is->audio_buf1);
             is->audio_buf1_size = 0;
             is->audio_buf = NULL;
-            av_frame_free(&is->frame);
 
             break;
         case AVMEDIA_TYPE_VIDEO:
@@ -526,7 +543,7 @@ int read_thread(VideoState* is)
                      }
 
                 if (!is->paused &&
-                    (!is->audio_st || is->auddec.finished == is->audioq.serial) &&
+                    (!is->audio_st || (is->auddec.finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
                     (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
@@ -812,6 +829,7 @@ void stream_close(VideoState *is)
 
         /* free all pictures */
         frame_queue_destory(&is->pictq);
+        frame_queue_destory(&is->sampq);
         frame_queue_destory(&is->subpq);
 
         LAVPDestroyCond(is->continue_read_thread);
@@ -973,6 +991,8 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
             goto fail;
         if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
             goto fail;
+        if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
+            goto fail;
 
         packet_queue_init(&is->audioq);
         packet_queue_init(&is->videoq);
@@ -986,10 +1006,9 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
         init_clock(&is->extclk, &is->extclk.serial);
 
         is->audio_clock_serial = -1;
-        is->audio_last_serial = -1;
         is->av_sync_type = AV_SYNC_AUDIO_MASTER; // LAVP: fixed value
 
-        // LAVP: Using dispatch queue
+        // LAVP: Use a dispatch queue instead of an SDL thread.
         is->parse_queue = dispatch_queue_create("parse", NULL);
         is->parse_group = dispatch_group_create();
         {
