@@ -14,21 +14,12 @@
     LAVPMovie *viewmovie;
     double_t viewPos;
     NSString *viewTitle;
-
-    LAVPLayer *layer;
-    LAVPMovie *layermovie;
-    double_t layerPos;
-    NSString *layerTitle;
-
     NSTimer *timer;
-    double_t layerPrev;
     double_t viewPrev;
 }
 
 @property (unsafe_unretained) IBOutlet NSWindow *viewwindow;
 @property (unsafe_unretained) IBOutlet LAVPView *view;
-@property (unsafe_unretained) IBOutlet NSWindow *layerwindow;
-@property (unsafe_unretained) IBOutlet NSView *layerView;
 
 - (void) loadMovieAtURL:(NSURL *)url;
 

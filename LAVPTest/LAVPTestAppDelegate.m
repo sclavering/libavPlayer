@@ -22,9 +22,7 @@ NSString* formatTime(int64_t usec)
 @implementation LAVPTestAppDelegate
 
 @synthesize viewwindow;
-@synthesize layerwindow;
 @synthesize view;
-@synthesize layerView;
 
 - (void)startTimer
 {
@@ -41,13 +39,6 @@ NSString* formatTime(int64_t usec)
 
 - (void)updatePos:(NSTimer*)theTimer
 {
-    if (layerwindow) {
-        double_t pos = layermovie.position;
-        [self setValue:[NSNumber numberWithDouble:pos] forKey:@"layerPos"];
-        NSString *timeStr = formatTime(layermovie.currentTimeInMicroseconds);
-        [self setValue:[NSString stringWithFormat:@"Layer Window : %@ (%.3f)", timeStr, pos]
-                forKey:@"layerTitle"];
-    }
     if (viewwindow) {
         double_t pos = viewmovie.position;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"viewPos"];
@@ -76,76 +67,24 @@ NSString* formatTime(int64_t usec)
     [self loadMovieAtURL:urlDefault];
 
     timer = nil;
-    layerPrev = -1;
     viewPrev = -1;
 }
 
 - (void) loadMovieAtURL:(NSURL *)url
 {
-    if (layermovie || viewmovie) {
-        [self stopTimer];
-    }
-#if 1
+    if (viewmovie) [self stopTimer];
+
     if (viewwindow) {
         if (viewmovie) {
             viewmovie.rate = 0.0;
             [view setMovie:nil];
             viewmovie = nil;
         }
-
-        // LAVPView test
         viewmovie = [[LAVPMovie alloc] initWithURL:url error:nil];
         [view setMovie:viewmovie];
     }
-#endif
 
-#if 1
-    if (layerwindow) {
-        if (layermovie) {
-            layermovie.rate = 0.0;
-            [layer setMovie:nil];
-            layermovie = nil;
-        }
-
-        // LAVPLayer test
-        layermovie = [[LAVPMovie alloc] initWithURL:url error:nil];
-
-        //
-        [layerView setWantsLayer:YES];
-        CALayer *rootLayer = [layerView layer];
-        rootLayer.needsDisplayOnBoundsChange = YES;
-
-        //
-        layer = [LAVPLayer layer];
-
-    //    layer.contentsGravity = kCAGravityBottomRight;
-    //    layer.contentsGravity = kCAGravityBottomLeft;
-    //    layer.contentsGravity = kCAGravityTopRight;
-    //    layer.contentsGravity = kCAGravityTopLeft;
-    //    layer.contentsGravity = kCAGravityRight;
-    //    layer.contentsGravity = kCAGravityLeft;
-    //    layer.contentsGravity = kCAGravityBottom;
-    //    layer.contentsGravity = kCAGravityTop;
-    //    layer.contentsGravity = kCAGravityCenter;
-    //    layer.contentsGravity = kCAGravityResize;
-        layer.contentsGravity = kCAGravityResizeAspect;
-    //    layer.contentsGravity = kCAGravityResizeAspectFill;
-
-        layer.frame = rootLayer.frame;
-    //    layer.bounds = rootLayer.bounds;
-    //    layer.position = rootLayer.position;
-        layer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
-        layer.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
-
-        //
-        [layer setMovie:layermovie];
-        [rootLayer addSublayer:layer];
-
-    }
-#endif
-    if (layermovie || viewmovie) {
-        [self startTimer];
-    }
+    if (viewmovie) [self startTimer];
 }
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
@@ -156,16 +95,6 @@ NSString* formatTime(int64_t usec)
 - (void) windowWillClose:(NSNotification *)notification
 {
     NSWindow *obj = [notification object];
-    if (obj == layerwindow) {
-        NSLog(@"NOTE: layerwindow closing...");
-        layermovie.rate = 0.0;
-        [layer setMovie:nil];
-        layermovie = nil;
-        layerwindow = nil;
-        [layer removeFromSuperlayer];
-        layer = nil;
-        NSLog(@"NOTE: layerwindow closed.");
-    }
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
         viewmovie.rate = 0.0;
@@ -178,23 +107,13 @@ NSString* formatTime(int64_t usec)
 
 - (IBAction) togglePlay:(id)sender
 {
-    LAVPMovie *theMovie = nil;
-
-    NSButton *button = (NSButton*) sender;
-    if ([button window] == layerwindow) {
-        theMovie = layermovie;
-    }
-    if ([button window] == viewwindow) {
-        theMovie = viewmovie;
-    }
-
-    if ([theMovie rate]) {
-        theMovie.rate = 0.0;
+    if ([viewmovie rate]) {
+        viewmovie.rate = 0.0;
     } else {
-        if(theMovie.currentTimeInMicroseconds >= theMovie.durationInMicroseconds) [theMovie setPosition:0];
+        if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) [viewmovie setPosition:0];
         // test code for playRate support
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
-        theMovie.rate = shiftKey ? 1.5 : 1.0;
+        viewmovie.rate = shiftKey ? 1.5 : 1.0;
     }
 }
 
@@ -224,13 +143,7 @@ NSString* formatTime(int64_t usec)
 
 - (IBAction) rewindMovie:(id)sender
 {
-    NSButton *button = (NSButton*) sender;
-    if ([button window] == layerwindow) {
-        [layermovie setPosition:0];
-    }
-    if ([button window] == viewwindow) {
-        [viewmovie setPosition:0];
-    }
+    [viewmovie setPosition:0];
 }
 
 - (IBAction) updatePosition:(id)sender
@@ -238,12 +151,6 @@ NSString* formatTime(int64_t usec)
     NSSlider *pos = (NSSlider*) sender;
     double_t newPos = [pos doubleValue];
 
-    if ([pos window] == layerwindow && !layermovie.busy) {
-        if (newPos != layerPrev) {
-            [layermovie setPosition:newPos];
-            layerPrev = newPos;
-        }
-    }
     if ([pos window] == viewwindow && !viewmovie.busy) {
         if (newPos != viewPrev) {
             [viewmovie setPosition:newPos];
@@ -259,7 +166,6 @@ NSString* formatTime(int64_t usec)
 
 - (void) finishUpdatePosition:(id)sender
 {
-    layerPrev = -1;
     viewPrev = -1;
 }
 

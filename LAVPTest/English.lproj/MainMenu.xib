@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="4514" systemVersion="13A603" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="10117" systemVersion="15E65" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
-        <deployment defaultVersion="1090" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="4514"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="10117"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -11,7 +11,7 @@
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <menu title="AMainMenu" systemMenu="main" id="29">
             <items>
                 <menuItem title="LAVPTest" id="56">
@@ -617,7 +617,8 @@
                                     <action selector="performMiniaturize:" target="-1" id="37"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Zoom" id="239">
+                            <menuItem title="Zoom" keyEquivalent="" id="239">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES"/>
                                 <connections>
                                     <action selector="performZoom:" target="-1" id="240"/>
                                 </connections>
@@ -649,8 +650,6 @@
         </menu>
         <customObject id="494" customClass="LAVPTestAppDelegate">
             <connections>
-                <outlet property="layerView" destination="560" id="561"/>
-                <outlet property="layerwindow" destination="538" id="543"/>
                 <outlet property="view" destination="553" id="557"/>
                 <outlet property="viewwindow" destination="551" id="558"/>
             </connections>
@@ -659,7 +658,7 @@
         <window title="View Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" animationBehavior="default" id="551" userLabel="Window - View Window">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" texturedBackground="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
-            <rect key="contentRect" x="341" y="678" width="340" height="200"/>
+            <rect key="contentRect" x="300" y="300" width="340" height="200"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="878"/>
             <value key="minSize" type="size" width="340" height="200"/>
             <view key="contentView" id="552">
@@ -711,64 +710,6 @@ IA
                 <outlet property="delegate" destination="494" id="559"/>
             </connections>
         </window>
-        <window title="Layer Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" animationBehavior="default" id="538">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" texturedBackground="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" topStrut="YES"/>
-            <rect key="contentRect" x="0.0" y="678" width="340" height="200"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1028"/>
-            <value key="minSize" type="size" width="340" height="200"/>
-            <view key="contentView" id="539">
-                <rect key="frame" x="0.0" y="0.0" width="340" height="200"/>
-                <autoresizingMask key="autoresizingMask"/>
-                <subviews>
-                    <button wantsLayer="YES" verticalHuggingPriority="750" id="540" userLabel="Round Rect Button">
-                        <rect key="frame" x="250" y="0.0" width="70" height="19"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxY="YES"/>
-                        <buttonCell key="cell" type="roundRect" title="Layer" bezelStyle="roundedRect" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="541">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="cellTitle"/>
-                            <string key="keyEquivalent" base64-UTF8="YES">
-IA
-</string>
-                        </buttonCell>
-                        <connections>
-                            <action selector="togglePlay:" target="494" id="586"/>
-                        </connections>
-                    </button>
-                    <customView id="560">
-                        <rect key="frame" x="0.0" y="20" width="320" height="180"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <connections>
-                            <binding destination="494" name="hidden" keyPath="self.layer" id="jsX-4K-eLm"/>
-                        </connections>
-                    </customView>
-                    <button verticalHuggingPriority="750" id="566" userLabel="Round Rect Button">
-                        <rect key="frame" x="0.0" y="0.0" width="44" height="19"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                        <buttonCell key="cell" type="roundRect" bezelStyle="roundedRect" image="NSLeftFacingTriangleTemplate" imagePosition="only" alignment="center" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="567">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="cellTitle"/>
-                        </buttonCell>
-                        <connections>
-                            <action selector="rewindStream:" target="494" id="569"/>
-                        </connections>
-                    </button>
-                    <slider verticalHuggingPriority="750" id="572">
-                        <rect key="frame" x="50" y="0.0" width="194" height="21"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
-                        <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" tickMarkPosition="above" sliderType="linear" id="573"/>
-                        <connections>
-                            <action selector="updatePosition:" target="494" id="580"/>
-                            <binding destination="574" name="value" keyPath="selection.layerPos" id="584"/>
-                        </connections>
-                    </slider>
-                </subviews>
-            </view>
-            <connections>
-                <binding destination="574" name="title" keyPath="selection.layerTitle" id="590"/>
-                <outlet property="delegate" destination="494" id="547"/>
-            </connections>
-        </window>
         <objectController id="574" userLabel="Object Controller">
             <declaredKeys>
                 <string>viewPos</string>
@@ -782,6 +723,6 @@ IA
         </objectController>
     </objects>
     <resources>
-        <image name="NSLeftFacingTriangleTemplate" width="9" height="9"/>
+        <image name="NSLeftFacingTriangleTemplate" width="9" height="12"/>
     </resources>
 </document>
