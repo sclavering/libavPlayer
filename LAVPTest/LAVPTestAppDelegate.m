@@ -10,12 +10,12 @@
 
 NSString* formatTime(int64_t usec)
 {
-    SInt32 i = usec / 1000000;
-    SInt32 d = i / (24*60*60);
-    SInt32 h = (i - d * (24*60*60)) / (60*60);
-    SInt32 m = (i - d * (24*60*60) - h * (60*60)) / 60;
-    SInt32 s = (i - d * (24*60*60) - h * (60*60) - m * 60);
-    SInt32 f = (usec % 1000000) / 1000;
+    int i = usec / 1000000;
+    int d = i / (24*60*60);
+    int h = (i - d * (24*60*60)) / (60*60);
+    int m = (i - d * (24*60*60) - h * (60*60)) / 60;
+    int s = (i - d * (24*60*60) - h * (60*60) - m * 60);
+    int f = (usec % 1000000) / 1000;
     return [NSString stringWithFormat:@"%02d:%02d:%02d:%03d", h, m, s, f];
 }
 
