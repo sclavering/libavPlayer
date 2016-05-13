@@ -28,6 +28,6 @@
  REQUIRED FRAMEWORKS: Cocoa, QuartzCore, CoreVideo
 */
 
-#import <libavPlayer/LAVPStream.h>
+#import <libavPlayer/LAVPMovie.h>
 #import <libavPlayer/LAVPLayer.h>
 #import <libavPlayer/LAVPView.h>

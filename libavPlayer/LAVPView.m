@@ -2,7 +2,7 @@
 
 @implementation LAVPView
 
--(void) setStream:(LAVPStream *)newStream {
+-(void) setMovie:(LAVPMovie *)movie {
     if(!_videoLayer) {
         [self setWantsLayer:YES];
         CALayer *rootLayer = [self layer];
@@ -14,7 +14,7 @@
         _videoLayer.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
         [rootLayer addSublayer:_videoLayer];
     }
-    [_videoLayer setStream:newStream];
+    [_videoLayer setMovie:movie];
 }
 
 @end

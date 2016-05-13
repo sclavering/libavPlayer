@@ -692,7 +692,7 @@ IA
                             <font key="font" metaFont="cellTitle"/>
                         </buttonCell>
                         <connections>
-                            <action selector="rewindStream:" target="494" id="568"/>
+                            <action selector="rewindMovie:" target="494" id="568"/>
                         </connections>
                     </button>
                     <slider verticalHuggingPriority="750" id="570">

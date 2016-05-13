@@ -375,7 +375,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
 - (void) haveReachedEOF
 {
-    if(self.owningStream && self.owningStream.streamOutput) [self.owningStream.streamOutput streamOutputNeedsContinuousUpdating:false];
+    if(self.owningStream && self.owningStream.movieOutput) [self.owningStream.movieOutput movieOutputNeedsContinuousUpdating:false];
 }
 
 @end

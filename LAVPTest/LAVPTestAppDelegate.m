@@ -42,16 +42,16 @@ NSString* formatTime(int64_t usec)
 - (void)updatePos:(NSTimer*)theTimer
 {
     if (layerwindow) {
-        double_t pos = layerstream.position;
+        double_t pos = layermovie.position;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"layerPos"];
-        NSString *timeStr = formatTime(layerstream.currentTimeInMicroseconds);
+        NSString *timeStr = formatTime(layermovie.currentTimeInMicroseconds);
         [self setValue:[NSString stringWithFormat:@"Layer Window : %@ (%.3f)", timeStr, pos]
                 forKey:@"layerTitle"];
     }
     if (viewwindow) {
-        double_t pos = viewstream.position;
+        double_t pos = viewmovie.position;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"viewPos"];
-        NSString *timeStr = formatTime(viewstream.currentTimeInMicroseconds);
+        NSString *timeStr = formatTime(viewmovie.currentTimeInMicroseconds);
         [self setValue:[NSString stringWithFormat:@"View Window : %@ (%.3f)", timeStr, pos]
                 forKey:@"viewTitle"];
     }
@@ -82,33 +82,33 @@ NSString* formatTime(int64_t usec)
 
 - (void) loadMovieAtURL:(NSURL *)url
 {
-    if (layerstream || viewstream) {
+    if (layermovie || viewmovie) {
         [self stopTimer];
     }
 #if 1
     if (viewwindow) {
-        if (viewstream) {
-            viewstream.rate = 0.0;
-            [view setStream:nil];
-            viewstream = nil;
+        if (viewmovie) {
+            viewmovie.rate = 0.0;
+            [view setMovie:nil];
+            viewmovie = nil;
         }
 
         // LAVPView test
-        viewstream = [LAVPStream streamWithURL:url error:nil];
-        [view setStream:viewstream];
+        viewmovie = [[LAVPMovie alloc] initWithURL:url error:nil];
+        [view setMovie:viewmovie];
     }
 #endif
 
 #if 1
     if (layerwindow) {
-        if (layerstream) {
-            layerstream.rate = 0.0;
-            [layer setStream:nil];
-            layerstream = nil;
+        if (layermovie) {
+            layermovie.rate = 0.0;
+            [layer setMovie:nil];
+            layermovie = nil;
         }
 
         // LAVPLayer test
-        layerstream =  [LAVPStream streamWithURL:url error:nil];
+        layermovie = [[LAVPMovie alloc] initWithURL:url error:nil];
 
         //
         [layerView setWantsLayer:YES];
@@ -138,12 +138,12 @@ NSString* formatTime(int64_t usec)
         layer.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
 
         //
-        [layer setStream:layerstream];
+        [layer setMovie:layermovie];
         [rootLayer addSublayer:layer];
 
     }
 #endif
-    if (layerstream || viewstream) {
+    if (layermovie || viewmovie) {
         [self startTimer];
     }
 }
@@ -158,9 +158,9 @@ NSString* formatTime(int64_t usec)
     NSWindow *obj = [notification object];
     if (obj == layerwindow) {
         NSLog(@"NOTE: layerwindow closing...");
-        layerstream.rate = 0.0;
-        [layer setStream:nil];
-        layerstream = nil;
+        layermovie.rate = 0.0;
+        [layer setMovie:nil];
+        layermovie = nil;
         layerwindow = nil;
         [layer removeFromSuperlayer];
         layer = nil;
@@ -168,9 +168,9 @@ NSString* formatTime(int64_t usec)
     }
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
-        viewstream.rate = 0.0;
-        [view setStream:nil];
-        viewstream = nil;
+        viewmovie.rate = 0.0;
+        [view setMovie:nil];
+        viewmovie = nil;
         viewwindow = nil;
         NSLog(@"NOTE: viewwindow closed.");
     }
@@ -178,23 +178,23 @@ NSString* formatTime(int64_t usec)
 
 - (IBAction) togglePlay:(id)sender
 {
-    LAVPStream *theStream = nil;
+    LAVPMovie *theMovie = nil;
 
     NSButton *button = (NSButton*) sender;
     if ([button window] == layerwindow) {
-        theStream = layerstream;
+        theMovie = layermovie;
     }
     if ([button window] == viewwindow) {
-        theStream = viewstream;
+        theMovie = viewmovie;
     }
 
-    if ([theStream rate]) {
-        theStream.rate = 0.0;
+    if ([theMovie rate]) {
+        theMovie.rate = 0.0;
     } else {
-        if(theStream.currentTimeInMicroseconds >= theStream.durationInMicroseconds) [theStream setPosition:0];
+        if(theMovie.currentTimeInMicroseconds >= theMovie.durationInMicroseconds) [theMovie setPosition:0];
         // test code for playRate support
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
-        theStream.rate = shiftKey ? 1.5 : 1.0;
+        theMovie.rate = shiftKey ? 1.5 : 1.0;
     }
 }
 
@@ -222,14 +222,14 @@ NSString* formatTime(int64_t usec)
     [openPanel beginSheetModalForWindow:[NSApp mainWindow] completionHandler:movieOpenPanelHandler];
 }
 
-- (IBAction) rewindStream:(id)sender
+- (IBAction) rewindMovie:(id)sender
 {
     NSButton *button = (NSButton*) sender;
     if ([button window] == layerwindow) {
-        [layerstream setPosition:0];
+        [layermovie setPosition:0];
     }
     if ([button window] == viewwindow) {
-        [viewstream setPosition:0];
+        [viewmovie setPosition:0];
     }
 }
 
@@ -238,15 +238,15 @@ NSString* formatTime(int64_t usec)
     NSSlider *pos = (NSSlider*) sender;
     double_t newPos = [pos doubleValue];
 
-    if ([pos window] == layerwindow && !layerstream.busy) {
+    if ([pos window] == layerwindow && !layermovie.busy) {
         if (newPos != layerPrev) {
-            [layerstream setPosition:newPos];
+            [layermovie setPosition:newPos];
             layerPrev = newPos;
         }
     }
-    if ([pos window] == viewwindow && !viewstream.busy) {
+    if ([pos window] == viewwindow && !viewmovie.busy) {
         if (newPos != viewPrev) {
-            [viewstream setPosition:newPos];
+            [viewmovie setPosition:newPos];
             viewPrev = newPos;
         }
     }

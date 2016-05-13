@@ -1,12 +1,12 @@
 #import <Cocoa/Cocoa.h>
 #import "LAVPLayer.h"
-#import "LAVPStream.h"
+#import "LAVPMovie.h"
 
 @interface LAVPView : NSView
 {
     LAVPLayer* _videoLayer;
 }
 
--(void) setStream:(LAVPStream *)newStream;
+-(void) setMovie:(LAVPMovie *)movie;
 
 @end

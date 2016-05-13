@@ -26,7 +26,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include "lavp_common.h"
-#import "LAVPStream.h"
+#import "LAVPMovie.h"
 
 @class VideoState;
 
@@ -37,7 +37,7 @@
     double lastPosition;
 }
 
-@property (weak) LAVPStream* owningStream;
+@property (weak) LAVPMovie* owningStream;
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr;
 - (void) threadMain;

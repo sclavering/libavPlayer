@@ -1,5 +1,5 @@
 //
-//  LAVPStream.h
+//  LAVPMovie.h
 //  libavPlayer
 //
 //  Created by Takashi Mochizuki on 11/06/18.
@@ -26,17 +26,17 @@
 #import <Cocoa/Cocoa.h>
 
 @class LAVPDecoder;
-@protocol LAVPStreamOutput;
+@protocol LAVPMovieOutput;
 
-@interface LAVPStream : NSObject {
+@interface LAVPMovie : NSObject {
     NSURL    *url;
 @private
     LAVPDecoder *decoder;
     float currentVol;
 }
 
-// In practice this is an LAVPLayer.  The stream needs to be able to tell it to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.
-@property (weak) id<LAVPStreamOutput> streamOutput;
+// In practice this is an LAVPLayer.  The movie needs to be able to tell it to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.
+@property (weak) id<LAVPMovieOutput> movieOutput;
 
 @property (retain, readonly) NSURL *url;
 
@@ -52,7 +52,6 @@
 @property BOOL busy;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
-+ (id) streamWithURL:(NSURL *)url error:(NSError **)errorPtr;
 
 - (CVPixelBufferRef) getCVPixelBuffer;
 
@@ -60,11 +59,11 @@
 
 
 
-@protocol LAVPStreamOutput
+@protocol LAVPMovieOutput
 
 // Called e.g. after seeking while paused.
--(void) streamOutputNeedsSingleUpdate;
+-(void) movieOutputNeedsSingleUpdate;
 // Called when playback starts or stops for any reason.
--(void) streamOutputNeedsContinuousUpdating:(bool)continuousUpdating;
+-(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating;
 
 @end;

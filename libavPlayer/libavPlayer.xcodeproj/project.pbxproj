@@ -39,8 +39,8 @@
 		166F893813E0555A00B74CCA /* lavp_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 166F893613E0555A00B74CCA /* lavp_thread.c */; };
 		166F893913E0555A00B74CCA /* lavp_thread.h in Headers */ = {isa = PBXBuildFile; fileRef = 166F893713E0555A00B74CCA /* lavp_thread.h */; };
 		169D704313EE2A5700031A4A /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 169D704213EE2A5700031A4A /* QTKit.framework */; };
-		16A18F4913AC466F008825FF /* LAVPStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A18F4713AC466F008825FF /* LAVPStream.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		16A18F4A13AC466F008825FF /* LAVPStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A18F4813AC466F008825FF /* LAVPStream.m */; };
+		16A18F4913AC466F008825FF /* LAVPMovie.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A18F4713AC466F008825FF /* LAVPMovie.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A18F4813AC466F008825FF /* LAVPMovie.m */; };
 		16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FAB13AC567E008825FF /* CoreVideo.framework */; };
 		16A18FF113AC57CC008825FF /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FF013AC57CC008825FF /* libz.dylib */; };
 		16A18FF413AC57E2008825FF /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FF313AC57E2008825FF /* libbz2.dylib */; };
@@ -109,8 +109,8 @@
 		166F893613E0555A00B74CCA /* lavp_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lavp_thread.c; sourceTree = "<group>"; };
 		166F893713E0555A00B74CCA /* lavp_thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_thread.h; sourceTree = "<group>"; };
 		169D704213EE2A5700031A4A /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
-		16A18F4713AC466F008825FF /* LAVPStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPStream.h; sourceTree = "<group>"; };
-		16A18F4813AC466F008825FF /* LAVPStream.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPStream.m; sourceTree = "<group>"; };
+		16A18F4713AC466F008825FF /* LAVPMovie.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPMovie.h; sourceTree = "<group>"; };
+		16A18F4813AC466F008825FF /* LAVPMovie.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPMovie.m; sourceTree = "<group>"; };
 		16A18F8A13AC5536008825FF /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../libav/libavcodec.a; sourceTree = "<group>"; };
 		16A18F8B13AC5536008825FF /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../libav/libswscale.a; sourceTree = "<group>"; };
 		16A18F8C13AC5536008825FF /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../libav/libavutil.a; sourceTree = "<group>"; };
@@ -237,8 +237,8 @@
 				AA4F122D1CE552B300716F94 /* VideoState.h */,
 				AA4F122B1CE54F7A00716F94 /* VideoState.m */,
 				16A1971513ADFE22008825FF /* libavPlayer.h */,
-				16A18F4713AC466F008825FF /* LAVPStream.h */,
-				16A18F4813AC466F008825FF /* LAVPStream.m */,
+				16A18F4713AC466F008825FF /* LAVPMovie.h */,
+				16A18F4813AC466F008825FF /* LAVPMovie.m */,
 				16A1902513AC735E008825FF /* LAVPDecoder.h */,
 				16A1902613AC735E008825FF /* LAVPDecoder.m */,
 				16A195A813ADF5F1008825FF /* LAVPLayer.h */,
@@ -324,7 +324,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				16A18F4913AC466F008825FF /* LAVPStream.h in Headers */,
+				16A18F4913AC466F008825FF /* LAVPMovie.h in Headers */,
 				16A195AA13ADF5F1008825FF /* LAVPLayer.h in Headers */,
 				16A195EC13ADF712008825FF /* LAVPView.h in Headers */,
 				16A1971613ADFE22008825FF /* libavPlayer.h in Headers */,
@@ -420,7 +420,7 @@
 				AA4F122C1CE54F8100716F94 /* VideoState.m in Sources */,
 				AA4F122A1CE5096C00716F94 /* decoder.m in Sources */,
 				AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */,
-				16A18F4A13AC466F008825FF /* LAVPStream.m in Sources */,
+				16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */,
 				16A1902813AC735E008825FF /* LAVPDecoder.m in Sources */,
 				16A1911713AC9C47008825FF /* lavp_queue.m in Sources */,
 				16A1932D13ADB3E3008825FF /* lavp_video.m in Sources */,

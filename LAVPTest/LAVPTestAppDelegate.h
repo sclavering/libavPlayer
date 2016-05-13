@@ -11,12 +11,12 @@
 #import <libavPlayer/libavPlayer.h>
 
 @interface LAVPTestAppDelegate : NSObject <NSApplicationDelegate> {
-    LAVPStream *viewstream;
+    LAVPMovie *viewmovie;
     double_t viewPos;
     NSString *viewTitle;
 
     LAVPLayer *layer;
-    LAVPStream *layerstream;
+    LAVPMovie *layermovie;
     double_t layerPos;
     NSString *layerTitle;
 
@@ -33,7 +33,7 @@
 - (void) loadMovieAtURL:(NSURL *)url;
 
 - (IBAction) togglePlay:(id)sender;
-- (IBAction) rewindStream:(id)sender;
+- (IBAction) rewindMovie:(id)sender;
 - (IBAction) updatePosition:(id)sender;
 
 @end

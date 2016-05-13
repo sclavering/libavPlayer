@@ -18,10 +18,10 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "LAVPStream.h"
+#import "LAVPMovie.h"
 #import "LAVPDecoder.h"
 
-@implementation LAVPStream
+@implementation LAVPMovie
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
 {
@@ -35,12 +35,6 @@
     }
 
     return self;
-}
-
-+ (id) streamWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
-{
-    Class myClass = [self class];
-    return [[myClass alloc] initWithURL:sourceURL error:errorPtr];
 }
 
 #pragma mark -
@@ -118,7 +112,7 @@
 
     self.busy = NO;
 
-    if(self.streamOutput) [self.streamOutput streamOutputNeedsSingleUpdate];
+    if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
 }
 
 - (double_t) rate
@@ -133,7 +127,7 @@
     // pause first
     if (decoder.rate) [decoder setRate:0.0];
     if (newRate != 0.0) [decoder setRate:newRate];
-    if(self.streamOutput) [self.streamOutput streamOutputNeedsContinuousUpdating: decoder.rate != 0.0];
+    if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating: decoder.rate != 0.0];
 }
 
 - (float) volume

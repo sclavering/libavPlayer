@@ -53,9 +53,9 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
-    if (_stream) {
-        _stream.rate = 0.0;
-        _stream = NULL;
+    if (_movie) {
+        _movie.rate = 0.0;
+        _movie = NULL;
     }
     if (_fboId) {
         glDeleteTextures(1, &_fboTextureId);
@@ -174,7 +174,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
                 forLayerTime:(CFTimeInterval)timeInterval
                  displayTime:(const CVTimeStamp *)timeStamp
 {
-    return _stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy;
+    return _movie && !NSEqualSizes([_movie frameSize], NSZeroSize) && !_movie.busy;
 }
 
 - (void) drawInCGLContext:(CGLContextObj)glContext
@@ -182,9 +182,9 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
              forLayerTime:(CFTimeInterval)timeInterval
               displayTime:(const CVTimeStamp *)timeStamp
 {
-    if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize) && !_stream.busy) {
+    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize) && !_movie.busy) {
             // Prepare CIImage
-            CVPixelBufferRef pb = [_stream getCVPixelBuffer];
+            CVPixelBufferRef pb = [_movie getCVPixelBuffer];
 
             if (pb) {
                 [_lock lock];
@@ -238,7 +238,7 @@ bail:
     CGLSetCurrentContext(_cglContext);
     CGLLockContext(_cglContext);
 
-    if (_stream && !NSEqualSizes([_stream frameSize], NSZeroSize)) {
+    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize)) {
         // Prepare CIContext
         [self _setCIContext];
 
@@ -379,7 +379,7 @@ bail:
     CGSize br = CGSizeMake( 1.0f, -1.0f);
     if(!self.stretchVideoToFitLayer) {
         CGSize ls = [self bounds].size;
-        CGSize vs = [_stream frameSize];
+        CGSize vs = [_movie frameSize];
         CGFloat hRatio = vs.width / ls.width;
         CGFloat vRatio = vs.height / ls.height;
         CGFloat layerAspect = ls.width / ls.height;
@@ -452,12 +452,12 @@ bail:
 #pragma mark -
 #pragma mark public
 
-- (LAVPStream *) stream
+- (LAVPMovie *) movie
 {
-    return _stream;
+    return _movie;
 }
 
-- (void) setStream:(LAVPStream *)newStream
+- (void) setMovie:(LAVPMovie *)movie
 {
     self.asynchronous = NO;
     [_lock lock];
@@ -469,16 +469,16 @@ bail:
         _fboId = 0;
     }
 
-    if(_stream) {
-        _stream.rate = 0.0;
-        _stream.streamOutput = nil;
+    if(_movie) {
+        _movie.rate = 0.0;
+        _movie.movieOutput = nil;
     }
-    _stream = newStream;
-    _stream.streamOutput = self;
+    _movie = movie;
+    _movie.movieOutput = self;
 
     // Get the size of the image we are going to need throughout
-    if (_stream && [_stream frameSize].width && [_stream frameSize].height)
-        _textureRect = CGRectMake(0, 0, [_stream frameSize].width, [_stream frameSize].height);
+    if (_movie && [_movie frameSize].width && [_movie frameSize].height)
+        _textureRect = CGRectMake(0, 0, [_movie frameSize].width, [_movie frameSize].height);
     else
         _textureRect = CGRectMake(0, 0, DUMMY_W, DUMMY_H);
 
@@ -506,15 +506,15 @@ bail:
 
 /* =============================================================================================== */
 #pragma mark -
-#pragma mark LAVPStreamOutput impl
+#pragma mark LAVPMovieOutput impl
 
 // Called e.g. after seeking while paused.
--(void) streamOutputNeedsSingleUpdate {
+-(void) movieOutputNeedsSingleUpdate {
     [self setNeedsDisplay];
 }
 
 // Called when playback starts or stops for any reason.
--(void) streamOutputNeedsContinuousUpdating:(bool)continuousUpdating {
+-(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating {
     self.asynchronous = continuousUpdating;
 }
 

@@ -24,11 +24,11 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import "LAVPStream.h"
+#import "LAVPMovie.h"
 
-@interface LAVPLayer : CAOpenGLLayer <LAVPStreamOutput>
+@interface LAVPLayer : CAOpenGLLayer <LAVPMovieOutput>
 {
-    LAVPStream *_stream;
+    LAVPMovie *_movie;
 
 @private
     CIContext *_ciContext;
@@ -45,6 +45,6 @@
 }
 
 @property bool stretchVideoToFitLayer;
-@property (retain) LAVPStream *stream;
+@property (retain) LAVPMovie *movie;
 
 @end
