@@ -21,8 +21,6 @@
 #import "LAVPStream.h"
 #import "LAVPDecoder.h"
 
-#define AV_TIME_BASE            1000000
-
 @implementation LAVPStream
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
@@ -58,25 +56,19 @@
     return [decoder getPixelBuffer];
 }
 
-- (QTTime) duration;
+- (int64_t) durationInMicroseconds;
 {
-    int64_t    duration = [decoder duration];    //usec
-
-    return QTMakeTime(duration, AV_TIME_BASE);
+    return [decoder duration];
 }
 
-- (QTTime) currentTime
+- (int64_t) currentTimeInMicroseconds
 {
-    int64_t position = [decoder position];    //usec
-
-    return QTMakeTime(position, AV_TIME_BASE);
+    return [decoder position];
 }
 
-- (void) setCurrentTime:(QTTime)newTime
+- (void) setCurrentTimeInMicroseconds:(int64_t)newTime
 {
-    QTTime timeInUsec = QTMakeTimeScaled(newTime, AV_TIME_BASE);
-
-    [decoder setPosition:timeInUsec.timeValue blocking:YES];
+    [decoder setPosition:newTime blocking:YES];
 }
 
 - (double_t) position

@@ -8,17 +8,14 @@
 
 #import "LAVPTestAppDelegate.h"
 
-NSString* formatTime(QTTime qttime)
+NSString* formatTime(int64_t usec)
 {
-    if (!qttime.timeScale) {
-        return @"--:--:--:--";
-    }
-    SInt32 i = qttime.timeValue / qttime.timeScale;
+    SInt32 i = usec / 1000000;
     SInt32 d = i / (24*60*60);
     SInt32 h = (i - d * (24*60*60)) / (60*60);
     SInt32 m = (i - d * (24*60*60) - h * (60*60)) / 60;
     SInt32 s = (i - d * (24*60*60) - h * (60*60) - m * 60);
-    SInt32 f = (qttime.timeValue % qttime.timeScale) * 1000 / qttime.timeScale;    // Just micro second
+    SInt32 f = (usec % 1000000) / 1000;
     return [NSString stringWithFormat:@"%02d:%02d:%02d:%03d", h, m, s, f];
 }
 
@@ -47,14 +44,14 @@ NSString* formatTime(QTTime qttime)
     if (layerwindow) {
         double_t pos = layerstream.position;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"layerPos"];
-        NSString *timeStr = formatTime([layerstream currentTime]);
+        NSString *timeStr = formatTime(layerstream.currentTimeInMicroseconds);
         [self setValue:[NSString stringWithFormat:@"Layer Window : %@ (%.3f)", timeStr, pos]
                 forKey:@"layerTitle"];
     }
     if (viewwindow) {
         double_t pos = viewstream.position;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"viewPos"];
-        NSString *timeStr = formatTime([viewstream currentTime]);
+        NSString *timeStr = formatTime(viewstream.currentTimeInMicroseconds);
         [self setValue:[NSString stringWithFormat:@"View Window : %@ (%.3f)", timeStr, pos]
                 forKey:@"viewTitle"];
     }
@@ -194,12 +191,7 @@ NSString* formatTime(QTTime qttime)
     if ([theStream rate]) {
         theStream.rate = 0.0;
     } else {
-        QTTime currentTime = [theStream currentTime];
-        QTTime duration = [theStream duration];
-        if (currentTime.timeValue + 1e6/30 >= duration.timeValue) {
-            [theStream setPosition:0];
-        }
-
+        if(theStream.currentTimeInMicroseconds >= theStream.durationInMicroseconds) [theStream setPosition:0];
         // test code for playRate support
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
         theStream.rate = shiftKey ? 1.5 : 1.0;

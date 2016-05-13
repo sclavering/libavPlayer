@@ -24,7 +24,6 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import <QTKit/QTTime.h>
 
 @class LAVPDecoder;
 @protocol LAVPStreamOutput;
@@ -42,8 +41,8 @@
 @property (retain, readonly) NSURL *url;
 
 @property (readonly) NSSize frameSize;
-@property (readonly) QTTime duration;
-@property (assign) QTTime currentTime;
+@property (readonly) int64_t durationInMicroseconds;
+@property (assign) int64_t currentTimeInMicroseconds;
 @property (assign) double_t position;
 
 // Note: set this to 0 to pause/stop, and to 1.0 to start playing at normal speed.  Read it to determine whether the stream is currently being played.
