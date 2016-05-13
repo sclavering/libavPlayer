@@ -58,21 +58,9 @@
     return [[myClass alloc] initWithURL:sourceURL error:errorPtr];
 }
 
-- (void) invalidate
-{
-    // perform clean up
-    [timer invalidate];
-    timer = nil;
-
-    [decoder invalidate];
-    decoder = nil;
-
-    url = nil;
-}
-
 - (void) dealloc
 {
-    [self invalidate];
+    if(timer) [timer invalidate];
 }
 
 #pragma mark -

@@ -74,7 +74,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     return self;
 }
 
-- (void) invalidate
+- (void) dealloc
 {
     // perform clean up
     if (is && is->decoderThread) {
@@ -83,20 +83,9 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
         while (![dt isFinished]) {
             usleep(10*1000);
         }
-        dt = NULL;
-
         stream_close(is);
-        is = NULL;
     }
-    if (pb) {
-        CVPixelBufferRelease(pb);
-        pb = NULL;
-    }
-}
-
-- (void) dealloc
-{
-    [self invalidate];
+    if (pb) CVPixelBufferRelease(pb);
 }
 
 - (void) threadMain

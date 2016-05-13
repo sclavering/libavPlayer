@@ -35,7 +35,6 @@
 }
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr;
-- (void) invalidate;
 - (void) threadMain;
 
 - (CVPixelBufferRef) getPixelBuffer;
