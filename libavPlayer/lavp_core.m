@@ -195,6 +195,7 @@ int stream_component_open(VideoState *is, int stream_index)
         return AVERROR_OPTION_NOT_FOUND;
     }
 
+    is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
@@ -444,7 +445,6 @@ int read_thread(VideoState* is)
         /* ================================================================================== */
 
         // decode loop
-        int eof = 0;
         AVPacket pkt1, *pkt = &pkt1;
         for(;;) {
             @autoreleasepool {
@@ -509,8 +509,7 @@ int read_thread(VideoState* is)
                     }
                     is->seek_req = 0;
                     is->queue_attachments_req = 1;
-                    eof = 0;
-
+                    is->eof = 0;
                     if (is->paused)
                         step_to_next_frame(is);
                 }
@@ -551,14 +550,14 @@ int read_thread(VideoState* is)
 
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
-                    if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !eof) {
+                    if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
                         if (is->video_stream >= 0)
                             packet_queue_put_nullpacket(&is->videoq, is->video_stream);
                         if (is->audio_stream >= 0)
                             packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
                         if (is->subtitle_stream >= 0)
                             packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
-                        eof = 1;
+                        is->eof = 1;
                     }
                     if (is->ic->pb && is->ic->pb->error) {
                         break;
@@ -568,7 +567,7 @@ int read_thread(VideoState* is)
                     LAVPUnlockMutex(wait_mutex);
                     continue;
                 } else {
-                    eof = 0;
+                    is->eof = 0;
                 }
 
                 // Queue packet
@@ -875,6 +874,7 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
     is->last_video_stream = is->video_stream = -1;
     is->last_audio_stream = is->audio_stream = -1;
     is->last_subtitle_stream = is->subtitle_stream = -1;
+    is->eof = 0;
 
     /* ======================================== */
 

@@ -123,6 +123,8 @@
 
     struct SwsContext *img_convert_ctx;
 
+    int eof;
+
     /* LAVP: extension */
     double lastPTScopied;
     struct SwsContext *sws420to422;
