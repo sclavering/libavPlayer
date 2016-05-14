@@ -89,7 +89,7 @@ NSString* formatTime(int64_t usec)
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
 {
-    return YES;
+    return NO;
 }
 
 - (void) windowWillClose:(NSNotification *)notification
