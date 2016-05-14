@@ -2,8 +2,10 @@
 
 #include "lavp_queue.h" // for packet_queue_get()
 
+@implementation Decoder
+@end
+
 void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond) {
-    memset(d, 0, sizeof(Decoder));
     d->avctx = avctx;
     d->queue = queue;
     d->empty_queue_cond = empty_queue_cond;

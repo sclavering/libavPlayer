@@ -247,7 +247,7 @@ int subtitle_thread(VideoState *is)
             if (!(sp = frame_queue_peek_writable(&is->subpq)))
                 goto the_end;
 
-            if ((got_subtitle = decoder_decode_frame(&is->subdec, NULL, &sp->sub)) < 0)
+            if ((got_subtitle = decoder_decode_frame(is->subdec, NULL, &sp->sub)) < 0)
                 break;
 
             pts = 0;
@@ -256,7 +256,7 @@ int subtitle_thread(VideoState *is)
                 if (sp->sub.pts != AV_NOPTS_VALUE)
                     pts = sp->sub.pts / (double)AV_TIME_BASE;
                 sp->pts = pts;
-                sp->serial = is->subdec.pkt_serial;
+                sp->serial = is->subdec->pkt_serial;
 
                 for (i = 0; i < sp->sub.num_rects; i++)
                 {

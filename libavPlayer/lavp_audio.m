@@ -555,7 +555,7 @@ int audio_thread(VideoState *is)
         return AVERROR(ENOMEM);
 
     do {
-        if ((got_frame = decoder_decode_frame(&is->auddec, frame, NULL)) < 0)
+        if ((got_frame = decoder_decode_frame(is->auddec, frame, NULL)) < 0)
             goto the_end;
 
         if (got_frame) {
@@ -566,7 +566,7 @@ int audio_thread(VideoState *is)
 
             af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
             af->pos = av_frame_get_pkt_pos(frame);
-            af->serial = is->auddec.pkt_serial;
+            af->serial = is->auddec->pkt_serial;
             af->duration = av_q2d((AVRational){frame->nb_samples, frame->sample_rate});
 
             av_frame_move_ref(af->frame, frame);

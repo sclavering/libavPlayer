@@ -1,4 +1,5 @@
-typedef struct Decoder {
+@interface Decoder : NSObject {
+@public
     AVPacket pkt;
     AVPacket pkt_temp;
     PacketQueue *queue;
@@ -11,7 +12,8 @@ typedef struct Decoder {
     AVRational start_pts_tb;
     int64_t next_pts;
     AVRational next_pts_tb;
-} Decoder;
+}
+@end;
 
 void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond);
 int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub);

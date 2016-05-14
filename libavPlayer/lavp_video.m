@@ -406,7 +406,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 {
     int got_picture;
 
-    if ((got_picture = decoder_decode_frame(&is->viddec, frame, NULL)) < 0)
+    if ((got_picture = decoder_decode_frame(is->viddec, frame, NULL)) < 0)
         return -1;
 
     if (got_picture) {
@@ -422,7 +422,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
                 double diff = dpts - get_master_clock(is);
                 if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
                     diff - is->frame_last_filter_delay < 0 &&
-                    is->viddec.pkt_serial == is->vidclk.serial &&
+                    is->viddec->pkt_serial == is->vidclk.serial &&
                     is->videoq.nb_packets) {
                     av_frame_unref(frame);
                     got_picture = 0;
@@ -453,7 +453,7 @@ int video_thread(VideoState *is)
 
             duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
             pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            ret = queue_picture(is, frame, pts, duration, av_frame_get_pkt_pos(frame), is->viddec.pkt_serial);
+            ret = queue_picture(is, frame, pts, duration, av_frame_get_pkt_pos(frame), is->viddec->pkt_serial);
             av_frame_unref(frame);
 
             if (ret < 0)

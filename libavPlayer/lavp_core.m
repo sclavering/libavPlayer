@@ -204,10 +204,11 @@ int stream_component_open(VideoState *is, int stream_index)
             is->audio_st = ic->streams[stream_index];
 
             packet_queue_start(&is->audioq);
-            decoder_init(&is->auddec, avctx, &is->audioq, is->continue_read_thread);
+            is->auddec = [[Decoder alloc] init];
+            decoder_init(is->auddec, avctx, &is->audioq, is->continue_read_thread);
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
-                is->auddec.start_pts = is->audio_st->start_time;
-                is->auddec.start_pts_tb = is->audio_st->time_base;
+                is->auddec->start_pts = is->audio_st->start_time;
+                is->auddec->start_pts_tb = is->audio_st->time_base;
             }
 
             // LAVP: Use a dispatch queue instead of an SDL thread.
@@ -251,7 +252,8 @@ int stream_component_open(VideoState *is, int stream_index)
             is->video_st = ic->streams[stream_index];
 
             packet_queue_start(&is->videoq);
-            decoder_init(&is->viddec, avctx, &is->videoq, is->continue_read_thread);
+            is->viddec = [[Decoder alloc] init];
+            decoder_init(is->viddec, avctx, &is->videoq, is->continue_read_thread);
 
             // LAVP: Use a dispatch queue instead of an SDL thread.
             {
@@ -270,7 +272,8 @@ int stream_component_open(VideoState *is, int stream_index)
             is->subtitle_st = ic->streams[stream_index];
 
             packet_queue_start(&is->subtitleq);
-            decoder_init(&is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
+            is->subdec = [[Decoder alloc] init];
+            decoder_init(is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
 
             // LAVP: Use a dispatch queue instead of an SDL thread.
             {
@@ -315,7 +318,7 @@ void stream_component_close(VideoState *is, int stream_index)
             is->audio_group = NULL;
             is->audio_queue = NULL;
 
-            decoder_destroy(&is->auddec);
+            decoder_destroy(is->auddec);
             packet_queue_flush(&is->audioq);
             swr_free(&is->swr_ctx);
             av_freep(&is->audio_buf1);
@@ -335,7 +338,7 @@ void stream_component_close(VideoState *is, int stream_index)
             is->video_group = NULL;
             is->video_queue = NULL;
 
-            decoder_destroy(&is->viddec);
+            decoder_destroy(is->viddec);
             packet_queue_flush(&is->videoq);
             break;
         case AVMEDIA_TYPE_SUBTITLE:
@@ -350,7 +353,7 @@ void stream_component_close(VideoState *is, int stream_index)
             is->subtitle_group = NULL;
             is->subtitle_queue = NULL;
 
-            decoder_destroy(&is->subdec);
+            decoder_destroy(is->subdec);
             packet_queue_flush(&is->subtitleq);
             break;
         default:
@@ -540,8 +543,8 @@ int read_thread(VideoState* is)
                      }
 
                 if (!is->paused &&
-                    (!is->audio_st || (is->auddec.finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
-                    (!is->video_st || (is->viddec.finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
+                    (!is->audio_st || (is->auddec->finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
+                    (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     stream_pause(is);
 

@@ -38,9 +38,9 @@
     FrameQueue subpq;
     FrameQueue sampq;
 
-    Decoder auddec;
-    Decoder viddec;
-    Decoder subdec;
+    Decoder* auddec;
+    Decoder* viddec;
+    Decoder* subdec;
 
     int av_sync_type;
     //
