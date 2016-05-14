@@ -35,7 +35,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                     d->next_pts_tb = d->start_pts_tb;
                 }
             } while (pkt.data == d->queue->flush_pkt.data || d->queue->serial != d->pkt_serial);
-            av_free_packet(&d->pkt);
+            av_packet_unref(&d->pkt);
             d->pkt_temp = d->pkt = pkt;
             d->packet_pending = 1;
         }
@@ -95,7 +95,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
 }
 
 void decoder_destroy(Decoder *d) {
-    av_free_packet(&d->pkt);
+    av_packet_unref(&d->pkt);
 }
 
 void decoder_abort(Decoder *d, FrameQueue *fq)

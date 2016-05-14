@@ -62,7 +62,7 @@ void packet_queue_flush(PacketQueue *q)
     LAVPLockMutex(q->mutex);
     for(pkt = q->first_pkt; pkt != NULL; pkt = pkt1) {
         pkt1 = pkt->next;
-        av_free_packet(&pkt->pkt);
+        av_packet_unref(&pkt->pkt);
         av_freep(&pkt);
     }
     q->last_pkt = NULL;
@@ -90,7 +90,7 @@ void packet_queue_destroy(PacketQueue *q)
     LAVPDestroyCond(q->cond);
 
     /* LAVP: Queue specific flush packet */
-    av_free_packet(&q->flush_pkt);
+    av_packet_unref(&q->flush_pkt);
 }
 
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
@@ -141,7 +141,7 @@ int packet_queue_put(PacketQueue *q, AVPacket *pkt)
     LAVPUnlockMutex(q->mutex);
 
     if (pkt && pkt != &q->flush_pkt && ret < 0) // LAVP:
-        av_free_packet(pkt);
+        av_packet_unref(pkt);
 
     return ret;
 }

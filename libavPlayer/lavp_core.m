@@ -533,7 +533,7 @@ int read_thread(VideoState* is)
                 } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
                     packet_queue_put(&is->subtitleq, pkt);
                 } else {
-                    av_free_packet(pkt);
+                    av_packet_unref(pkt);
                 }
 
             }
