@@ -55,6 +55,8 @@
 
 #define MAX_QUEUE_SIZE (15 * 1024 * 1024)
 #define MIN_FRAMES 5
+#define EXTERNAL_CLOCK_MIN_FRAMES 2
+#define EXTERNAL_CLOCK_MAX_FRAMES 10
 
 /* SDL audio buffer size, in samples. Should be small to have precise
  A/V sync as SDL does not have hardware buffer fullness info. */
