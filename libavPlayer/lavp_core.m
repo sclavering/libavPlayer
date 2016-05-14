@@ -203,26 +203,14 @@ int stream_component_open(VideoState *is, int stream_index)
             is->audio_stream = stream_index;
             is->audio_st = ic->streams[stream_index];
 
-            packet_queue_start(&is->audioq);
             is->auddec = [[Decoder alloc] init];
             decoder_init(is->auddec, avctx, &is->audioq, is->continue_read_thread);
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
                 is->auddec->start_pts = is->audio_st->start_time;
                 is->auddec->start_pts_tb = is->audio_st->time_base;
             }
+            decoder_start(is->auddec, audio_thread, is);
 
-            // LAVP: Use a dispatch queue instead of an SDL thread.
-            {
-                is->audio_queue = dispatch_queue_create("audio", NULL);
-                is->audio_group = dispatch_group_create();
-                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-                dispatch_group_async(is->audio_group, is->audio_queue, ^(void) {
-                    __strong VideoState* is = weakIs;
-                    if(is) audio_thread(is);
-                });
-            }
-
-            //
             sample_rate    = avctx->sample_rate;
             nb_channels    = avctx->channels;
             channel_layout = avctx->channel_layout;
@@ -251,40 +239,19 @@ int stream_component_open(VideoState *is, int stream_index)
             is->video_stream = stream_index;
             is->video_st = ic->streams[stream_index];
 
-            packet_queue_start(&is->videoq);
             is->viddec = [[Decoder alloc] init];
             decoder_init(is->viddec, avctx, &is->videoq, is->continue_read_thread);
+            decoder_start(is->viddec, video_thread, is);
 
-            // LAVP: Use a dispatch queue instead of an SDL thread.
-            {
-                is->video_queue = dispatch_queue_create("video", NULL);
-                is->video_group = dispatch_group_create();
-                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-                dispatch_group_async(is->video_group, is->video_queue, ^(void) {
-                    __strong VideoState* is = weakIs;
-                    if(is) video_thread(is);
-                });
-            }
             is->queue_attachments_req = 1;
             break;
         case AVMEDIA_TYPE_SUBTITLE:
             is->subtitle_stream = stream_index;
             is->subtitle_st = ic->streams[stream_index];
 
-            packet_queue_start(&is->subtitleq);
             is->subdec = [[Decoder alloc] init];
             decoder_init(is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
-
-            // LAVP: Use a dispatch queue instead of an SDL thread.
-            {
-                is->subtitle_queue = dispatch_queue_create("subtitle", NULL);
-                is->subtitle_group = dispatch_group_create();
-                __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-                dispatch_group_async(is->subtitle_group, is->subtitle_queue, ^(void) {
-                    __strong VideoState* is = weakIs;
-                    if(is) subtitle_thread(is);
-                });
-            }
+            decoder_start(is->subdec, subtitle_thread, is);
             break;
         default:
             break;
@@ -307,19 +274,13 @@ void stream_component_close(VideoState *is, int stream_index)
 
     switch(avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-            packet_queue_abort(&is->audioq);
-            frame_queue_signal(&is->sampq);
+            decoder_abort(is->auddec, &is->sampq);
 
             // LAVP: Stop Audio Queue
             LAVPAudioQueueStop(is);
             LAVPAudioQueueDealloc(is);
-            // LAVP: release dispatch queue
-            dispatch_group_wait(is->audio_group, DISPATCH_TIME_FOREVER);
-            is->audio_group = NULL;
-            is->audio_queue = NULL;
 
             decoder_destroy(is->auddec);
-            packet_queue_flush(&is->audioq);
             swr_free(&is->swr_ctx);
             av_freep(&is->audio_buf1);
             is->audio_buf1_size = 0;
@@ -327,34 +288,12 @@ void stream_component_close(VideoState *is, int stream_index)
 
             break;
         case AVMEDIA_TYPE_VIDEO:
-            packet_queue_abort(&is->videoq);
-
-            /* note: we also signal this mutex to make sure we deblock the
-             video thread in all cases */
-            frame_queue_signal(&is->pictq);
-
-            // LAVP: release dispatch queue
-            dispatch_group_wait(is->video_group, DISPATCH_TIME_FOREVER);
-            is->video_group = NULL;
-            is->video_queue = NULL;
-
+            decoder_abort(is->viddec, &is->pictq);
             decoder_destroy(is->viddec);
-            packet_queue_flush(&is->videoq);
             break;
         case AVMEDIA_TYPE_SUBTITLE:
-            packet_queue_abort(&is->subtitleq);
-
-            /* note: we also signal this mutex to make sure we deblock the
-             video thread in all cases */
-            frame_queue_signal(&is->subpq);
-
-            // LAVP: release dispatch queue
-            dispatch_group_wait(is->subtitle_group, DISPATCH_TIME_FOREVER);
-            is->subtitle_group = NULL;
-            is->subtitle_queue = NULL;
-
+            decoder_abort(is->subdec, &is->subpq);
             decoder_destroy(is->subdec);
-            packet_queue_flush(&is->subtitleq);
             break;
         default:
             break;

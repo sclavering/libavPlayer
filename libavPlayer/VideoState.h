@@ -71,12 +71,6 @@
     /* Extension; Sub thread */
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
-    dispatch_queue_t video_queue;
-    dispatch_group_t video_group;
-    dispatch_queue_t subtitle_queue;
-    dispatch_group_t subtitle_group;
-    dispatch_queue_t audio_queue;
-    dispatch_group_t audio_group;
 
     /* Extension; Obj-C Instance */
     __weak LAVPDecoder* decoder;

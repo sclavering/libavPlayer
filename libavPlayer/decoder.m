@@ -97,3 +97,31 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
 void decoder_destroy(Decoder *d) {
     av_free_packet(&d->pkt);
 }
+
+void decoder_abort(Decoder *d, FrameQueue *fq)
+{
+    packet_queue_abort(d->queue);
+    frame_queue_signal(fq);
+
+    // LAVP: release dispatch queue
+    dispatch_group_wait(d->dispatch_group, DISPATCH_TIME_FOREVER);
+    d->dispatch_group = NULL;
+    d->dispatch_queue = NULL;
+
+    packet_queue_flush(d->queue);
+}
+
+// LAVP: in ffplay the signature is:
+// static void decoder_start(Decoder *d, int (*fn)(void *), void *arg)
+void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is)
+{
+    packet_queue_start(d->queue);
+    // LAVP: Use a dispatch queue instead of an SDL thread.
+    d->dispatch_queue = dispatch_queue_create(NULL, NULL);
+    d->dispatch_group = dispatch_group_create();
+    __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+    dispatch_group_async(d->dispatch_group, d->dispatch_queue, ^(void) {
+        __strong VideoState* is = weakIs;
+        if(is) fn(is);
+    });
+}
