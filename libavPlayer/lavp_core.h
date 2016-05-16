@@ -40,8 +40,6 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
 void stream_toggle_pause(VideoState *is);
 void toggle_pause(VideoState *is);
 
-void stream_pause(VideoState *is);
-
 void stream_close(VideoState *is);
 VideoState* stream_open(id lavpDecoder, NSURL *sourceURL);
 double_t stream_playRate(VideoState *is);

@@ -25,7 +25,7 @@
 extern double get_master_clock(VideoState *is);
 extern double get_clock(Clock *c);
 extern void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
-extern void stream_pause(VideoState *is);
+extern void toggle_pause(VideoState *is);
 extern void stream_close(VideoState *is);
 extern VideoState* stream_open(/* LAVPDecoder* */ id is, NSURL *sourceURL);
 extern void alloc_picture(VideoState *is);
@@ -65,7 +65,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
             }
             if (retry < 0)
                 NSLog(@"ERROR: stream_open timeout detected.");
-            stream_pause(is);
+            toggle_pause(is);
         } else {
             return nil;
         }
@@ -199,12 +199,12 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     if (rate > 0) {
         stream_setPlayRate(is, rate);
         if (is && is->paused) {
-            stream_pause(is);
+            toggle_pause(is);
         }
     } else {
         stream_setPlayRate(is, 1.0);
         if (is && !is->paused) {
-            stream_pause(is);
+            toggle_pause(is);
         }
     }
 }

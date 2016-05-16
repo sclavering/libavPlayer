@@ -478,8 +478,7 @@ int read_thread(VideoState* is)
                     (!is->audio_st || (is->auddec->finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
                     (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
-                    stream_pause(is);
-
+                    toggle_pause(is);
                     [is->decoder haveReachedEOF];
                 }
 
@@ -662,6 +661,12 @@ void toggle_pause(VideoState *is)
 {
     stream_toggle_pause(is);
     is->step = 0;
+    if (is->audio_stream >= 0) {
+        if (is->paused)
+            LAVPAudioQueuePause(is);
+        else
+            LAVPAudioQueueStart(is);
+    }
 }
 
 void step_to_next_frame(VideoState *is)
@@ -670,21 +675,6 @@ void step_to_next_frame(VideoState *is)
     if (is->paused)
         stream_toggle_pause(is);
     is->step = 1;
-}
-
-/* pause or resume the video */
-void stream_pause(VideoState *is)
-{
-    toggle_pause(is);
-
-    if (is->audio_stream >= 0) {
-        if (is->paused)
-            LAVPAudioQueuePause(is);
-        else
-            LAVPAudioQueueStart(is);
-    }
-
-    //NSLog(@"DEBUG: stream_pause = %s at %3.3f", (is->paused ? "paused" : "play"), get_master_clock(is));
 }
 
 void stream_close(VideoState *is)
