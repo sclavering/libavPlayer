@@ -39,8 +39,6 @@ int is_realtime(AVFormatContext *s);
 int read_thread(VideoState *is);
 void step_to_next_frame(VideoState *is);
 
-double get_external_clock(VideoState *is);
-
 extern void free_picture(Frame *vp);
 extern int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
@@ -443,11 +441,6 @@ int read_thread(VideoState* is)
                             packet_queue_flush(&is->videoq);
                             packet_queue_put(&is->videoq, &flush_pkt);
                         }
-                        if (is->seek_flags & AVSEEK_FLAG_BYTE) {
-                            set_clock(&is->extclk, NAN, 0);
-                        } else {
-                            set_clock(&is->extclk, seek_target / (double)AV_TIME_BASE, 0);
-                        }
                     }
                     is->seek_req = 0;
                     is->queue_attachments_req = 1;
@@ -628,62 +621,11 @@ void init_clock(Clock *c, int *queue_serial)
     set_clock(c, NAN, -1);
 }
 
-void sync_clock_to_slave(Clock *c, Clock *slave)
-{
-    double clock = get_clock(c);
-    double slave_clock = get_clock(slave);
-    if (!isnan(slave_clock) && (isnan(clock) || fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD))
-        set_clock(c, slave_clock, slave->serial);
-}
-
-int get_master_sync_type(VideoState *is) {
-    if (is->av_sync_type == AV_SYNC_VIDEO_MASTER) {
-        if (is->video_st)
-            return AV_SYNC_VIDEO_MASTER;
-        else
-            return AV_SYNC_AUDIO_MASTER;
-    } else if (is->av_sync_type == AV_SYNC_AUDIO_MASTER) {
-        if (is->audio_st)
-            return AV_SYNC_AUDIO_MASTER;
-        else
-            return AV_SYNC_EXTERNAL_CLOCK;
-    } else {
-        return AV_SYNC_EXTERNAL_CLOCK;
-    }
-}
-
 /* get the current master clock value */
 double get_master_clock(VideoState *is)
 {
     //NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double_t)get_clock(&is->vidclk), (double_t)get_clock(&is->audclk));
-
-    double val;
-    switch (get_master_sync_type(is)) {
-        case AV_SYNC_VIDEO_MASTER:
-            val = get_clock(&is->vidclk);
-            break;
-        case AV_SYNC_AUDIO_MASTER:
-            val = get_clock(&is->audclk);
-            break;
-        default:
-            val = get_clock(&is->extclk);
-            break;
-    }
-    return val;
-}
-
-void check_external_clock_speed(VideoState *is) {
-    if ((is->video_stream >= 0 && is->videoq.nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES) ||
-        (is->audio_stream >= 0 && is->audioq.nb_packets <= EXTERNAL_CLOCK_MIN_FRAMES)) {
-        set_clock_speed(&is->extclk, FFMAX(EXTERNAL_CLOCK_SPEED_MIN, is->extclk.speed - EXTERNAL_CLOCK_SPEED_STEP));
-    } else if ((is->video_stream < 0 || is->videoq.nb_packets > EXTERNAL_CLOCK_MAX_FRAMES) &&
-            (is->audio_stream < 0 || is->audioq.nb_packets > EXTERNAL_CLOCK_MAX_FRAMES)) {
-        set_clock_speed(&is->extclk, FFMIN(EXTERNAL_CLOCK_SPEED_MAX, is->extclk.speed + EXTERNAL_CLOCK_SPEED_STEP));
-    } else {
-        double speed = is->extclk.speed;
-        if (speed != 1.0)
-            set_clock_speed(&is->extclk, speed + EXTERNAL_CLOCK_SPEED_STEP * (1.0 - speed) / fabs(1.0 - speed));
-    }
+    return get_clock(&is->audclk);
 }
 
 /* seek in the stream */
@@ -713,8 +655,7 @@ void stream_toggle_pause(VideoState *is)
         }
         set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
     }
-    set_clock(&is->extclk, get_clock(&is->extclk), is->extclk.serial);
-    is->paused = is->audclk.paused = is->vidclk.paused = is->extclk.paused = !is->paused;
+    is->paused = is->audclk.paused = is->vidclk.paused = !is->paused;
 }
 
 void toggle_pause(VideoState *is)
@@ -944,10 +885,8 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
         //
         init_clock(&is->vidclk, &is->videoq.serial);
         init_clock(&is->audclk, &is->audioq.serial);
-        init_clock(&is->extclk, &is->extclk.serial);
 
         is->audio_clock_serial = -1;
-        is->av_sync_type = AV_SYNC_AUDIO_MASTER; // LAVP: fixed value
 
         // LAVP: Use a dispatch queue instead of an SDL thread.
         is->parse_queue = dispatch_queue_create("parse", NULL);
@@ -993,5 +932,4 @@ void stream_setPlayRate(VideoState *is, double_t newRate)
 
     set_clock_speed(&is->vidclk, newRate);
     set_clock_speed(&is->audclk, newRate);
-    set_clock_speed(&is->extclk, newRate);
 }

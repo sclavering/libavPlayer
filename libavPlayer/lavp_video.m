@@ -113,7 +113,7 @@ double compute_target_delay(double delay, VideoState *is)
     double sync_threshold, diff;
 
     /* update delay to follow master synchronisation source */
-    if (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER) {
+
         /* if video is slave, we try to correct big delays by
          duplicating or deleting a frame */
         diff = get_clock(&is->vidclk) - get_master_clock(is);
@@ -130,7 +130,6 @@ double compute_target_delay(double delay, VideoState *is)
             else if (diff >= sync_threshold)
                 delay = 2 * delay;
         }
-    }
 
     av_dlog(NULL, "video: delay=%0.3f A-V=%f\n",
             delay, -diff);
@@ -153,7 +152,6 @@ static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
 static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial) {
     /* update current video pts */
     set_clock(&is->vidclk, pts, serial);
-    sync_clock_to_slave(&is->extclk, &is->vidclk);
 }
 
 void refresh_loop_wait_event(VideoState *is) {
@@ -176,9 +174,6 @@ void video_refresh(VideoState *is, double *remaining_time)
     double time;
 
     Frame *sp, *sp2;
-
-    if (!is->paused && get_master_sync_type(is) == AV_SYNC_EXTERNAL_CLOCK && is->realtime)
-        check_external_clock_speed(is);
 
     if (is->video_st) {
         int redisplay = 0;
@@ -231,7 +226,7 @@ void video_refresh(VideoState *is, double *remaining_time)
                 Frame *nextvp = frame_queue_peek_next(&is->pictq);
 
                 duration = vp_duration(is, vp, nextvp);
-                if(!is->step && (redisplay || (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER)) && time > is->frame_timer + duration){
+                if(!is->step && redisplay && time > is->frame_timer + duration) {
                     frame_queue_next(&is->pictq);
                     redisplay = 0;
                     goto retry;
@@ -417,16 +412,14 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 
         frame->sample_aspect_ratio = av_guess_sample_aspect_ratio(is->ic, is->video_st, frame);
 
-        if (get_master_sync_type(is) != AV_SYNC_VIDEO_MASTER) {
-            if (frame->pts != AV_NOPTS_VALUE) {
-                double diff = dpts - get_master_clock(is);
-                if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
-                    diff - is->frame_last_filter_delay < 0 &&
-                    is->viddec->pkt_serial == is->vidclk.serial &&
-                    is->videoq.nb_packets) {
-                    av_frame_unref(frame);
-                    got_picture = 0;
-                }
+        if (frame->pts != AV_NOPTS_VALUE) {
+            double diff = dpts - get_master_clock(is);
+            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
+                diff - is->frame_last_filter_delay < 0 &&
+                is->viddec->pkt_serial == is->vidclk.serial &&
+                is->videoq.nb_packets) {
+                av_frame_unref(frame);
+                got_picture = 0;
             }
         }
     }

@@ -69,47 +69,11 @@ int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_chan
     return SDL_AUDIO_BUFFER_SIZE * audio_hw_params->channels * av_get_bytes_per_sample(audio_hw_params->fmt);
 }
 
-/* return the wanted number of samples to get better sync if sync_type is video
- * or external master clock */
+/* return the wanted number of samples to get better sync if sync_type is video */
 static int synchronize_audio(VideoState *is, int nb_samples)
 {
-    int wanted_nb_samples = nb_samples;
-
-    /* if not master, then we try to remove or add samples to correct the clock */
-    if (get_master_sync_type(is) != AV_SYNC_AUDIO_MASTER) {
-        double diff, avg_diff;
-        int min_nb_samples, max_nb_samples;
-
-        diff = get_clock(&is->audclk) - get_master_clock(is);
-
-        if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD) {
-            is->audio_diff_cum = diff + is->audio_diff_avg_coef * is->audio_diff_cum;
-            if (is->audio_diff_avg_count < AUDIO_DIFF_AVG_NB) {
-                /* not enough measures to have a correct estimate */
-                is->audio_diff_avg_count++;
-            } else {
-                /* estimate the A-V difference */
-                avg_diff = is->audio_diff_cum * (1.0 - is->audio_diff_avg_coef);
-
-                if (fabs(avg_diff) >= is->audio_diff_threshold) {
-                    wanted_nb_samples = nb_samples + (int)(diff * is->audio_src.freq);
-                    min_nb_samples = ((nb_samples * (100 - SAMPLE_CORRECTION_PERCENT_MAX) / 100));
-                    max_nb_samples = ((nb_samples * (100 + SAMPLE_CORRECTION_PERCENT_MAX) / 100));
-                    wanted_nb_samples = av_clip(wanted_nb_samples, min_nb_samples, max_nb_samples);
-                }
-                av_dlog(NULL, "diff=%f adiff=%f sample_diff=%d apts=%0.3f %f\n",
-                        diff, avg_diff, wanted_nb_samples - nb_samples,
-                        is->audio_clock, is->audio_diff_threshold);
-            }
-        } else {
-            /* too big difference : may be initial PTS errors, so
-             reset A-V filter */
-            is->audio_diff_avg_count = 0;
-            is->audio_diff_cum       = 0;
-        }
-    }
-
-    return wanted_nb_samples;
+    // xxx this is vestigial from ffplay allowing for using the video or external clocks as the master clock.
+    return nb_samples;
 }
 
 /**
@@ -258,7 +222,6 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
         /* Let's assume the audio driver that is used by SDL has two periods. */
         if (!isnan(is->audio_clock)) {
             set_clock_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, is->audio_callback_time / 1000000.0);
-            sync_clock_to_slave(&is->extclk, &is->audclk);
         }
 
         /* LAVP: Enqueue LPCM result into Audio Queue */
@@ -316,10 +279,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     if (!avctx->sample_rate) {
         // NOTE: is->outAQ, is->audioDispatchQueue are left uninitialized
 
-        // Audio clock is not available
-        if (is->av_sync_type == AV_SYNC_AUDIO_MASTER)
-            is->av_sync_type = AV_SYNC_VIDEO_MASTER;
-
+        // xxx abort here, in some fashion (since we need the sample_rate for the audio clock)
         return;
     }
 

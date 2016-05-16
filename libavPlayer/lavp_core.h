@@ -34,10 +34,7 @@ void set_clock_at(Clock *c, double pts, int serial, double time);
 void set_clock(Clock *c, double pts, int serial);
 void set_clock_speed(Clock *c, double speed);
 void init_clock(Clock *c, int *queue_serial);
-void sync_clock_to_slave(Clock *c, Clock *slave);
-int get_master_sync_type(VideoState *is);
 double get_master_clock(VideoState *is);
-void check_external_clock_speed(VideoState *is);
 
 void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
 void stream_toggle_pause(VideoState *is);

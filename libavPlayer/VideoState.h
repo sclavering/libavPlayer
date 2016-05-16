@@ -32,7 +32,6 @@
 
     Clock audclk;
     Clock vidclk;
-    Clock extclk;
 
     FrameQueue pictq;
     FrameQueue subpq;
@@ -42,8 +41,6 @@
     Decoder* viddec;
     Decoder* subdec;
 
-    int av_sync_type;
-    //
     char* filename; /* LAVP: char filename[1024] */
     int width, height, xleft, ytop;
     int step;
