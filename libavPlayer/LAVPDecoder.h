@@ -49,7 +49,7 @@
 - (void) setRate:(CGFloat)rate;
 - (int64_t) duration;
 - (int64_t) position;
-- (void) setPosition:(int64_t)pos blocking:(BOOL)blocking;
+- (void) setPosition:(int64_t)pos;
 - (float) volume;
 - (void) setVolume:(float)volume;
 

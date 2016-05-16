@@ -235,20 +235,16 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     return 0;
 }
 
-- (void) setPosition:(int64_t)pos blocking:(BOOL)blocking;
+- (void) setPosition:(int64_t)pos
 {
-    // position is in AV_TIME_BASE value.
-    // avutil.h defines timebase for AVFormatContext - in usec.
+    // pos is in microseconds
 
     if (is && is->ic) {
-        double_t (^now_s)() = ^(void) {
-            double_t now_s = get_master_clock(is); // in sec
-            //now_s =  isnan(now_s) ? get_clock(&is->vidclk) : now_s; // in sec
-            return now_s;
-        };
+        // This exists because get_master_clock() returns NAN after seeking while paused, and we need to mask that.
+        lastPosition = pos;
 
         if (is->seek_by_bytes || is->ic->duration <= 0) {
-            double_t frac = (double_t)pos / (now_s() * 1.0e6);
+            double_t frac = (double_t)pos / (get_master_clock(is) * 1.0e6);
 
             int64_t size =  avio_size(is->ic->pb);
 
@@ -263,22 +259,6 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
             target_b = FFMIN(size, current_b * frac); // in byte
             stream_seek(is, target_b, 0, 1);
-
-            {
-                int count = 0, limit = 100, unit = 10;
-
-                // Wait till avformat_seek_file() is completed
-                for ( ; limit > count; count++) {
-                    if (!is->seek_req) break;
-                    usleep(unit*1000);
-                }
-
-                // wait till is->paused == true
-                for ( ; limit > count; count++) {
-                    if (is->paused) break;
-                    usleep(unit*1000);
-                }
-            }
         } else {
             int64_t ts = FFMIN(is->ic->duration , FFMAX(0, pos));
 
@@ -286,73 +266,7 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
                 ts += is->ic->start_time;
 
             stream_seek(is, ts, -10, 0);
-
-            {
-                int count = 0, limit = 200, unit = 10;
-
-                // Wait till avformat_seek_file() is completed
-                for (; limit > count; count++) {
-                    if (!is->seek_req) break;
-                    usleep(unit*1000);
-                }
-
-                // wait till is->paused == true
-                if (ts) // LAVP: if ts == 0 is->paused is not updated...
-                    for ( ; limit > count; count++) {
-                        if (is->paused) break;
-                        usleep(unit*1000);
-                    }
-
-                if (count >= limit) {
-                    int64_t diff = (now_s() * 1.0e6) - ts; // in usec
-                    NSLog(@"NOTE: seek1 timeout detected. (delta=%8.3f)", diff/1.0e6);
-
-                    //NSLog(@"DEBUG: seek diff1 = %8.3f ts1 = %8.3f, now1 = %8.3f %d %@",
-                    //diff/1.0e6, ts/1.0e6, now_s(), count, ((limit > count) ? @"" : @"timeout")); // in sec
-                }
-            }
-
-            // seek wait - blocking
-            if (ts) {
-                double_t posNow = now_s(); // in sec
-                if (isnan(posNow) || (!isnan(posNow) && posNow * 1.0e6 < pos))
-                {
-                    /* TODO seems to be NAN always while in pause. Why? */
-                    //NSLog(@"DEBUG: %@", isnan(posNow) ? @"NAN" : @"-");
-
-                    if (blocking) {
-                        double_t accelarate = 5.0;
-                        [self setRate:accelarate];
-
-                        int count = 0, limit = 200, unit = 10;
-                        for (;count<limit;count++) {
-                            double_t posNow = now_s(); // in sec
-                            if (!isnan(posNow) && posNow * 1.0e6 >= pos) {
-                                lastPosition = posNow*1.0e6; // in usec
-                                break;
-                            }
-                            usleep(unit*1000);
-                        }
-
-                        if (count >= limit) {
-                            double_t diff = (now_s() * 1.0e6) - ts; // in usec
-                            NSLog(@"NOTE: seek2 timeout detected. (delta=%8.3f)", diff/1.0e6);
-
-                            //NSLog(@"DEBUG: seek diff2 = %8.3f ts1 = %8.3f, now1 = %8.3f %d %@",
-                            //diff/1.0e6, ts/1.0e6, now_s(), count, ((limit > count) ? @"" : @"timeout")); // in sec
-                        }
-                        [self setRate:0.0];
-                    }
-                }
-            } else {
-                usleep(0.1e6);
-            }
         }
-
-        // Workaround - Not strict
-        double_t posFinal = now_s(); // in sec
-        //NSLog(@"DEBUG: pos=%.3f, lastPosition=%.3f", posFinal/1.0e6, lastPosition/1.0e6); // in sec
-        lastPosition = isnan(posFinal) ? pos : posFinal*1.0e6; // in usec
     }
 }
 

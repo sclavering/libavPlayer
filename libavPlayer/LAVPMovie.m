@@ -61,7 +61,7 @@
 
 - (void) setCurrentTimeInMicroseconds:(int64_t)newTime
 {
-    [decoder setPosition:newTime blocking:YES];
+    [decoder setPosition:newTime];
 }
 
 - (double_t) position
@@ -105,7 +105,7 @@
 
     double_t prevRate = [self rate];
 
-    [decoder setPosition:newPosition*duration blocking:false];
+    [decoder setPosition: newPosition * duration];
 
     if (prevRate) [self setRate:prevRate];
 
