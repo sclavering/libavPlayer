@@ -26,6 +26,8 @@
 #include "lavp_subs.h"
 #include "lavp_audio.h"
 
+AVPacket flush_pkt;
+
 /* =========================================================== */
 
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt);
@@ -39,19 +41,13 @@ void packet_queue_init(PacketQueue *q)
     q->mutex = LAVPCreateMutex();
     q->cond = LAVPCreateCond();
     q->abort_request = 1;
-
-    /* LAVP: Queue specific flush packet */
-    av_init_packet(&q->flush_pkt);
-    q->flush_pkt.data= (uint8_t *)strdup("FLUSH");
 }
 
 void packet_queue_start(PacketQueue *q)
 {
     LAVPLockMutex(q->mutex);
-
     q->abort_request = 0;
-    packet_queue_put_private(q, NULL);    /* LAVP: Queue specific flush packet */
-
+    packet_queue_put_private(q, &flush_pkt);
     LAVPUnlockMutex(q->mutex);
 }
 
@@ -60,7 +56,7 @@ void packet_queue_flush(PacketQueue *q)
     MyAVPacketList *pkt, *pkt1;
 
     LAVPLockMutex(q->mutex);
-    for(pkt = q->first_pkt; pkt != NULL; pkt = pkt1) {
+    for (pkt = q->first_pkt; pkt; pkt = pkt1) {
         pkt1 = pkt->next;
         av_packet_unref(&pkt->pkt);
         av_freep(&pkt);
@@ -88,9 +84,6 @@ void packet_queue_destroy(PacketQueue *q)
     packet_queue_flush(q);
     LAVPDestroyMutex(q->mutex);
     LAVPDestroyCond(q->cond);
-
-    /* LAVP: Queue specific flush packet */
-    av_packet_unref(&q->flush_pkt);
 }
 
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
@@ -103,16 +96,10 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     pkt1 = av_malloc(sizeof(MyAVPacketList));
     if (!pkt1)
         return -1;
-
-    /* LAVP: Queue specific flush packet */
-    if (!pkt) {
-        pkt = &q->flush_pkt;
-        q->serial++;
-    }
-
     pkt1->pkt = *pkt;
     pkt1->next = NULL;
-    // LAVP:
+    if (pkt == &flush_pkt)
+        q->serial++;
     pkt1->serial = q->serial;
 
     if (!q->last_pkt)
@@ -124,7 +111,6 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     q->size += pkt1->pkt.size + sizeof(*pkt1);
     /* XXX: should duplicate packet data in DV case */
     LAVPCondSignal(q->cond);
-
     return 0;
 }
 
@@ -132,15 +118,11 @@ int packet_queue_put(PacketQueue *q, AVPacket *pkt)
 {
     int ret;
 
-    /* duplicate the packet */
-    if (pkt && pkt != &q->flush_pkt && av_dup_packet(pkt) < 0) // LAVP:
-        return -1;
-
     LAVPLockMutex(q->mutex);
     ret = packet_queue_put_private(q, pkt);
     LAVPUnlockMutex(q->mutex);
 
-    if (pkt && pkt != &q->flush_pkt && ret < 0) // LAVP:
+    if (pkt != &flush_pkt && ret < 0)
         av_packet_unref(pkt);
 
     return ret;
@@ -190,7 +172,6 @@ int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
             LAVPCondWait(q->cond, q->mutex);
         }
     }
-
     LAVPUnlockMutex(q->mutex);
     return ret;
 }

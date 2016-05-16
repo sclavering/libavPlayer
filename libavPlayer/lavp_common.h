@@ -143,8 +143,6 @@ typedef struct PacketQueue {
     int serial;
     LAVPmutex *mutex;
     LAVPcond *cond;
-
-    AVPacket flush_pkt; /* LAVP: assign queue specific flush packet */
 } PacketQueue;
 
 typedef struct AudioParams {

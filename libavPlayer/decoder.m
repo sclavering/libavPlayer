@@ -28,13 +28,13 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                     LAVPCondSignal(d->empty_queue_cond);
                 if (packet_queue_get(d->queue, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
-                if (pkt.data == d->queue->flush_pkt.data) {
+                if (pkt.data == flush_pkt.data) {
                     avcodec_flush_buffers(d->avctx);
                     d->finished = 0;
                     d->next_pts = d->start_pts;
                     d->next_pts_tb = d->start_pts_tb;
                 }
-            } while (pkt.data == d->queue->flush_pkt.data || d->queue->serial != d->pkt_serial);
+            } while (pkt.data == flush_pkt.data || d->queue->serial != d->pkt_serial);
             av_packet_unref(&d->pkt);
             d->pkt_temp = d->pkt = pkt;
             d->packet_pending = 1;

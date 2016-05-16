@@ -29,6 +29,8 @@
 
 #include "lavp_common.h"
 
+extern AVPacket flush_pkt;
+
 void packet_queue_init(PacketQueue *q);
 void packet_queue_start(PacketQueue *q);
 void packet_queue_flush(PacketQueue *q);

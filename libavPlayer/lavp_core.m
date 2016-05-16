@@ -433,15 +433,15 @@ int read_thread(VideoState* is)
                     }else{
                         if (is->audio_stream >= 0) {
                             packet_queue_flush(&is->audioq);
-                            packet_queue_put(&is->audioq, NULL);
+                            packet_queue_put(&is->audioq, &flush_pkt);
                         }
                         if (is->subtitle_stream >= 0) {
                             packet_queue_flush(&is->subtitleq);
-                            packet_queue_put(&is->subtitleq, NULL);
+                            packet_queue_put(&is->subtitleq, &flush_pkt);
                         }
                         if (is->video_stream >= 0) {
                             packet_queue_flush(&is->videoq);
-                            packet_queue_put(&is->videoq, NULL);
+                            packet_queue_put(&is->videoq, &flush_pkt);
                         }
                         if (is->seek_flags & AVSEEK_FLAG_BYTE) {
                             set_clock(&is->extclk, NAN, 0);
@@ -501,9 +501,8 @@ int read_thread(VideoState* is)
                             packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
                         is->eof = 1;
                     }
-                    if (is->ic->pb && is->ic->pb->error) {
+                    if (is->ic->pb && is->ic->pb->error)
                         break;
-                    }
                     LAVPLockMutex(wait_mutex);
                     LAVPCondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
                     LAVPUnlockMutex(wait_mutex);
@@ -528,14 +527,14 @@ int read_thread(VideoState* is)
                         <= ((double)duration / 1000000);
                 if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
                     packet_queue_put(&is->audioq, pkt);
-                } else if (pkt->stream_index == is->video_stream && pkt_in_play_range && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
+                } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
+                           && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
                     packet_queue_put(&is->videoq, pkt);
                 } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
                     packet_queue_put(&is->subtitleq, pkt);
                 } else {
                     av_packet_unref(pkt);
                 }
-
             }
         }
 
@@ -792,6 +791,10 @@ void stream_close(VideoState *is)
 
 VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
 {
+    // LAVP: in ffplay.c this is done only once, in main().  Re-doing it ought to be fine, as av_init_packet() is documented as not modifying .data
+    av_init_packet(&flush_pkt);
+    flush_pkt.data = (uint8_t *)&flush_pkt;
+
     int err, i, ret;
 
     // Initialize VideoState struct
