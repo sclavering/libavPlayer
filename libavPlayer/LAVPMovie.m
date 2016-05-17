@@ -21,6 +21,8 @@
 #import "LAVPMovie.h"
 #import "LAVPDecoder.h"
 
+#include "lavp_core.h"
+
 @implementation LAVPMovie
 
 - (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
@@ -84,11 +86,11 @@
 
 - (void) setPosition:(double_t)newPosition
 {
-    // If you seek with rate != 0 the seeking takes ages (several seconds).
-    double prevRate = self.rate;
-    self.rate = 0.0;
+    // If you seek without pausing the seeking takes ages (several seconds).
+    bool wasPaused = self.paused;
+    self.paused = true;
     [self _setPosition:newPosition];
-    self.rate = prevRate;
+    if(!wasPaused) self.paused = false;
 }
 
 - (void) _setPosition:(double_t)newPosition
@@ -103,30 +105,31 @@
 
     self.busy = YES;
 
-    double_t prevRate = [self rate];
-
     [decoder setPosition: newPosition * duration];
-
-    if (prevRate) [self setRate:prevRate];
 
     self.busy = NO;
 
     if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
 }
 
-- (double_t) rate
-{
-    double_t rate = [decoder rate];
-    return rate;
+- (BOOL) paused {
+    return decoder->is->paused;
 }
 
-- (void) setRate:(double_t) newRate
-{
-    if (decoder.rate == newRate) return;
-    // pause first
-    if (decoder.rate) [decoder setRate:0.0];
-    if (newRate != 0.0) [decoder setRate:newRate];
-    if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating: decoder.rate != 0.0];
+- (void) setPaused:(BOOL)shouldPause {
+    if(shouldPause ? !decoder->is->paused : decoder->is->paused) toggle_pause(decoder->is);
+    if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
+}
+
+- (double) rate {
+    if (decoder->is->ic && decoder->is->ic->duration <= 0) return 0.0f;
+    return stream_playRate(decoder->is);
+}
+
+- (void) setRate:(double)rate {
+    if(!decoder->is || rate <= 0.0) return;
+    if(self.rate == rate) return;
+    stream_setPlayRate(decoder->is, rate);
 }
 
 - (float) volume

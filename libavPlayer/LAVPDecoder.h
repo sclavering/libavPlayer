@@ -31,7 +31,7 @@
 @class VideoState;
 
 @interface LAVPDecoder : NSObject {
-@private
+@public
     VideoState *is;
     CVPixelBufferRef pb;
     double lastPosition;
@@ -45,8 +45,6 @@
 - (CVPixelBufferRef) getPixelBuffer;
 - (NSSize) frameSize;
 
-- (CGFloat) rate;
-- (void) setRate:(CGFloat)rate;
 - (int64_t) duration;
 - (int64_t) position;
 - (void) setPosition:(int64_t)pos;

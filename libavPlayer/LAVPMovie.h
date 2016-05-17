@@ -44,8 +44,10 @@
 @property (assign) int64_t currentTimeInMicroseconds;
 @property (assign) double_t position;
 
-// Note: set this to 0 to pause/stop, and to 1.0 to start playing at normal speed.  Read it to determine whether the stream is currently being played.
-@property (assign) double_t rate;
+@property BOOL paused;
+
+// Normally 1.0.  Adjust this to play faster or slower.  Pausing is separate from rate, i.e. if accessed while paused this returns the rate that will be used if playback were resumed.
+@property (assign) double rate;
 
 @property (assign) float volume;
 @property BOOL busy;

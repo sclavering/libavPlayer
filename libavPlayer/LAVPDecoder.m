@@ -34,8 +34,6 @@ extern int hasImage(VideoState *is);
 extern int copyImage(VideoState *is, uint8_t* data, const int pitch);
 extern AudioQueueParameterValue getVolume(VideoState *is);
 extern void setVolume(VideoState *is, AudioQueueParameterValue volume);
-extern double_t stream_playRate(VideoState *is);
-extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
 #pragma mark -
 
@@ -174,39 +172,6 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
     }
 
     return size;
-}
-
-- (CGFloat) rate
-{
-    if (!is)
-        return 0.0f;
-    else if (is->ic && is->ic->duration <= 0)
-        return 0.0f;
-
-    if (is->paused)
-        return 0.0f;
-    else
-        return stream_playRate(is);
-}
-
-- (void) setRate:(CGFloat)rate
-{
-    /* note: only accept 0.0 and positive */
-    if (!is || rate < 0.0) {
-        return;
-    }
-
-    if (rate > 0) {
-        stream_setPlayRate(is, rate);
-        if (is && is->paused) {
-            toggle_pause(is);
-        }
-    } else {
-        stream_setPlayRate(is, 1.0);
-        if (is && !is->paused) {
-            toggle_pause(is);
-        }
-    }
 }
 
 - (int64_t) duration

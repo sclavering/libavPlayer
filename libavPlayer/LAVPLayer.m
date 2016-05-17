@@ -54,7 +54,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     if (_movie) {
-        _movie.rate = 0.0;
+        _movie.paused = true;
         _movie = NULL;
     }
     if (_fboId) {
@@ -470,7 +470,7 @@ bail:
     }
 
     if(_movie) {
-        _movie.rate = 0.0;
+        _movie.paused = true;
         _movie.movieOutput = nil;
     }
     _movie = movie;

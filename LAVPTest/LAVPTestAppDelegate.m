@@ -76,7 +76,7 @@ NSString* formatTime(int64_t usec)
 
     if (viewwindow) {
         if (viewmovie) {
-            viewmovie.rate = 0.0;
+            viewmovie.paused = true;
             [view setMovie:nil];
             viewmovie = nil;
         }
@@ -97,7 +97,7 @@ NSString* formatTime(int64_t usec)
     NSWindow *obj = [notification object];
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
-        viewmovie.rate = 0.0;
+        viewmovie.paused = true;
         [view setMovie:nil];
         viewmovie = nil;
         viewwindow = nil;
@@ -107,13 +107,13 @@ NSString* formatTime(int64_t usec)
 
 - (IBAction) togglePlay:(id)sender
 {
-    if ([viewmovie rate]) {
-        viewmovie.rate = 0.0;
+    if (!viewmovie.paused) {
+        viewmovie.paused = true;
     } else {
         if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) [viewmovie setPosition:0];
-        // test code for playRate support
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
         viewmovie.rate = shiftKey ? 1.5 : 1.0;
+        viewmovie.paused = false;
     }
 }
 
