@@ -479,7 +479,7 @@ int read_thread(VideoState* is)
                     (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     toggle_pause(is);
-                    [is->decoder haveReachedEOF];
+                    [   is->movieWrapper haveReachedEOF];
                 }
 
                 ret = av_read_frame(is->ic, pkt);
@@ -711,7 +711,7 @@ void stream_close(VideoState *is)
             is->ic = NULL;
         }
 
-        is->decoder = NULL;
+        is->movieWrapper = NULL;
     }
 
     av_lockmgr_register(NULL);
@@ -720,7 +720,7 @@ void stream_close(VideoState *is)
     av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
 
-VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
+VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
 {
     // LAVP: in ffplay.c this is done only once, in main().  Re-doing it ought to be fine, as av_init_packet() is documented as not modifying .data
     av_init_packet(&flush_pkt);
@@ -738,7 +738,7 @@ VideoState* stream_open(/* LAVPDecoder * */ id decoder, NSURL *sourceURL)
 
     /* ======================================== */
 
-    is->decoder = decoder;
+    is->movieWrapper = movieWrapper;
     is->lastPTScopied = -1;
 
     is->infinite_buffer = -1;

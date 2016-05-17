@@ -1,4 +1,4 @@
-@class LAVPDecoder;
+@class LAVPMovie;
 
 // LAVP: in ffplay.c, this is just a struct, but we want to have dispatch_queue_t members, and Xcode says ARC prohibits storing those in a struct.
 @interface VideoState : NSObject {
@@ -70,7 +70,7 @@
     dispatch_group_t parse_group;
 
     /* Extension; Obj-C Instance */
-    __weak LAVPDecoder* decoder;
+    __weak LAVPMovie* movieWrapper;
     NSThread* decoderThread;
 
     /* =========================================================== */

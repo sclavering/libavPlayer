@@ -317,9 +317,9 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         /* the allocation must be done in the main thread to avoid
          locking problems. */
         /* LAVP: Using is->decoderThread */
-        id decoder = is->decoder;
+        id movieWrapper = is->movieWrapper;
         NSThread *thread = is->decoderThread;
-        [decoder performSelector:@selector(allocPicture) onThread:thread withObject:nil waitUntilDone:NO];
+        [movieWrapper performSelector:@selector(allocPicture) onThread:thread withObject:nil waitUntilDone:NO];
 
         /* wait until the picture is allocated */
         LAVPLockMutex(is->pictq.mutex);

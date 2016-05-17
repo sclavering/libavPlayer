@@ -25,12 +25,14 @@
 
 #import <Cocoa/Cocoa.h>
 
-@class LAVPDecoder;
+@class VideoState;
 @protocol LAVPMovieOutput;
 
 @interface LAVPMovie : NSObject {
 @private
-    LAVPDecoder *decoder;
+    VideoState *is;
+    CVPixelBufferRef pb;
+    double lastPosition;
     float currentVol;
 }
 
@@ -55,6 +57,8 @@
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 
 - (CVPixelBufferRef) getCVPixelBuffer;
+
+- (void) haveReachedEOF;
 
 @end
 
