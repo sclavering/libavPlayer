@@ -267,6 +267,20 @@ extern void stream_setPlayRate(VideoState *is, double_t newRate);
 
             stream_seek(is, ts, -10, 0);
         }
+
+        // Without the following code, the video output doesn't consistently update if seeking while paused (sometimes it doesn't update at all, and sometimes it's showing not quite the right frame).
+
+        int count = 0, limit = 200;
+        // Wait till avformat_seek_file() is completed
+        for ( ; limit > count; count++) {
+            if (!is->seek_req) break;
+            usleep(10000);
+        }
+        // wait till is->paused == true
+        for ( ; limit > count; count++) {
+            if (is->paused) break;
+            usleep(10000);
+        }
     }
 }
 
