@@ -27,7 +27,8 @@
 #include "lavp_subs.h"
 #include "lavp_audio.h"
 
-/* =========================================================== */
+#import "lavp_util.h"
+
 
 void video_display(VideoState *is);
 
@@ -37,12 +38,6 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 int get_video_frame(VideoState *is, AVFrame *frame);
 void video_refresh(VideoState *is, double *remaining_time);
 
-extern void copy_planar_YUV420_to_2vuy(size_t width, size_t height,
-                                       uint8_t *baseAddr_y, size_t rowBytes_y,
-                                       uint8_t *baseAddr_u, size_t rowBytes_u,
-                                       uint8_t *baseAddr_v, size_t rowBytes_v,
-                                       uint8_t *baseAddr_2vuy, size_t rowBytes_2vuy);
-extern void CVF_CopyPlane(const UInt8* Sbase, int Sstride, int Srow, UInt8* Dbase, int Dstride, int Drow);
 
 /* =========================================================== */
 

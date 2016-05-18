@@ -153,6 +153,7 @@
 		AA81D9D81CC6879700827BED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
+		AAD2C9051CEC743A00414D92 /* lavp_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_util.h; sourceTree = "<group>"; };
 		D2F7E79907B2D74100F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
@@ -290,24 +291,25 @@
 		32C88DFF0371C24200C91783 /* Other Sources */ = {
 			isa = PBXGroup;
 			children = (
-				AA4F12281CE508FC00716F94 /* decoder.m */,
 				AA4F12291CE508FC00716F94 /* decoder.h */,
+				AA4F12281CE508FC00716F94 /* decoder.m */,
 				AA4F12271CE3BB0F00716F94 /* framequeue.h */,
 				AA4F12251CE3B2D400716F94 /* framequeue.m */,
-				16E3B1C113BA0AE4000E6062 /* lavp_util.c */,
-				16A1933713ADB4F0008825FF /* lavp_common.h */,
 				16A193C413ADC268008825FF /* lavp_audio.h */,
 				16A193C513ADC268008825FF /* lavp_audio.m */,
+				16A1933713ADB4F0008825FF /* lavp_common.h */,
 				16A193E213ADC62A008825FF /* lavp_core.h */,
 				16A193E313ADC62A008825FF /* lavp_core.m */,
 				16A1911413AC9C47008825FF /* lavp_queue.h */,
 				16A1911513AC9C47008825FF /* lavp_queue.m */,
 				16A193BB13ADC1C2008825FF /* lavp_subs.h */,
 				16A193BC13ADC1C2008825FF /* lavp_subs.m */,
+				166F893613E0555A00B74CCA /* lavp_thread.c */,
+				166F893713E0555A00B74CCA /* lavp_thread.h */,
+				16E3B1C113BA0AE4000E6062 /* lavp_util.c */,
+				AAD2C9051CEC743A00414D92 /* lavp_util.h */,
 				16A1932A13ADB3E3008825FF /* lavp_video.h */,
 				16A1932B13ADB3E3008825FF /* lavp_video.m */,
-				166F893713E0555A00B74CCA /* lavp_thread.h */,
-				166F893613E0555A00B74CCA /* lavp_thread.c */,
 			);
 			name = "Other Sources";
 			sourceTree = "<group>";
