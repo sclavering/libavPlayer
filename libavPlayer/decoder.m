@@ -12,7 +12,7 @@ void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcon
     d->start_pts = AV_NOPTS_VALUE;
 }
 
-int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
+int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     int got_frame = 0;
 
     do {
@@ -62,9 +62,6 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                         d->next_pts_tb = tb;
                     }
                 }
-                break;
-            case AVMEDIA_TYPE_SUBTITLE:
-                ret = avcodec_decode_subtitle2(d->avctx, sub, &got_frame, &d->pkt_temp);
                 break;
             default:
                 break;

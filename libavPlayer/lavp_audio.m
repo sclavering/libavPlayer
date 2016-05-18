@@ -23,7 +23,6 @@
 #include "lavp_core.h"
 #include "lavp_video.h"
 #import "packetqueue.h"
-#include "lavp_subs.h"
 #include "lavp_audio.h"
 
 /* =========================================================== */
@@ -515,7 +514,7 @@ int audio_thread(VideoState *is)
         return AVERROR(ENOMEM);
 
     do {
-        if ((got_frame = decoder_decode_frame(is->auddec, frame, NULL)) < 0)
+        if ((got_frame = decoder_decode_frame(is->auddec, frame)) < 0)
             goto the_end;
 
         if (got_frame) {

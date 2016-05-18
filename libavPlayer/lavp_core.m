@@ -28,7 +28,6 @@
 #include "lavp_core.h"
 #include "lavp_video.h"
 #import "packetqueue.h"
-#include "lavp_subs.h"
 #include "lavp_audio.h"
 
 /* =========================================================== */
@@ -76,10 +75,6 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
         case AVMEDIA_TYPE_AUDIO:
             prefix  = 'a';
             flags  |= AV_OPT_FLAG_AUDIO_PARAM;
-            break;
-        case AVMEDIA_TYPE_SUBTITLE:
-            prefix  = 's';
-            flags  |= AV_OPT_FLAG_SUBTITLE_PARAM;
             break;
         default:
             break;
@@ -240,14 +235,6 @@ int stream_component_open(VideoState *is, int stream_index)
 
             is->queue_attachments_req = 1;
             break;
-        case AVMEDIA_TYPE_SUBTITLE:
-            is->subtitle_stream = stream_index;
-            is->subtitle_st = ic->streams[stream_index];
-
-            is->subdec = [[Decoder alloc] init];
-            decoder_init(is->subdec, avctx, &is->subtitleq, is->continue_read_thread);
-            decoder_start(is->subdec, subtitle_thread, is);
-            break;
         default:
             break;
     }
@@ -286,10 +273,6 @@ void stream_component_close(VideoState *is, int stream_index)
             decoder_abort(is->viddec, &is->pictq);
             decoder_destroy(is->viddec);
             break;
-        case AVMEDIA_TYPE_SUBTITLE:
-            decoder_abort(is->subdec, &is->subpq);
-            decoder_destroy(is->subdec);
-            break;
         default:
             break;
     }
@@ -304,10 +287,6 @@ void stream_component_close(VideoState *is, int stream_index)
         case AVMEDIA_TYPE_VIDEO:
             is->video_st = NULL;
             is->video_stream = -1;
-            break;
-        case AVMEDIA_TYPE_SUBTITLE:
-            is->subtitle_st = NULL;
-            is->subtitle_stream = -1;
             break;
         default:
             break;
@@ -349,14 +328,12 @@ int read_thread(VideoState* is)
 
         LAVPmutex* wait_mutex = LAVPCreateMutex();
 
-        // LAVP: Choose best stream for Video, Audio, Subtitle
+        // LAVP: Choose best stream for Video, Audio
         int vid_index = -1;
         int aud_index = (st_index[AVMEDIA_TYPE_VIDEO]);
-        int sub_index = (st_index[AVMEDIA_TYPE_AUDIO] >= 0 ? st_index[AVMEDIA_TYPE_AUDIO] : st_index[AVMEDIA_TYPE_VIDEO]);
 
         st_index[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, vid_index, NULL, 0);
         st_index[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1,  aud_index, NULL , 0);
-        st_index[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(is->ic, AVMEDIA_TYPE_SUBTITLE, -1, sub_index , NULL, 0);
 
         /* open the streams */
         if (st_index[AVMEDIA_TYPE_AUDIO] >= 0)
@@ -365,9 +342,6 @@ int read_thread(VideoState* is)
         ret = -1;
         if (st_index[AVMEDIA_TYPE_VIDEO] >= 0)
             ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
-
-        if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0)
-            stream_component_open(is, st_index[AVMEDIA_TYPE_SUBTITLE]);
 
         if (is->video_stream < 0 && is->audio_stream < 0) {
             av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
@@ -430,10 +404,6 @@ int read_thread(VideoState* is)
                             packet_queue_flush(&is->audioq);
                             packet_queue_put(&is->audioq, &flush_pkt);
                         }
-                        if (is->subtitle_stream >= 0) {
-                            packet_queue_flush(&is->subtitleq);
-                            packet_queue_put(&is->subtitleq, &flush_pkt);
-                        }
                         if (is->video_stream >= 0) {
                             packet_queue_flush(&is->videoq);
                             packet_queue_put(&is->videoq, &flush_pkt);
@@ -459,11 +429,11 @@ int read_thread(VideoState* is)
 
                 /* if the queue are full, no need to read more */
                 if (is->infinite_buffer<1 &&
-                    (is->audioq.size + is->videoq.size + is->subtitleq.size > MAX_QUEUE_SIZE
+                    (is->audioq.size + is->videoq.size > MAX_QUEUE_SIZE
                      || (   (is->audioq   .nb_packets > MIN_FRAMES || is->audio_stream < 0 || is->audioq.abort_request)
                          && (is->videoq   .nb_packets > MIN_FRAMES || is->video_stream < 0 || is->videoq.abort_request
                              || (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))
-                         && (is->subtitleq.nb_packets > MIN_FRAMES || is->subtitle_stream < 0 || is->subtitleq.abort_request)))) {
+                         ))) {
                          /* wait 10 ms */
                          LAVPLockMutex(wait_mutex);
                          LAVPCondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
@@ -486,8 +456,6 @@ int read_thread(VideoState* is)
                             packet_queue_put_nullpacket(&is->videoq, is->video_stream);
                         if (is->audio_stream >= 0)
                             packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
-                        if (is->subtitle_stream >= 0)
-                            packet_queue_put_nullpacket(&is->subtitleq, is->subtitle_stream);
                         is->eof = 1;
                     }
                     if (is->ic->pb && is->ic->pb->error)
@@ -519,8 +487,6 @@ int read_thread(VideoState* is)
                 } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                            && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
                     packet_queue_put(&is->videoq, pkt);
-                } else if (pkt->stream_index == is->subtitle_stream && pkt_in_play_range) {
-                    packet_queue_put(&is->subtitleq, pkt);
                 } else {
                     av_packet_unref(pkt);
                 }
@@ -543,8 +509,6 @@ int read_thread(VideoState* is)
             stream_component_close(is, is->audio_stream);
         if (is->video_stream >= 0)
             stream_component_close(is, is->video_stream);
-        if (is->subtitle_stream >= 0)
-            stream_component_close(is, is->subtitle_stream);
 
         LAVPDestroyMutex(wait_mutex);
 
@@ -689,12 +653,10 @@ void stream_close(VideoState *is)
         //
         packet_queue_destroy(&is->videoq);
         packet_queue_destroy(&is->audioq);
-        packet_queue_destroy(&is->subtitleq);
 
         /* free all pictures */
         frame_queue_destory(&is->pictq);
         frame_queue_destory(&is->sampq);
-        frame_queue_destory(&is->subpq);
 
         LAVPDestroyCond(is->continue_read_thread);
 
@@ -746,7 +708,6 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
 
     is->last_video_stream = is->video_stream = -1;
     is->last_audio_stream = is->audio_stream = -1;
-    is->last_subtitle_stream = is->subtitle_stream = -1;
     is->eof = 0;
 
     /* ======================================== */
@@ -858,14 +819,11 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     {
         if (frame_queue_init(&is->pictq, &is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
             goto fail;
-        if (frame_queue_init(&is->subpq, &is->subtitleq, SUBPICTURE_QUEUE_SIZE, 0) < 0)
-            goto fail;
         if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
             goto fail;
 
         packet_queue_init(&is->audioq);
         packet_queue_init(&is->videoq);
-        packet_queue_init(&is->subtitleq);
 
         is->continue_read_thread = LAVPCreateCond();
 

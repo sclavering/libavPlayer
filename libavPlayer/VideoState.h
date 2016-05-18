@@ -34,12 +34,10 @@
     Clock vidclk;
 
     FrameQueue pictq;
-    FrameQueue subpq;
     FrameQueue sampq;
 
     Decoder* auddec;
     Decoder* viddec;
-    Decoder* subdec;
 
     char* filename; /* LAVP: char filename[1024] */
     int width, height, xleft, ytop;
@@ -48,24 +46,21 @@
     LAVPcond *continue_read_thread;
 
     /* stream index */
-    int video_stream, audio_stream, subtitle_stream;
-    int last_video_stream, last_audio_stream, last_subtitle_stream;
+    int video_stream, audio_stream;
+    int last_video_stream, last_audio_stream;
 
     /* AVStream */
     AVStream *audio_st;
     AVStream *video_st;
-    AVStream *subtitle_st;
 
     /* PacketQueue */
     PacketQueue audioq;
     PacketQueue videoq;
-    PacketQueue subtitleq;
 
     /* Extension; playRate */
     double_t playRate;
     int eof_flag;
 
-    /* Extension; Sub thread */
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
 

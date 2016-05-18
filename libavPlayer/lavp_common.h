@@ -67,39 +67,8 @@
 /* =========================================================== */
 
 #define VIDEO_PICTURE_QUEUE_SIZE 15 /* LAVP: no-overrun patch in refresh_loop_wait_event() applied */
-#define SUBPICTURE_QUEUE_SIZE 16
 #define SAMPLE_QUEUE_SIZE 9
-#define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))
-
-/* =========================================================== */
-
-#define ALPHA_BLEND(a, oldp, newp, s)\
-((((oldp << s) * (255 - (a))) + (newp * (a))) / (255 << s))
-
-#define RGBA_IN(r, g, b, a, s)\
-{\
-unsigned int v = ((const uint32_t *)(s))[0];\
-a = (v >> 24) & 0xff;\
-r = (v >> 16) & 0xff;\
-g = (v >> 8) & 0xff;\
-b = v & 0xff;\
-}
-
-#define YUVA_IN(y, u, v, a, s, pal)\
-{\
-unsigned int val = ((const uint32_t *)(pal))[*(const uint8_t*)(s)];\
-a = (val >> 24) & 0xff;\
-y = (val >> 16) & 0xff;\
-u = (val >> 8) & 0xff;\
-v = val & 0xff;\
-}
-
-#define YUVA_OUT(d, y, u, v, a)\
-{\
-((uint32_t *)(d))[0] = (a << 24) | (y << 16) | (u << 8) | v;\
-}
-
-#define BPP 1
+#define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, VIDEO_PICTURE_QUEUE_SIZE)
 
 /* =========================================================== */
 

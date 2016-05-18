@@ -24,7 +24,6 @@
 #include "lavp_core.h"
 #include "lavp_video.h"
 #import "packetqueue.h"
-#include "lavp_subs.h"
 #include "lavp_audio.h"
 
 #import "lavp_util.h"
@@ -170,8 +169,6 @@ void video_refresh(VideoState *is, double *remaining_time)
 {
     double time;
 
-    Frame *sp, *sp2;
-
     if (is->video_st) {
         int redisplay = 0;
     retry:
@@ -227,26 +224,6 @@ void video_refresh(VideoState *is, double *remaining_time)
                     frame_queue_next(&is->pictq);
                     redisplay = 0;
                     goto retry;
-                }
-            }
-
-            if(is->subtitle_st) {
-                while (frame_queue_nb_remaining(&is->subpq) > 0) {
-                    sp = frame_queue_peek(&is->subpq);
-
-                    if (frame_queue_nb_remaining(&is->subpq) > 1)
-                        sp2 = frame_queue_peek_next(&is->subpq);
-                    else
-                        sp2 = NULL;
-
-                    if (sp->serial != is->subtitleq.serial
-                        || (is->vidclk.pts > (sp->pts + ((float) sp->sub.end_display_time / 1000)))
-                        || (sp2 && is->vidclk.pts > (sp2->pts + ((float) sp2->sub.start_display_time / 1000))))
-                    {
-                        frame_queue_next(&is->subpq);
-                    } else {
-                        break;
-                    }
                 }
             }
 
@@ -386,7 +363,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 {
     int got_picture;
 
-    if ((got_picture = decoder_decode_frame(is->viddec, frame, NULL)) < 0)
+    if ((got_picture = decoder_decode_frame(is->viddec, frame)) < 0)
         return -1;
 
     if (got_picture) {
@@ -485,8 +462,6 @@ int copyImage(VideoState *is, uint8_t* data, int pitch)
                 LAVPUnlockMutex(is->pictq.mutex);
                 return 2;
             }
-
-            // TODO Add support to call blend_subrect() for subq (original:video_image_display())
 
             uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
             size_t inpitch[4] = {vp->bmp->linesize[0], vp->bmp->linesize[1], vp->bmp->linesize[2], vp->bmp->linesize[3]};
