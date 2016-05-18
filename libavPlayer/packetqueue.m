@@ -20,10 +20,10 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "lavp_core.h"
-#include "lavp_video.h"
+#import "lavp_core.h"
+#import "lavp_video.h"
 #import "packetqueue.h"
-#include "lavp_audio.h"
+#import "lavp_audio.h"
 
 AVPacket flush_pkt;
 

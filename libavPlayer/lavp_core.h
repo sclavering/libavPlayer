@@ -24,10 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPcore_h__
-#define __LAVPcore_h__
-
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 double get_clock(Clock *c);
 void set_clock_at(Clock *c, double pts, int serial, double time);
@@ -44,5 +41,3 @@ void stream_close(VideoState *is);
 VideoState* stream_open(id lavpMovie, NSURL *sourceURL);
 double_t stream_playRate(VideoState *is);
 void stream_setPlayRate(VideoState *is, double_t newRate);
-
-#endif

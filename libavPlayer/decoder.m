@@ -1,4 +1,4 @@
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 #import "packetqueue.h" // for packet_queue_get()
 

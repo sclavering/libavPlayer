@@ -24,10 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPqueue_h__
-#define __LAVPqueue_h__
-
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 extern AVPacket flush_pkt;
 
@@ -55,5 +52,3 @@ void packet_queue_destroy(PacketQueue *q);
 int packet_queue_put(PacketQueue *q, AVPacket *pkt);
 int packet_queue_put_nullpacket(PacketQueue *q, int stream_index);
 int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial);
-
-#endif

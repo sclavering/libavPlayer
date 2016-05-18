@@ -20,10 +20,10 @@
 
 #import "LAVPMovie.h"
 
-#include "lavp_core.h"
-#include "lavp_common.h"
-#include "lavp_video.h"
-#include "lavp_audio.h"
+#import "lavp_core.h"
+#import "lavp_common.h"
+#import "lavp_video.h"
+#import "lavp_audio.h"
 
 
 @implementation LAVPMovie

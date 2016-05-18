@@ -24,10 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPvideo_h__
-#define __LAVPvideo_h__
-
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 int video_open(VideoState *is, Frame *vp);
 
@@ -38,5 +35,3 @@ int video_thread(VideoState *is);
 
 int hasImage(VideoState *is);
 int copyImage(VideoState *is, uint8_t* data, int pitch);
-
-#endif

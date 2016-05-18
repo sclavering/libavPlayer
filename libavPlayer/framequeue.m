@@ -1,4 +1,4 @@
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 extern void free_picture(Frame *vp);
 

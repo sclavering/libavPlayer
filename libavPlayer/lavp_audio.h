@@ -24,10 +24,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPaudio_h__
-#define __LAVPaudio_h__
-
-#include "lavp_common.h"
+#import "lavp_common.h"
 
 int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
@@ -40,5 +37,3 @@ AudioQueueParameterValue getVolume(VideoState *is);
 void setVolume(VideoState *is, AudioQueueParameterValue volume);
 
 int audio_thread(VideoState *is);
-
-#endif

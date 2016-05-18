@@ -23,9 +23,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPthread_h__
-#define __LAVPthread_h__
-
 #include <pthread.h>
 
 typedef pthread_cond_t LAVPcond;
@@ -41,5 +38,3 @@ LAVPmutex* LAVPCreateMutex(void);
 void LAVPDestroyMutex(LAVPmutex *mutex);
 void LAVPLockMutex(LAVPmutex *mutex);
 void LAVPUnlockMutex(LAVPmutex *mutex);
-
-#endif

@@ -21,8 +21,9 @@
  */
 
 #include <assert.h>
+#include <string.h>
+
 #import <Accelerate/Accelerate.h>
-#include "string.h"
 
 #define ENABLEFASTER 1
 #define USESIMD 1

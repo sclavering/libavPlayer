@@ -24,9 +24,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __LAVPCommon_h__
-#define __LAVPCommon_h__
-
 @import AudioToolbox;
 
 #include "avcodec.h"
@@ -45,7 +42,7 @@
 #include "libavutil/avstring.h"
 #include "libswresample/swresample.h"
 
-#include "lavp_thread.h"
+#import "lavp_thread.h"
 
 #import "LAVPMovie.h"
 
@@ -87,8 +84,6 @@ typedef struct Clock {
     int *queue_serial;    /* pointer to the current packet queue serial, used for obsolete clock detection */
 } Clock;
 
-#include "framequeue.h"
-#include "decoder.h"
-#include "VideoState.h"
-
-#endif
+#import "framequeue.h"
+#import "decoder.h"
+#import "VideoState.h"
