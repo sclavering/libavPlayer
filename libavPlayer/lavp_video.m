@@ -170,12 +170,11 @@ void video_refresh(VideoState *is, double *remaining_time)
     double time;
 
     if (is->video_st) {
-        int redisplay = 0;
     retry:
         if (frame_queue_nb_remaining(&is->pictq) == 0) {
             // nothing to do, no picture to display in the queue
         } else {
-            double last_duration, duration, delay;
+            double last_duration, delay;
             Frame *vp, *lastvp;
 
             /* dequeue the picture */
@@ -184,11 +183,10 @@ void video_refresh(VideoState *is, double *remaining_time)
 
             if (vp->serial != is->videoq.serial) {
                 frame_queue_next(&is->pictq);
-                redisplay = 0;
                 goto retry;
             }
 
-            if (lastvp->serial != vp->serial && !redisplay)
+            if (lastvp->serial != vp->serial)
                 is->frame_timer = av_gettime_relative() / 1000000.0;
 
             if (is->paused)
@@ -196,13 +194,10 @@ void video_refresh(VideoState *is, double *remaining_time)
 
             /* compute nominal last_duration */
             last_duration = vp_duration(is, lastvp, vp);
-            if (redisplay)
-                delay = 0.0;
-            else
-                delay = compute_target_delay(last_duration, is);
+            delay = compute_target_delay(last_duration, is);
 
             time = av_gettime_relative() / 1000000.0;
-            if (time < is->frame_timer + delay && !redisplay) {
+            if (time < is->frame_timer + delay) {
                 *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
                 return;
             }
@@ -212,20 +207,9 @@ void video_refresh(VideoState *is, double *remaining_time)
                 is->frame_timer = time;
 
             LAVPLockMutex(is->pictq.mutex);
-            if (!redisplay && !isnan(vp->pts))
+            if (!isnan(vp->pts))
                 update_video_pts(is, vp->pts, vp->pos, vp->serial);
             LAVPUnlockMutex(is->pictq.mutex);
-
-            if (frame_queue_nb_remaining(&is->pictq) > 1) {
-                Frame *nextvp = frame_queue_peek_next(&is->pictq);
-
-                duration = vp_duration(is, vp, nextvp);
-                if(!is->step && redisplay && time > is->frame_timer + duration) {
-                    frame_queue_next(&is->pictq);
-                    redisplay = 0;
-                    goto retry;
-                }
-            }
 
 display:
             video_display(is);
