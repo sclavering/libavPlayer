@@ -29,9 +29,6 @@
 
 /* =========================================================== */
 
-
-/* =========================================================== */
-
 void video_display(VideoState *is);
 
 double compute_target_delay(double delay, VideoState *is);
@@ -39,9 +36,6 @@ double compute_target_delay(double delay, VideoState *is);
 int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial);
 int get_video_frame(VideoState *is, AVFrame *frame);
 void video_refresh(VideoState *is, double *remaining_time);
-
-extern void stream_toggle_pause(VideoState *is);
-extern void toggle_pause(VideoState *is);
 
 #if ALLOW_GPL_CODE
 extern void copy_planar_YUV420_to_2vuy(size_t width, size_t height,
