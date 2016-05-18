@@ -1,3 +1,5 @@
+#import "packetqueue.h"
+
 /* Common struct for handling all types of decoded data and allocated render buffers. */
 typedef struct Frame {
     AVFrame *frame;

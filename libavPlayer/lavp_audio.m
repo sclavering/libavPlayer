@@ -22,7 +22,7 @@
 
 #include "lavp_core.h"
 #include "lavp_video.h"
-#include "packetqueue.h"
+#import "packetqueue.h"
 #include "lavp_subs.h"
 #include "lavp_audio.h"
 

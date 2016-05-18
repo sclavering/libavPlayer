@@ -31,6 +31,22 @@
 
 extern AVPacket flush_pkt;
 
+typedef struct MyAVPacketList {
+    AVPacket pkt;
+    struct MyAVPacketList *next;
+    int serial;
+} MyAVPacketList;
+
+typedef struct PacketQueue {
+    MyAVPacketList *first_pkt, *last_pkt;
+    int nb_packets;
+    int size;
+    int abort_request;
+    int serial;
+    LAVPmutex *mutex;
+    LAVPcond *cond;
+} PacketQueue;
+
 void packet_queue_init(PacketQueue *q);
 void packet_queue_start(PacketQueue *q);
 void packet_queue_flush(PacketQueue *q);

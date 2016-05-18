@@ -112,22 +112,6 @@ v = val & 0xff;\
 
 /* =========================================================== */
 
-typedef struct MyAVPacketList {
-    AVPacket pkt;
-    struct MyAVPacketList *next;
-    int serial;
-} MyAVPacketList;
-
-typedef struct PacketQueue {
-    MyAVPacketList *first_pkt, *last_pkt;
-    int nb_packets;
-    int size;
-    int abort_request;
-    int serial;
-    LAVPmutex *mutex;
-    LAVPcond *cond;
-} PacketQueue;
-
 typedef struct AudioParams {
     int freq;
     int channels;

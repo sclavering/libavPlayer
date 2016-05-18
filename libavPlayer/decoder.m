@@ -1,6 +1,6 @@
 #include "lavp_common.h"
 
-#include "packetqueue.h" // for packet_queue_get()
+#import "packetqueue.h" // for packet_queue_get()
 
 @implementation Decoder
 @end
