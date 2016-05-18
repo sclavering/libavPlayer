@@ -112,13 +112,6 @@ v = val & 0xff;\
 
 /* =========================================================== */
 
-enum {
-    AV_SYNC_AUDIO_MASTER, /* default choice */
-    AV_SYNC_VIDEO_MASTER,
-};
-
-/* =========================================================== */
-
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList *next;
