@@ -27,7 +27,7 @@
 #include "lavp_common.h"
 #include "lavp_core.h"
 #include "lavp_video.h"
-#include "lavp_queue.h"
+#include "packetqueue.h"
 #include "lavp_subs.h"
 #include "lavp_audio.h"
 

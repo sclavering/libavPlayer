@@ -44,7 +44,7 @@
 		16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FAB13AC567E008825FF /* CoreVideo.framework */; };
 		16A18FF113AC57CC008825FF /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FF013AC57CC008825FF /* libz.dylib */; };
 		16A18FF413AC57E2008825FF /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FF313AC57E2008825FF /* libbz2.dylib */; };
-		16A1911713AC9C47008825FF /* lavp_queue.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A1911513AC9C47008825FF /* lavp_queue.m */; };
+		16A1911713AC9C47008825FF /* packetqueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A1911513AC9C47008825FF /* packetqueue.m */; };
 		16A1932D13ADB3E3008825FF /* lavp_video.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A1932B13ADB3E3008825FF /* lavp_video.m */; };
 		16A193BE13ADC1C2008825FF /* lavp_subs.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A193BC13ADC1C2008825FF /* lavp_subs.m */; };
 		16A193E513ADC62A008825FF /* lavp_core.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A193E313ADC62A008825FF /* lavp_core.m */; };
@@ -121,8 +121,8 @@
 		16A18FAB13AC567E008825FF /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		16A18FF013AC57CC008825FF /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		16A18FF313AC57E2008825FF /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
-		16A1911413AC9C47008825FF /* lavp_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_queue.h; sourceTree = "<group>"; };
-		16A1911513AC9C47008825FF /* lavp_queue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = lavp_queue.m; sourceTree = "<group>"; };
+		16A1911413AC9C47008825FF /* packetqueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = packetqueue.h; sourceTree = "<group>"; };
+		16A1911513AC9C47008825FF /* packetqueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = packetqueue.m; sourceTree = "<group>"; };
 		16A1932A13ADB3E3008825FF /* lavp_video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_video.h; sourceTree = "<group>"; };
 		16A1932B13ADB3E3008825FF /* lavp_video.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = lavp_video.m; sourceTree = "<group>"; };
 		16A1933713ADB4F0008825FF /* lavp_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_common.h; sourceTree = "<group>"; };
@@ -300,8 +300,6 @@
 				16A1933713ADB4F0008825FF /* lavp_common.h */,
 				16A193E213ADC62A008825FF /* lavp_core.h */,
 				16A193E313ADC62A008825FF /* lavp_core.m */,
-				16A1911413AC9C47008825FF /* lavp_queue.h */,
-				16A1911513AC9C47008825FF /* lavp_queue.m */,
 				16A193BB13ADC1C2008825FF /* lavp_subs.h */,
 				16A193BC13ADC1C2008825FF /* lavp_subs.m */,
 				166F893613E0555A00B74CCA /* lavp_thread.c */,
@@ -310,6 +308,8 @@
 				AAD2C9051CEC743A00414D92 /* lavp_util.h */,
 				16A1932A13ADB3E3008825FF /* lavp_video.h */,
 				16A1932B13ADB3E3008825FF /* lavp_video.m */,
+				16A1911413AC9C47008825FF /* packetqueue.h */,
+				16A1911513AC9C47008825FF /* packetqueue.m */,
 			);
 			name = "Other Sources";
 			sourceTree = "<group>";
@@ -418,7 +418,7 @@
 				AA4F122A1CE5096C00716F94 /* decoder.m in Sources */,
 				AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */,
 				16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */,
-				16A1911713AC9C47008825FF /* lavp_queue.m in Sources */,
+				16A1911713AC9C47008825FF /* packetqueue.m in Sources */,
 				16A1932D13ADB3E3008825FF /* lavp_video.m in Sources */,
 				16A193BE13ADC1C2008825FF /* lavp_subs.m in Sources */,
 				16A193E513ADC62A008825FF /* lavp_core.m in Sources */,
