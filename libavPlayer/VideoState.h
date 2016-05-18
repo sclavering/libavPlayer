@@ -118,6 +118,5 @@
 
     /* LAVP: extension */
     double lastPTScopied;
-    struct SwsContext *sws420to422;
 }
 @end;

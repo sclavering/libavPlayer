@@ -37,14 +37,12 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 int get_video_frame(VideoState *is, AVFrame *frame);
 void video_refresh(VideoState *is, double *remaining_time);
 
-#if ALLOW_GPL_CODE
 extern void copy_planar_YUV420_to_2vuy(size_t width, size_t height,
                                        uint8_t *baseAddr_y, size_t rowBytes_y,
                                        uint8_t *baseAddr_u, size_t rowBytes_u,
                                        uint8_t *baseAddr_v, size_t rowBytes_v,
                                        uint8_t *baseAddr_2vuy, size_t rowBytes_2vuy);
 extern void CVF_CopyPlane(const UInt8* Sbase, int Sstride, int Srow, UInt8* Dbase, int Dstride, int Drow);
-#endif
 
 /* =========================================================== */
 
@@ -350,21 +348,9 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         /* LAVP: duplicate or create YUV420P picture */
         LAVPLockMutex(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
-#if ALLOW_GPL_CODE
             CVF_CopyPlane((const UInt8 *)src_frame->data[0], src_frame->linesize[0], vp->height, pict.data[0], pict.linesize[0], vp->height);
             CVF_CopyPlane((const UInt8 *)src_frame->data[1], src_frame->linesize[1], vp->height, pict.data[1], pict.linesize[1], vp->height/2);
             CVF_CopyPlane((const UInt8 *)src_frame->data[2], src_frame->linesize[2], vp->height, pict.data[2], pict.linesize[2], vp->height/2);
-#else
-            av_image_copy_plane(pict.data[0], pict.linesize[0],
-                                (const uint8_t *)src_frame->data[0], src_frame->linesize[0],
-                                src_frame->linesize[0], vp->height);
-            av_image_copy_plane(pict.data[1], pict.linesize[1],
-                                (const uint8_t *)src_frame->data[1], src_frame->linesize[1],
-                                src_frame->linesize[1], vp->height/2);
-            av_image_copy_plane(pict.data[2], pict.linesize[2],
-                                (const uint8_t *)src_frame->data[2], src_frame->linesize[2],
-                                src_frame->linesize[2], vp->height/2);
-#endif
         } else {
             /* convert image format */
             is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
@@ -450,13 +436,6 @@ int video_thread(VideoState *is)
 the_end:
     av_frame_free(&frame);
 
-    /* LAVP: free up 420422 converter */
-#if !ALLOW_GPL_CODE
-    if (is->sws420to422) {
-        sws_freeContext(is->sws420to422);
-        is->sws420to422 = NULL;
-    }
-#endif
     return 0;
 }
 
@@ -488,17 +467,6 @@ int copyImage(VideoState *is, uint8_t* data, int pitch)
     out[0] = data;
     assert(data);
 
-#if !ALLOW_GPL_CODE
-    if (!is->sws420to422) {
-        is->sws420to422 = sws_getContext(is->width, is->height,
-                                         PIX_FMT_YUV420P,
-                                         is->width, is->height,
-                                         PIX_FMT_UYVY422,
-                                         SWS_BICUBIC,NULL, NULL, NULL);
-        assert (is->sws420to422);
-    }
-#endif
-
     LAVPLockMutex(is->pictq.mutex);
 
     if (frame_queue_nb_remaining(&is->pictq) > 0) {
@@ -515,7 +483,6 @@ int copyImage(VideoState *is, uint8_t* data, int pitch)
 
             // TODO Add support to call blend_subrect() for subq (original:video_image_display())
 
-#if ALLOW_GPL_CODE
             uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
             size_t inpitch[4] = {vp->bmp->linesize[0], vp->bmp->linesize[1], vp->bmp->linesize[2], vp->bmp->linesize[3]};
             copy_planar_YUV420_to_2vuy(vp->width, vp->height,
@@ -524,12 +491,6 @@ int copyImage(VideoState *is, uint8_t* data, int pitch)
                                        in[2], inpitch[2],
                                        data, pitch);
             result = 1;
-#else
-            const uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
-            result = sws_scale(is->sws420to422,
-                               in, vp->bmp->linesize, 0, vp->height,
-                               out, &pitch);
-#endif
 
             if (result > 0) {
                 is->lastPTScopied = vp->pts;

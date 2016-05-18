@@ -49,8 +49,6 @@
 
 #import "LAVPMovie.h"
 
-#define ALLOW_GPL_CODE 1 /* LAVP: enable my pictformat code in GPL */
-
 /* =========================================================== */
 
 #define MAX_QUEUE_SIZE (15 * 1024 * 1024)
