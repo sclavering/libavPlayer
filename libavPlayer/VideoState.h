@@ -47,7 +47,6 @@
 
     /* stream index */
     int video_stream, audio_stream;
-    int last_video_stream, last_audio_stream;
 
     /* AVStream */
     AVStream *audio_st;
@@ -59,7 +58,6 @@
 
     /* Extension; playRate */
     double_t playRate;
-    int eof_flag;
 
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
@@ -75,10 +73,6 @@
     /* same order as original struct */
     double audio_clock;
     int audio_clock_serial;
-    double audio_diff_cum; /* used for AV difference average computation */
-    double audio_diff_avg_coef;
-    double audio_diff_threshold;
-    int audio_diff_avg_count;
     //
     int audio_hw_buf_size;
     uint8_t *audio_buf;
@@ -101,7 +95,6 @@
     // LAVPvideo
 
     double frame_timer;
-    double frame_last_returned_time;
     double frame_last_filter_delay;
     //
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity

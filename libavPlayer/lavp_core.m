@@ -213,13 +213,6 @@ int stream_component_open(VideoState *is, int stream_index)
             is->audio_buf_size  = 0;
             is->audio_buf_index = 0;
 
-            /* init averaging filter */
-            is->audio_diff_avg_coef = exp(log(0.01) / AUDIO_DIFF_AVG_NB);
-            is->audio_diff_avg_count = 0;
-            /* since we do not have a precise anough audio fifo fullness,
-             we correct audio sync only if larger than this threshold */
-            is->audio_diff_threshold = 2.0 * is->audio_hw_buf_size / is->audio_tgt.bytes_per_sec;
-
             // LAVP: start AudioQueue
             LAVPAudioQueueInit(is, avctx);
             LAVPAudioQueueStart(is);
@@ -706,8 +699,8 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     is->paused = 0;
     is->playRate = 1.0;
 
-    is->last_video_stream = is->video_stream = -1;
-    is->last_audio_stream = is->audio_stream = -1;
+    is->video_stream = -1;
+    is->audio_stream = -1;
     is->eof = 0;
 
     /* ======================================== */
