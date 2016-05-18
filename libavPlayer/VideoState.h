@@ -81,7 +81,6 @@
     int audio_diff_avg_count;
     //
     int audio_hw_buf_size;
-    uint8_t silence_buf[SDL_AUDIO_BUFFER_SIZE];
     uint8_t *audio_buf;
     uint8_t *audio_buf1;
     unsigned int audio_buf_size; /* in bytes */

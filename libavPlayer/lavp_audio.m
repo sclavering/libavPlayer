@@ -25,15 +25,17 @@
 #import "packetqueue.h"
 #include "lavp_audio.h"
 
-/* =========================================================== */
-
-/* =========================================================== */
 
 static int synchronize_audio(VideoState *is, int nb_samples);
 int audio_decode_frame(VideoState *is);
 
 BOOL audio_isPitchChanged(VideoState *is);
 void audio_updatePitch(VideoState *is);
+
+/* SDL audio buffer size, in samples. Should be small to have precise
+ A/V sync as SDL does not have hardware buffer fullness info. */
+#define SDL_AUDIO_BUFFER_SIZE 1024
+
 
 /* =========================================================== */
 
@@ -201,8 +203,8 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
                 audio_size = audio_decode_frame(is);
                 if (audio_size < 0) {
                     /* if error, just output silence */
-                    is->audio_buf      = is->silence_buf;
-                    is->audio_buf_size = sizeof(is->silence_buf) / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
+                    is->audio_buf = NULL;
+                    is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
                 } else {
                     is->audio_buf_size = audio_size;
                 }
@@ -211,7 +213,8 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
             len1 = is->audio_buf_size - is->audio_buf_index;
             if (len1 > len)
                 len1 = len;
-            memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+            if (is->audio_buf)
+                memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
             len -= len1;
             stream += len1;
             is->audio_buf_index += len1;
