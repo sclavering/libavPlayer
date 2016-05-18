@@ -368,17 +368,6 @@ int read_thread(VideoState* is)
                     //NSLog(@"DEBUG: %@", is->paused ? @"paused:YES" : @"paused:NO");
                 }
 
-#if CONFIG_RTSP_DEMUXER
-                if (is->paused &&
-                    (!strcmp(is->ic->iformat->name, "rtsp") ||
-                     (is->ic->pb && !strncmp(input_filename, "mmsh:", 5)))) {
-                        /* wait 10 ms to avoid trying to get another packet */
-                        /* XXX: horrible */
-                        usleep(10*1000);
-                        continue;
-                    }
-#endif
-
                 // Seek
                 if (is->seek_req) {
                     is->lastPTScopied = -1;
