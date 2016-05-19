@@ -252,12 +252,12 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
 
 static void LAVPFillASBD(VideoState *is, AVCodecContext *avctx)
 {
-    Float64 inSampleRate = avctx->sample_rate;
-    UInt32 inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
-    UInt32 inChannelsPerFrame = avctx->channels;
-    UInt32 inFramesPerPacket = 1;
-    UInt32 inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
-    UInt32 inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
+    double inSampleRate = avctx->sample_rate;
+    unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
+    unsigned int inChannelsPerFrame = avctx->channels;
+    unsigned int inFramesPerPacket = 1;
+    unsigned int inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
+    unsigned int inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
 
     memset(&is->asbd, 0, sizeof(AudioStreamBasicDescription));
     is->asbd.mSampleRate = inSampleRate;
@@ -310,7 +310,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     is->outAQ = outAQ;
 
     // Enable timepitch
-    UInt32 propValue = 1;
+    unsigned int propValue = 1;
     err = AudioQueueSetProperty (is->outAQ, kAudioQueueProperty_EnableTimePitch, &propValue, sizeof(propValue));
     assert(err == 0);
 
@@ -320,7 +320,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     assert(err == 0);
 
     // prepare audio queue buffers for Output
-    UInt32 inBufferByteSize = (is->asbd.mSampleRate / 50) * is->asbd.mBytesPerFrame;    // perform callback 50 times per sec
+    unsigned int inBufferByteSize = (is->asbd.mSampleRate / 50) * is->asbd.mBytesPerFrame;    // perform callback 50 times per sec
     for( int i = 0; i < 3; i++ ) {
         // Allocate Buffer
         AudioQueueBufferRef outBuffer = NULL;
@@ -357,7 +357,7 @@ void LAVPAudioQueueStart(VideoState *is)
 
     //
     OSStatus err = 0;
-    UInt32 inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60;    // Prepare for 1/60 sec
+    unsigned int inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60;    // Prepare for 1/60 sec
 
     err = AudioQueuePrime(is->outAQ, inNumberOfFramesToPrepare, 0);
     assert(err == 0);
@@ -390,8 +390,8 @@ void LAVPAudioQueueStop(VideoState *is)
 
     // Check AudioQueue is running or not
     OSStatus err = 0;
-    UInt32 currentRunning = 0;
-    UInt32 currentRunningSize = sizeof(currentRunning);
+    unsigned int currentRunning = 0;
+    unsigned int currentRunningSize = sizeof(currentRunning);
 
     err = AudioQueueGetProperty(is->outAQ, kAudioQueueProperty_IsRunning, &currentRunning, &currentRunningSize);
     assert(err == 0);
@@ -490,7 +490,7 @@ void audio_updatePitch(VideoState *is)
         assert(err == 0);
 
         // Bypass TimePitch
-        UInt32 propValue = 1;
+        unsigned int propValue = 1;
         err = AudioQueueSetProperty (is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
         assert(err == 0);
     } else {
@@ -499,7 +499,7 @@ void audio_updatePitch(VideoState *is)
         assert(err == 0);
 
         // Use TimePitch (using FFT filter)
-        UInt32 propValue = 0;
+        unsigned int propValue = 0;
         err = AudioQueueSetProperty (is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
         assert(err == 0);
     }
