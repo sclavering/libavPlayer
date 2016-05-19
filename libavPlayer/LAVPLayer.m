@@ -226,43 +226,19 @@ bail:
 }
 
 - (void) _drawImage {
+    // Prepare CIContext
+    if(!_ciContext) _ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
+
+
+
     CGLContextObj savedContext = CGLGetCurrentContext();
     CGLSetCurrentContext(_cglContext);
     CGLLockContext(_cglContext);
 
-    // Prepare CIContext
-    [self _setCIContext];
+
 
     // Prepare new texture
-    [self _setFBO];
-
-    // update texture with current CIImage
-    [self _renderCoreImageToFBO];
-
-    // Render quad
-    [self _renderQuad];
-
-    // Delete the texture and the FBO
-    [self _unsetFBO];
-
-    CGLUnlockContext(_cglContext);
-    CGLSetCurrentContext(savedContext);
-
-    CGLFlushDrawable(_cglContext);
-}
-
-- (void) _setCIContext
-{
-    if(_ciContext) return;
-    _ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
-}
-
-/*
- Set up FBO and new Texture
- */
-- (void) _setFBO
-{
-    if (!_fboId) {
+    {
         // create FBO object
         glGenFramebuffers(1, &_fboId);
         assert(_fboId);
@@ -312,11 +288,10 @@ bail:
         // unbind FBO
         glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
     }
-}
 
-- (void) _renderCoreImageToFBO
-{
-    // Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderCoreImageToFBO
+
+
+    // Update texture with current CIImage
 
     // Bind FBO
     GLint   saved_fboId = 0;
@@ -345,10 +320,11 @@ bail:
 
     // Unbind FBO
     glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
-}
 
-- (void) _renderQuad
-{
+
+
+    // Render quad
+
     CGSize tr = CGSizeMake( 1.0f,  1.0f);
     CGSize tl = CGSizeMake(-1.0f,  1.0f);
     CGSize bl = CGSizeMake(-1.0f, -1.0f);
@@ -413,15 +389,23 @@ bail:
 
     // Unbind Texture
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-}
 
-- (void) _unsetFBO {
-    if (_fboId) {
+
+
+    // Delete the texture and the FBO
+    {
         glDeleteTextures(1, &_fboTextureId);
         glDeleteFramebuffers(1, &_fboId);
         _fboTextureId = 0;
         _fboId = 0;
     }
+
+
+
+    CGLUnlockContext(_cglContext);
+    CGLSetCurrentContext(savedContext);
+
+    CGLFlushDrawable(_cglContext);
 }
 
 /* =============================================================================================== */
