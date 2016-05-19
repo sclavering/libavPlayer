@@ -44,7 +44,7 @@
 @property (readonly) NSSize frameSize;
 @property (readonly) int64_t durationInMicroseconds;
 @property (assign) int64_t currentTimeInMicroseconds;
-@property (assign) double_t position;
+@property (assign) double position;
 
 @property BOOL paused;
 

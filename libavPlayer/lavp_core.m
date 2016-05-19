@@ -566,7 +566,7 @@ void init_clock(Clock *c, int *queue_serial)
 /* get the current master clock value */
 double get_master_clock(VideoState *is)
 {
-    //NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double_t)get_clock(&is->vidclk), (double_t)get_clock(&is->audclk));
+    //NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double)get_clock(&is->vidclk), (double)get_clock(&is->audclk));
     return get_clock(&is->audclk);
 }
 
@@ -846,12 +846,12 @@ fail:
  toggle_audio_display()
  */
 
-double_t stream_playRate(VideoState *is)
+double stream_playRate(VideoState *is)
 {
     return is->playRate;
 }
 
-void stream_setPlayRate(VideoState *is, double_t newRate)
+void stream_setPlayRate(VideoState *is, double newRate)
 {
     assert(newRate > 0.0);
 

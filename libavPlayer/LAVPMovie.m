@@ -95,7 +95,7 @@
     [self _seek:newTime];
 }
 
-- (double_t) position
+- (double) position
 {
     // position uses double value between 0.0 and 1.0
 
@@ -109,10 +109,10 @@
     position = (position < 0 ? 0 : position);
     position = (position > duration ? duration : position);
 
-    return (double_t)position/duration;
+    return (double)position/duration;
 }
 
-- (void) setPosition:(double_t)newPosition
+- (void) setPosition:(double)newPosition
 {
     // If you seek without pausing the seeking takes ages (several seconds).
     bool wasPaused = self.paused;
@@ -121,7 +121,7 @@
     if(!wasPaused) self.paused = false;
 }
 
-- (void) _setPosition:(double_t)newPosition
+- (void) _setPosition:(double)newPosition
 {
     // position uses double value between 0.0 and 1.0
 
@@ -254,7 +254,7 @@
         lastPosition = pos;
 
         if (is->seek_by_bytes || is->ic->duration <= 0) {
-            double_t frac = (double_t)pos / (get_master_clock(is) * 1.0e6);
+            double frac = (double)pos / (get_master_clock(is) * 1.0e6);
 
             int64_t size =  avio_size(is->ic->pb);
 

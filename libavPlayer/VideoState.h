@@ -57,7 +57,7 @@
     PacketQueue videoq;
 
     /* Extension; playRate */
-    double_t playRate;
+    double playRate;
 
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
