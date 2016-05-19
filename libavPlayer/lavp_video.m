@@ -404,12 +404,8 @@ the_end:
 
 #pragma mark -
 
-int hasImage(VideoState *is);
-int copyImage(VideoState *is, uint8_t* data, int pitch);
-
 CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is)
 {
-    if (!hasImage(is)) return NULL;
     if (!is->pixelbuffer) {
         OSType format =  kCVPixelFormatType_422YpCbCr8;
         assert(is->width * is->height > 0);
@@ -419,75 +415,39 @@ CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is)
             return NULL;
         }
     }
+
+
+    LAVPLockMutex(is->pictq.mutex);
+    bool success = false;
+
+    if (frame_queue_nb_remaining(&is->pictq) <= 0)
+        goto finish;
+
+    Frame *vp = frame_queue_peek(&is->pictq);
+    if (!vp) vp = frame_queue_peek_last(&is->pictq);
+
+    if (!vp)
+        goto finish;
+
+    if (vp->pts >= 0 && vp->pts == is->lastPTScopied)
+        goto finish;
+
     CVPixelBufferLockBaseAddress(is->pixelbuffer, 0);
     uint8_t* data = CVPixelBufferGetBaseAddress(is->pixelbuffer);
     int pitch = CVPixelBufferGetBytesPerRow(is->pixelbuffer);
-    int ret = copyImage(is, data, pitch);
+
+    copy_planar_YUV420_to_2vuy(vp->width, vp->height,
+                               vp->bmp->data[0], vp->bmp->linesize[0],
+                               vp->bmp->data[1], vp->bmp->linesize[1],
+                               vp->bmp->data[2], vp->bmp->linesize[2],
+                               data, pitch);
+
     CVPixelBufferUnlockBaseAddress(is->pixelbuffer, 0);
-    if (ret == 1 || ret == 2) return is->pixelbuffer;
-    return NULL;
-}
 
-int hasImage(VideoState *is)
-{
-    LAVPLockMutex(is->pictq.mutex);
+    is->lastPTScopied = vp->pts;
+    success = true;
 
-    if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = frame_queue_peek(&is->pictq);
-        if (!vp) vp = frame_queue_peek_last(&is->pictq);
-        if (vp) {
-            LAVPUnlockMutex(is->pictq.mutex);
-            return 1;
-        }
-    }
-
-bail:
+finish:
     LAVPUnlockMutex(is->pictq.mutex);
-    return 0;
-}
-
-int copyImage(VideoState *is, uint8_t* data, int pitch)
-{
-    uint8_t * out[4] = {0};
-    out[0] = data;
-    assert(data);
-
-    LAVPLockMutex(is->pictq.mutex);
-
-    if (frame_queue_nb_remaining(&is->pictq) > 0) {
-        Frame *vp = frame_queue_peek(&is->pictq);
-        if (!vp) vp = frame_queue_peek_last(&is->pictq);
-
-        if (vp) {
-            int result = 0;
-
-            if (vp->pts >= 0 && vp->pts == is->lastPTScopied) {
-                LAVPUnlockMutex(is->pictq.mutex);
-                return 2;
-            }
-
-            uint8_t *in[4] = {vp->bmp->data[0], vp->bmp->data[1], vp->bmp->data[2], vp->bmp->data[3]};
-            size_t inpitch[4] = {vp->bmp->linesize[0], vp->bmp->linesize[1], vp->bmp->linesize[2], vp->bmp->linesize[3]};
-            copy_planar_YUV420_to_2vuy(vp->width, vp->height,
-                                       in[0], inpitch[0],
-                                       in[1], inpitch[1],
-                                       in[2], inpitch[2],
-                                       data, pitch);
-            result = 1;
-
-            if (result > 0) {
-                is->lastPTScopied = vp->pts;
-                LAVPUnlockMutex(is->pictq.mutex);
-                return 1;
-            } else {
-                NSLog(@"ERROR: result != 0 (%s)", __FUNCTION__);
-            }
-        } else {
-            NSLog(@"ERROR: vp == NULL (%s)", __FUNCTION__);
-        }
-    }
-
-bail:
-    LAVPUnlockMutex(is->pictq.mutex);
-    return 0;
+    return success ? is->pixelbuffer : NULL;
 }
