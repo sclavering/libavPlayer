@@ -125,8 +125,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         /* ========================================================= */
 
-        // Force CGLContext
-        CGLContextObj savedContext = CGLGetCurrentContext();
         CGLSetCurrentContext(_cglContext);
         CGLLockContext(_cglContext);
 
@@ -138,9 +136,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         // Update back buffer size as is
         self.needsDisplayOnBoundsChange = YES;
 
-        // Restore CGLContext
         CGLUnlockContext(_cglContext);
-        CGLSetCurrentContext(savedContext);
 
         /* ========================================================= */
 
@@ -231,7 +227,6 @@ bail:
 
 
 
-    CGLContextObj savedContext = CGLGetCurrentContext();
     CGLSetCurrentContext(_cglContext);
     CGLLockContext(_cglContext);
 
@@ -403,7 +398,6 @@ bail:
 
 
     CGLUnlockContext(_cglContext);
-    CGLSetCurrentContext(savedContext);
 
     CGLFlushDrawable(_cglContext);
 }
