@@ -225,44 +225,25 @@ bail:
     glEnable(GL_TEXTURE_RECTANGLE_ARB);
 }
 
-/*
- Draw CVImageBuffer into CGLContext
- */
 - (void) _drawImage {
     CGLContextObj savedContext = CGLGetCurrentContext();
     CGLSetCurrentContext(_cglContext);
     CGLLockContext(_cglContext);
 
-    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize)) {
-        // Prepare CIContext
-        [self _setCIContext];
+    // Prepare CIContext
+    [self _setCIContext];
 
-        // Prepare new texture
-        [self _setFBO];
+    // Prepare new texture
+    [self _setFBO];
 
-        // update texture with current CIImage
-        [self _renderCoreImageToFBO];
+    // update texture with current CIImage
+    [self _renderCoreImageToFBO];
 
-        // Render quad
-        [self _renderQuad];
+    // Render quad
+    [self _renderQuad];
 
-        // Delete the texture and the FBO
-        [self _unsetFBO];
-    } else {
-        NSSize dstSize = [self bounds].size;
-
-        // Set up canvas
-        glViewport(0, 0, dstSize.width, dstSize.height);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
-        glMatrixMode(GL_MODELVIEW);    // select the modelview matrix
-        glLoadIdentity();              // reset it
-
-        glClearColor(0 , 0 , 0 , 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
+    // Delete the texture and the FBO
+    [self _unsetFBO];
 
     CGLUnlockContext(_cglContext);
     CGLSetCurrentContext(savedContext);
