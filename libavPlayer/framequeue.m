@@ -1,6 +1,5 @@
 #import "lavp_common.h"
-
-extern void free_picture(Frame *vp);
+#import "lavp_video.h"
 
 void frame_queue_unref_item(Frame *vp)
 {
