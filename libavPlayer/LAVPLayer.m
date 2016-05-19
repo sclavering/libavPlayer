@@ -178,28 +178,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
              forLayerTime:(CFTimeInterval)timeInterval
               displayTime:(const CVTimeStamp *)timeStamp
 {
-    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize) && !_movie.busy) {
-            // Prepare CIImage
-            CVPixelBufferRef pb = [_movie getCVPixelBuffer];
-
-            if (pb) {
-                [_lock lock];
-                _image = [CIImage imageWithCVImageBuffer:pb];
-                [self _drawImage];
-                [_lock unlock];
-                goto bail;
-            }
-    }
-
-    // Fallback: Use last shown image
-    if (_image) {
-        [_lock lock];
-        [self _drawImage];
-        [_lock unlock];
-    }
-
-bail:
-    // Finishing touch by super class
+    [self _drawImage];
     [super drawInCGLContext:glContext
                 pixelFormat:pixelFormat
                forLayerTime:timeInterval
@@ -222,9 +201,17 @@ bail:
 }
 
 - (void) _drawImage {
+    [_lock lock];
+
     // Prepare CIContext
     if(!_ciContext) _ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
 
+
+    // Try to get a new frame, but fall back to the current one.  (We still need to *redraw* the current one, so we don't get corruption when resizing the window while paused, or similar).
+    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize) && !_movie.busy) {
+        CVPixelBufferRef pb = [_movie getCVPixelBuffer];
+        if (pb) _image = [CIImage imageWithCVImageBuffer:pb];
+    }
 
 
     CGLSetCurrentContext(_cglContext);
@@ -400,6 +387,8 @@ bail:
     CGLUnlockContext(_cglContext);
 
     CGLFlushDrawable(_cglContext);
+
+    [_lock unlock];
 }
 
 /* =============================================================================================== */
