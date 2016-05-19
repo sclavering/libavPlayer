@@ -19,7 +19,7 @@
  */
 
 #import "LAVPLayer.h"
-#import <GLUT/glut.h>
+
 #import <OpenGL/gl.h>
 
 @import CoreImage;
