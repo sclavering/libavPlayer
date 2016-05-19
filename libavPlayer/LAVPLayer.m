@@ -59,7 +59,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
     if (_fboId) {
         glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffersEXT(1, &_fboId);
+        glDeleteFramebuffers(1, &_fboId);
         _fboTextureId = 0;
         _fboId = 0;
     }
@@ -223,11 +223,6 @@ bail:
 
     // Enable texturing
     glEnable(GL_TEXTURE_RECTANGLE_ARB);
-
-    // Check FBO Support
-    const GLubyte* strExt = glGetString(GL_EXTENSIONS);
-    GLboolean isFBO = gluCheckExtension((const GLubyte*)"GL_EXT_framebuffer_object", strExt);
-    assert(isFBO == GL_TRUE);
 }
 
 /*
@@ -288,7 +283,7 @@ bail:
 {
     if (!_fboId) {
         // create FBO object
-        glGenFramebuffersEXT(1, &_fboId);
+        glGenFramebuffers(1, &_fboId);
         assert(_fboId);
 
         // create texture
@@ -297,8 +292,8 @@ bail:
 
         // Bind FBO
         GLint saved_fboId = 0;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &saved_fboId);
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fboId);
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_fboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, _fboId);
 
         // Bind texture
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _fboTextureId);
@@ -313,28 +308,28 @@ bail:
                      0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
         // Attach texture to the FBO as its color destination
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_ARB, _fboTextureId, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, _fboTextureId, 0);
 
         // Make sure the FBO was created succesfully.
-        GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-        if (GL_FRAMEBUFFER_COMPLETE_EXT != status) {
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (GL_FRAMEBUFFER_COMPLETE != status) {
             NSString* statusStr = @"OTHER ERROR";
-            if (GL_FRAMEBUFFER_UNSUPPORTED_EXT == status) {
-                statusStr = @"GL_FRAMEBUFFER_UNSUPPORTED_EXT";
-            } else if (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT == status) {
-                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT";
-            } else if (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT == status) {
-                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT";
+            if (GL_FRAMEBUFFER_UNSUPPORTED == status) {
+                statusStr = @"GL_FRAMEBUFFER_UNSUPPORTED";
+            } else if (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT == status) {
+                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+            } else if (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT == status) {
+                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
             }
-            NSLog(@"ERROR: glFramebufferTexture2DEXT() failed! (0x%04x:%@)", status, statusStr);
-            assert(GL_FRAMEBUFFER_COMPLETE_EXT != status);
+            NSLog(@"ERROR: glFramebufferTexture2D() failed! (0x%04x:%@)", status, statusStr);
+            assert(GL_FRAMEBUFFER_COMPLETE != status);
         }
 
         // unbind texture
         glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
 
         // unbind FBO
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, saved_fboId);
+        glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
     }
 }
 
@@ -344,8 +339,8 @@ bail:
 
     // Bind FBO
     GLint   saved_fboId = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &saved_fboId);
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _fboId);
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_fboId);
+    glBindFramebuffer(GL_FRAMEBUFFER, _fboId);
 
     {
         // prepare canvas
@@ -368,7 +363,7 @@ bail:
     }
 
     // Unbind FBO
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, saved_fboId);
+    glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
 }
 
 - (void) _renderQuad
@@ -442,7 +437,7 @@ bail:
 - (void) _unsetFBO {
     if (_fboId) {
         glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffersEXT(1, &_fboId);
+        glDeleteFramebuffers(1, &_fboId);
         _fboTextureId = 0;
         _fboId = 0;
     }
@@ -464,7 +459,7 @@ bail:
 
     if (_fboId) {
         glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffersEXT(1, &_fboId);
+        glDeleteFramebuffers(1, &_fboId);
         _fboTextureId = 0;
         _fboId = 0;
     }
