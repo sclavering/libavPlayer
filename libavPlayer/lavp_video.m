@@ -404,6 +404,30 @@ the_end:
 
 #pragma mark -
 
+int hasImage(VideoState *is);
+int copyImage(VideoState *is, uint8_t* data, int pitch);
+
+CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is)
+{
+    if (!hasImage(is)) return NULL;
+    if (!is->pixelbuffer) {
+        OSType format =  kCVPixelFormatType_422YpCbCr8;
+        assert(is->width * is->height > 0);
+        CVReturn result = CVPixelBufferCreate(kCFAllocatorDefault, is->width, is->height, format, NULL, &is->pixelbuffer);
+        if (result != kCVReturnSuccess || !is->pixelbuffer) {
+            NSLog(@"couldn't create pixel buffer");
+            return NULL;
+        }
+    }
+    CVPixelBufferLockBaseAddress(is->pixelbuffer, 0);
+    uint8_t* data = CVPixelBufferGetBaseAddress(is->pixelbuffer);
+    int pitch = CVPixelBufferGetBytesPerRow(is->pixelbuffer);
+    int ret = copyImage(is, data, pitch);
+    CVPixelBufferUnlockBaseAddress(is->pixelbuffer, 0);
+    if (ret == 1 || ret == 2) return is->pixelbuffer;
+    return NULL;
+}
+
 int hasImage(VideoState *is)
 {
     LAVPLockMutex(is->pictq.mutex);

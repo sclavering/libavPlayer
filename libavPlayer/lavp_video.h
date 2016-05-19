@@ -33,5 +33,4 @@ void refresh_loop_wait_event(VideoState *is);
 void alloc_picture(VideoState *is);
 int video_thread(VideoState *is);
 
-int hasImage(VideoState *is);
-int copyImage(VideoState *is, uint8_t* data, int pitch);
+CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is);

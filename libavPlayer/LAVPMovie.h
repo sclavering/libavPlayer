@@ -31,7 +31,6 @@
 @interface LAVPMovie : NSObject {
 @private
     VideoState *is;
-    CVPixelBufferRef pb;
     double lastPosition;
     float currentVol;
 }

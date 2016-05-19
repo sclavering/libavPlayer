@@ -59,8 +59,13 @@
         [dt cancel];
         while (![dt isFinished]) usleep(10*1000);
         stream_close(is);
+
+        // xxx do this somewhere more sensible
+        if (is->pixelbuffer) {
+            CVPixelBufferRelease(is->pixelbuffer);
+            is->pixelbuffer = NULL;
+        }
     }
-    if (pb) CVPixelBufferRelease(pb);
 }
 
 #pragma mark -
@@ -172,15 +177,7 @@
 }
 
 - (CVPixelBufferRef) getCVPixelBuffer {
-    if (!hasImage(is)) return NULL;
-    if (!pb) pb = [self createDummyCVPixelBufferWithSize:NSMakeSize(is->width, is->height)];
-    CVPixelBufferLockBaseAddress(pb, 0);
-    uint8_t* data = CVPixelBufferGetBaseAddress(pb);
-    int pitch = CVPixelBufferGetBytesPerRow(pb);
-    int ret = copyImage(is, data, pitch);
-    CVPixelBufferUnlockBaseAddress(pb, 0);
-    if (ret == 1 || ret == 2) return pb;
-    return NULL;
+    return lavp_get_pixelbuffer(is);
 }
 
 - (void) threadMain
@@ -218,20 +215,6 @@
 - (void) refreshPicture
 {
     refresh_loop_wait_event(is);
-}
-
-- (CVPixelBufferRef) createDummyCVPixelBufferWithSize:(NSSize)size {
-    OSType format = '2vuy';    //k422YpCbCr8CodecType
-    size_t width = size.width, height = size.height;
-    CFDictionaryRef attr = NULL;
-    CVPixelBufferRef pixelbuffer = NULL;
-
-    assert(width * height > 0);
-    CVReturn result = CVPixelBufferCreate(kCFAllocatorDefault,
-                                          width, height, format, attr, &pixelbuffer);
-    assert (result == kCVReturnSuccess && pixelbuffer);
-
-    return pixelbuffer;
 }
 
 - (int64_t) _currentTimeInMicroseconds

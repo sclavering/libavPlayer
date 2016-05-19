@@ -103,7 +103,8 @@
 
     int eof;
 
-    /* LAVP: extension */
+    // LAVP: extras
     double lastPTScopied;
+    CVPixelBufferRef pixelbuffer;
 }
 @end;
