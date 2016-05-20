@@ -404,19 +404,8 @@ the_end:
 
 #pragma mark -
 
-CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is)
+Frame* lavp_get_current_frame(VideoState *is)
 {
-    if (!is->pixelbuffer) {
-        OSType format =  kCVPixelFormatType_422YpCbCr8;
-        assert(is->width * is->height > 0);
-        CVReturn result = CVPixelBufferCreate(kCFAllocatorDefault, is->width, is->height, format, NULL, &is->pixelbuffer);
-        if (result != kCVReturnSuccess || !is->pixelbuffer) {
-            NSLog(@"couldn't create pixel buffer");
-            return NULL;
-        }
-    }
-
-
     LAVPLockMutex(is->pictq.mutex);
     bool success = false;
 
@@ -432,22 +421,11 @@ CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is)
     if (vp->pts >= 0 && vp->pts == is->lastPTScopied)
         goto finish;
 
-    CVPixelBufferLockBaseAddress(is->pixelbuffer, 0);
-    uint8_t* data = CVPixelBufferGetBaseAddress(is->pixelbuffer);
-    int pitch = CVPixelBufferGetBytesPerRow(is->pixelbuffer);
-
-    copy_planar_YUV420_to_2vuy(vp->width, vp->height,
-                               vp->bmp->data[0], vp->bmp->linesize[0],
-                               vp->bmp->data[1], vp->bmp->linesize[1],
-                               vp->bmp->data[2], vp->bmp->linesize[2],
-                               data, pitch);
-
-    CVPixelBufferUnlockBaseAddress(is->pixelbuffer, 0);
-
+    is->last_frame = vp;
     is->lastPTScopied = vp->pts;
     success = true;
 
 finish:
     LAVPUnlockMutex(is->pictq.mutex);
-    return success ? is->pixelbuffer : NULL;
+    return success ? is->last_frame : NULL;
 }

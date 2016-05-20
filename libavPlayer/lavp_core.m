@@ -30,6 +30,9 @@
 #import "packetqueue.h"
 #import "lavp_audio.h"
 
+#import "LAVPMovie+Internal.h"
+
+
 /* =========================================================== */
 
 int stream_component_open(VideoState *is, int stream_index);

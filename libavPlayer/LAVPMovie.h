@@ -55,10 +55,6 @@
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 
-- (CVPixelBufferRef) getCVPixelBuffer;
-
-- (void) haveReachedEOF;
-
 @end
 
 

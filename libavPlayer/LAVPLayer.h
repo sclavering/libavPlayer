@@ -31,17 +31,21 @@
     LAVPMovie *_movie;
 
 @private
-    CIContext *_ciContext;
-    CIImage *_image;
     NSLock *_lock;
 
-    GLuint _fboId;
-    GLuint _fboTextureId;
     GLfloat _imageAspectRatio;
     CGRect _textureRect; // May be smaller than original CIImage extent
 
     CGLPixelFormatObj   _cglPixelFormat;
     CGLContextObj       _cglContext;
+
+    GLuint _program;
+    GLuint _location_y;
+    GLuint _location_u;
+    GLuint _location_v;
+    GLuint _vertex_buffer;
+    GLuint _texture_vertex_buffer;
+    GLuint _textures[3]; // in Y U V order
 }
 
 @property bool stretchVideoToFitLayer;

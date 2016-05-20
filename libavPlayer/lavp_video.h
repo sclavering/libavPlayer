@@ -34,4 +34,4 @@ void alloc_picture(VideoState *is);
 void free_picture(Frame *vp);
 int video_thread(VideoState *is);
 
-CVPixelBufferRef lavp_get_pixelbuffer(VideoState *is);
+Frame* lavp_get_current_frame(VideoState *is);

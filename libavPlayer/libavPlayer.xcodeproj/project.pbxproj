@@ -151,6 +151,7 @@
 		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		AAD2C9051CEC743A00414D92 /* lavp_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_util.h; sourceTree = "<group>"; };
+		AAD2C9061CEF106200414D92 /* LAVPMovie+Internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "LAVPMovie+Internal.h"; sourceTree = "<group>"; };
 		D2F7E79907B2D74100F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
@@ -233,6 +234,7 @@
 				AA4F122B1CE54F7A00716F94 /* VideoState.m */,
 				16A1971513ADFE22008825FF /* libavPlayer.h */,
 				16A18F4713AC466F008825FF /* LAVPMovie.h */,
+				AAD2C9061CEF106200414D92 /* LAVPMovie+Internal.h */,
 				16A18F4813AC466F008825FF /* LAVPMovie.m */,
 				16A195A813ADF5F1008825FF /* LAVPLayer.h */,
 				16A195A913ADF5F1008825FF /* LAVPLayer.m */,

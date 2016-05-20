@@ -105,6 +105,6 @@
 
     // LAVP: extras
     double lastPTScopied;
-    CVPixelBufferRef pixelbuffer;
+    Frame* last_frame;
 }
 @end;

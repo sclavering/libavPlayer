@@ -19,10 +19,9 @@
  */
 
 #import "LAVPLayer.h"
+#import "LAVPMovie+Internal.h"
 
-#import <OpenGL/gl.h>
-
-@import CoreImage;
+#import <OpenGL/gl3.h>
 
 #define DUMMY_W 640
 #define DUMMY_H 480
@@ -52,20 +51,12 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     CGDisplayRemoveReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-
+    [self _gl_cleanup];
     if (_movie) {
         _movie.paused = true;
         _movie = NULL;
     }
-    if (_fboId) {
-        glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffers(1, &_fboId);
-        _fboTextureId = 0;
-        _fboId = 0;
-    }
     if (_lock) _lock = NULL;
-    if (_image) _image = NULL;
-    if (_ciContext) _ciContext = NULL;
     if (_cglContext) {
         CGLReleaseContext(_cglContext);
         _cglContext = NULL;
@@ -90,6 +81,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         GLint numPixelFormats = 0;
         CGLPixelFormatAttribute attributes[] =
         {
+            kCGLPFAOpenGLProfile, kCGLOGLPVersion_GL3_Core,
             kCGLPFAAccelerated,
             kCGLPFANoRecovery,
             kCGLPFADoubleBuffer,
@@ -101,23 +93,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
             kCGLPFASamples, 4,
             0
         };
-
         CGLChoosePixelFormat(attributes, &_cglPixelFormat, &numPixelFormats);
-
-        if (!_cglPixelFormat) {
-            CGLPixelFormatAttribute attributes[] =
-            {
-                kCGLPFAAccelerated,
-                kCGLPFANoRecovery,
-                kCGLPFADoubleBuffer,
-                kCGLPFAColorSize, 24,
-                kCGLPFAAlphaSize,  8,
-                //kCGLPFADepthSize, 16,    // no depth buffer
-                0
-            };
-
-            CGLChoosePixelFormat(attributes, &_cglPixelFormat, &numPixelFormats);
-        }
         assert(_cglPixelFormat);
 
         _cglContext = [super copyCGLContextForPixelFormat:_cglPixelFormat];
@@ -128,7 +104,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         CGLSetCurrentContext(_cglContext);
         CGLLockContext(_cglContext);
 
-        [self _initOpenGL];
+        [self _gl_init];
 
         // Update back buffer size as is
         self.needsDisplayOnBoundsChange = YES;
@@ -175,218 +151,14 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
              forLayerTime:(CFTimeInterval)timeInterval
               displayTime:(const CVTimeStamp *)timeStamp
 {
-    [self _drawImage];
+    [self _gl_draw];
     [super drawInCGLContext:glContext
                 pixelFormat:pixelFormat
                forLayerTime:timeInterval
                 displayTime:timeStamp];
 }
 
-/* =============================================================================================== */
-#pragma mark -
-#pragma mark private
 
-- (void) _initOpenGL {
-    // Clear to black.
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-    // Setup blending function
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // Enable texturing
-    glEnable(GL_TEXTURE_RECTANGLE_ARB);
-}
-
-- (void) _drawImage {
-    [_lock lock];
-
-    // Prepare CIContext
-    if(!_ciContext) _ciContext = [CIContext contextWithCGLContext:_cglContext pixelFormat:_cglPixelFormat colorSpace:NULL options:NULL];
-
-
-    // Try to get a new frame, but fall back to the current one.  (We still need to *redraw* the current one, so we don't get corruption when resizing the window while paused, or similar).
-    if (_movie && !NSEqualSizes([_movie frameSize], NSZeroSize) && !_movie.busy) {
-        CVPixelBufferRef pb = [_movie getCVPixelBuffer];
-        if (pb) _image = [CIImage imageWithCVImageBuffer:pb];
-    }
-
-
-    CGLSetCurrentContext(_cglContext);
-    CGLLockContext(_cglContext);
-
-
-
-    // Prepare new texture
-    {
-        // create FBO object
-        glGenFramebuffers(1, &_fboId);
-        assert(_fboId);
-
-        // create texture
-        glGenTextures(1, &_fboTextureId);
-        assert(_fboTextureId);
-
-        // Bind FBO
-        GLint saved_fboId = 0;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_fboId);
-        glBindFramebuffer(GL_FRAMEBUFFER, _fboId);
-
-        // Bind texture
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _fboTextureId);
-
-        // Prepare GL_BGRA texture attached to FBO
-        glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, _textureRect.size.width, _textureRect.size.height,
-                     0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
-
-        // Attach texture to the FBO as its color destination
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, _fboTextureId, 0);
-
-        // Make sure the FBO was created succesfully.
-        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if (GL_FRAMEBUFFER_COMPLETE != status) {
-            NSString* statusStr = @"OTHER ERROR";
-            if (GL_FRAMEBUFFER_UNSUPPORTED == status) {
-                statusStr = @"GL_FRAMEBUFFER_UNSUPPORTED";
-            } else if (GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT == status) {
-                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-            } else if (GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT == status) {
-                statusStr = @"GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-            }
-            NSLog(@"ERROR: glFramebufferTexture2D() failed! (0x%04x:%@)", status, statusStr);
-            assert(GL_FRAMEBUFFER_COMPLETE != status);
-        }
-
-        // unbind texture
-        glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-
-        // unbind FBO
-        glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
-    }
-
-
-
-    // Update texture with current CIImage
-
-    // Bind FBO
-    GLint   saved_fboId = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_fboId);
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboId);
-
-    {
-        // prepare canvas
-        GLint width = (GLint)ceil(_textureRect.size.width);
-        GLint height = (GLint)ceil(_textureRect.size.height);
-
-        glViewport(0, 0, width, height);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-
-        glOrtho(0, width, 0, height, -1, 1);
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        [_ciContext drawImage:_image inRect:_textureRect fromRect:[_image extent]];
-    }
-
-    // Unbind FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, saved_fboId);
-
-
-
-    // Render quad
-
-    CGSize tr = CGSizeMake( 1.0f,  1.0f);
-    CGSize tl = CGSizeMake(-1.0f,  1.0f);
-    CGSize bl = CGSizeMake(-1.0f, -1.0f);
-    CGSize br = CGSizeMake( 1.0f, -1.0f);
-    if(!self.stretchVideoToFitLayer) {
-        CGSize ls = [self bounds].size;
-        CGSize vs = [_movie frameSize];
-        CGFloat hRatio = vs.width / ls.width;
-        CGFloat vRatio = vs.height / ls.height;
-        CGFloat layerAspect = ls.width / ls.height;
-        CGFloat videoAspect = vs.width / vs.height;
-        // If layer is wider aspect ratio than video
-        if(layerAspect > videoAspect) {
-            tr = CGSizeMake( hRatio / vRatio,  1.0f);
-            tl = CGSizeMake(-hRatio / vRatio,  1.0f);
-            bl = CGSizeMake(-hRatio / vRatio, -1.0f);
-            br = CGSizeMake( hRatio / vRatio, -1.0f);
-        } else {
-            tr = CGSizeMake( 1.0f,  vRatio / hRatio);
-            tl = CGSizeMake(-1.0f,  vRatio / hRatio);
-            bl = CGSizeMake(-1.0f, -vRatio / hRatio);
-            br = CGSizeMake( 1.0f, -vRatio / hRatio);
-        }
-    }
-
-    // Same approach; CoreImageGLTextureFBO - MyOpenGLView.m - renderScene
-
-    // prepare canvas
-    glViewport(0, 0, [self bounds].size.width, [self bounds].size.height);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-    glMatrixMode(GL_TEXTURE);
-    glLoadIdentity();
-
-    glScalef(_textureRect.size.width, _textureRect.size.height, 1.0f);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    // clear
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Bind Texture
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, _fboTextureId);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-    //glPushMatrix();
-    {
-        // Draw simple quad with texture image
-        glBegin(GL_QUADS);
-
-        glTexCoord2f( 1.0f, 1.0f ); glVertex2f( tr.width, tr.height );
-        glTexCoord2f( 0.0f, 1.0f ); glVertex2f( tl.width, tl.height );
-        glTexCoord2f( 0.0f, 0.0f ); glVertex2f( bl.width, bl.height );
-        glTexCoord2f( 1.0f, 0.0f ); glVertex2f( br.width, br.height );
-
-        glEnd();
-    }
-    //glPopMatrix();
-
-    // Unbind Texture
-    glBindTexture(GL_TEXTURE_RECTANGLE_ARB, 0);
-
-
-
-    // Delete the texture and the FBO
-    {
-        glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffers(1, &_fboId);
-        _fboTextureId = 0;
-        _fboId = 0;
-    }
-
-
-
-    CGLUnlockContext(_cglContext);
-
-    CGLFlushDrawable(_cglContext);
-
-    [_lock unlock];
-}
 
 /* =============================================================================================== */
 #pragma mark -
@@ -401,13 +173,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 {
     self.asynchronous = NO;
     [_lock lock];
-
-    if (_fboId) {
-        glDeleteTextures(1, &_fboTextureId);
-        glDeleteFramebuffers(1, &_fboId);
-        _fboTextureId = 0;
-        _fboId = 0;
-    }
 
     if(_movie) {
         _movie.paused = true;
@@ -456,6 +221,186 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 // Called when playback starts or stops for any reason.
 -(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating {
     self.asynchronous = continuousUpdating;
+}
+
+
+/* =============================================================================================== */
+
+#pragma mark -
+#pragma mark OpenGL-based drawing code
+
+static const char *const vertex_shader_src = "                               \
+    #version 330 core                                                        \
+    layout(location = 0) in vec3 vertexPosition_modelspace;                  \
+    layout(location = 1) in vec2 vertexUV;                                   \
+    out vec2 texcoord;                                                       \
+    void main() {                                                            \
+        gl_Position.xyz = vertexPosition_modelspace;                         \
+        texcoord = vertexUV;                                                 \
+    }                                                                        \
+";
+
+static const char *const fragment_shader_src = "                             \
+    #version 330 core                                                        \
+    in vec2 texcoord;                                                        \
+    out vec3 color;                                                          \
+    uniform sampler2D video_data_y;                                          \
+    uniform sampler2D video_data_u;                                          \
+    uniform sampler2D video_data_v;                                          \
+    void main() {                                                            \
+        float y = texture(video_data_y, texcoord).r;                         \
+        float u = texture(video_data_u, texcoord).r - 0.5;                   \
+        float v = texture(video_data_v, texcoord).r - 0.5;                   \
+        float r = y + 1.402 * v;                                             \
+        float g = y - 0.344 * u - 0.714 * v;                                 \
+        float b = y + 1.772 * u;                                             \
+        color = vec3(r, g, b);                                               \
+    }                                                                        \
+";
+
+- (void) _gl_init {
+    _program = load_shaders(vertex_shader_src, fragment_shader_src) ;
+    _location_y = glGetUniformLocation(_program, "video_data_y");
+    _location_u = glGetUniformLocation(_program, "video_data_u");
+    _location_v = glGetUniformLocation(_program, "video_data_v");
+
+    const GLfloat vertex_data[] = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+    };
+    glGenBuffers(1, &_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, _vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+
+    const GLfloat texture_vertex_data[] = {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+    };
+    glGenBuffers(1, &_texture_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, _texture_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(texture_vertex_data), texture_vertex_data, GL_STATIC_DRAW);
+
+    glGenTextures(3, _textures);
+    for(int i = 0; i < 3; ++i) {
+        glBindTexture(GL_TEXTURE_2D, _textures[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    }
+}
+
+GLuint load_shaders(const char * VertexShaderCode, const char * FragmentShaderCode) {
+    GLuint vertex_shader_id = init_shader(GL_VERTEX_SHADER, VertexShaderCode);
+    GLuint fragment_shader_id = init_shader(GL_FRAGMENT_SHADER, FragmentShaderCode);
+
+    GLuint prog_id = glCreateProgram();
+    glAttachShader(prog_id, vertex_shader_id);
+    glAttachShader(prog_id, fragment_shader_id);
+    glLinkProgram(prog_id);
+
+    GLint Result = GL_FALSE;
+    glGetProgramiv(prog_id, GL_LINK_STATUS, &Result);
+    int info_log_length;
+    glGetProgramiv(prog_id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if(info_log_length > 0) {
+        char* err = malloc(info_log_length + 1);
+        glGetProgramInfoLog(prog_id, info_log_length, NULL, err);
+        NSLog(@"LAVPLayer: error linking shader:\n%s", err);
+        free(err);
+        return 0;
+    }
+
+    glDetachShader(prog_id, vertex_shader_id);
+    glDetachShader(prog_id, fragment_shader_id);
+    glDeleteShader(vertex_shader_id);
+    glDeleteShader(fragment_shader_id);
+    return prog_id;
+}
+
+GLuint init_shader(GLenum kind, const char* code) {
+    GLuint shader_id = glCreateShader(kind);
+    glShaderSource(shader_id, 1, &code , NULL);
+    glCompileShader(shader_id);
+    GLint Result = GL_FALSE;
+    glGetShaderiv(shader_id, GL_COMPILE_STATUS, &Result);
+    int info_log_length;
+    glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &info_log_length);
+    if(info_log_length > 0) {
+        char* err = malloc(info_log_length + 1);
+        glGetShaderInfoLog(shader_id, info_log_length, NULL, err);
+        NSLog(@"LAVPLayer: error compiling shader:\n%s", err);
+        free(err);
+        return 0;
+    }
+    return shader_id;
+}
+
+- (void) _gl_cleanup {
+    if(_textures[0]) glDeleteTextures(3, _textures);
+    for(int i = 0; i < 3; ++i) _textures[i] = 0;
+    if(_vertex_buffer) glDeleteBuffers(1, &_vertex_buffer);
+    _vertex_buffer = 0;
+    if(_texture_vertex_buffer) glDeleteBuffers(1, &_texture_vertex_buffer);
+    _texture_vertex_buffer = 0;
+    if(_program) glDeleteProgram(_program);
+    _program = 0;
+}
+
+- (void) _gl_draw {
+    [_lock lock];
+    Frame* frm = [_movie getCurrentFrame];
+
+    // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
+    if(frm) {
+        glBindTexture(GL_TEXTURE_2D, _textures[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width, frm->height, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[0]);
+        glBindTexture(GL_TEXTURE_2D, _textures[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width / 2, frm->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[1]);
+        glBindTexture(GL_TEXTURE_2D, _textures[2]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width / 2, frm->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[2]);
+    }
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    GLuint vertex_array_id;
+    glGenVertexArrays(1, &vertex_array_id);
+    glBindVertexArray(vertex_array_id);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(_program);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _textures[0]);
+    glUniform1i(_location_y, 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _textures[1]);
+    glUniform1i(_location_u, 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, _textures[2]);
+    glUniform1i(_location_v, 2);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, _vertex_buffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, _texture_vertex_buffer);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+
+    glDeleteVertexArrays(1, &vertex_array_id);
+
+    [_lock unlock];
 }
 
 @end

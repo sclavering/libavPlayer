@@ -59,12 +59,6 @@
         [dt cancel];
         while (![dt isFinished]) usleep(10*1000);
         stream_close(is);
-
-        // xxx do this somewhere more sensible
-        if (is->pixelbuffer) {
-            CVPixelBufferRelease(is->pixelbuffer);
-            is->pixelbuffer = NULL;
-        }
     }
 }
 
@@ -176,8 +170,8 @@
     if (is->audio_stream >= 0) setVolume(is, newVolume);
 }
 
-- (CVPixelBufferRef) getCVPixelBuffer {
-    return lavp_get_pixelbuffer(is);
+- (Frame*) getCurrentFrame {
+    return lavp_get_current_frame(is);
 }
 
 - (void) threadMain
