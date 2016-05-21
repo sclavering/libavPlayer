@@ -23,9 +23,6 @@
 
 #import <OpenGL/gl3.h>
 
-#define DUMMY_W 640
-#define DUMMY_H 480
-
 
 @implementation LAVPLayer
 
@@ -180,28 +177,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
     _movie = movie;
     _movie.movieOutput = self;
-
-    // Get the size of the image we are going to need throughout
-    if (_movie && [_movie frameSize].width && [_movie frameSize].height)
-        _textureRect = CGRectMake(0, 0, [_movie frameSize].width, [_movie frameSize].height);
-    else
-        _textureRect = CGRectMake(0, 0, DUMMY_W, DUMMY_H);
-
-    // Get the aspect ratio for possible scaling (e.g. texture coordinates)
-    _imageAspectRatio = _textureRect.size.width / _textureRect.size.height;
-
-    // Shrink texture size if it is bigger than limit
-    GLint maxTexSize;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
-    if (_textureRect.size.width > maxTexSize || _textureRect.size.height > maxTexSize) {
-        if (_imageAspectRatio > 1) {
-            _textureRect.size.width = maxTexSize;
-            _textureRect.size.height = maxTexSize / _imageAspectRatio;
-        } else {
-            _textureRect.size.width = maxTexSize * _imageAspectRatio;
-            _textureRect.size.height = maxTexSize;
-        }
-    }
 
     [self setNeedsDisplay];
 

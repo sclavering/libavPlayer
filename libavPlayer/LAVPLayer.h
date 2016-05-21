@@ -33,9 +33,6 @@
 @private
     NSLock *_lock;
 
-    GLfloat _imageAspectRatio;
-    CGRect _textureRect; // May be smaller than original CIImage extent
-
     CGLPixelFormatObj   _cglPixelFormat;
     CGLContextObj       _cglContext;
 
