@@ -130,9 +130,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         [self _initOpenGL];
 
-        // Turn on VBL syncing for swaps
-        self.asynchronous = YES;
-
         // Update back buffer size as is
         self.needsDisplayOnBoundsChange = YES;
 
@@ -444,7 +441,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [self setNeedsDisplay];
 
     [_lock unlock];
-    self.asynchronous = YES;
+    self.asynchronous = !movie.paused;
 }
 
 /* =============================================================================================== */
