@@ -367,11 +367,10 @@ Frame* lavp_get_current_frame(VideoState *is)
     if (!vp)
         goto finish;
 
-    if (vp->frm_pts >= 0 && vp->frm_pts == is->lastPTScopied)
+    if (vp->frm_pts >= 0 && vp == is->last_frame)
         goto finish;
 
     is->last_frame = vp;
-    is->lastPTScopied = vp->frm_pts;
     success = true;
 
 finish:

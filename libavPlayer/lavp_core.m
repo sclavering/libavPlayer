@@ -373,7 +373,7 @@ int read_thread(VideoState* is)
 
                 // Seek
                 if (is->seek_req) {
-                    is->lastPTScopied = -1;
+                    is->last_frame = NULL;
                     int64_t seek_target= is->seek_pos;
                     int64_t seek_min= is->seek_rel > 0 ? seek_target - is->seek_rel + 2: INT64_MIN;
                     int64_t seek_max= is->seek_rel < 0 ? seek_target - is->seek_rel - 2: INT64_MAX;
@@ -683,7 +683,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     /* ======================================== */
 
     is->movieWrapper = movieWrapper;
-    is->lastPTScopied = -1;
+    is->last_frame = NULL;
 
     is->infinite_buffer = -1;
     is->rdftspeed = 0.02;

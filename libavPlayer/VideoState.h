@@ -104,7 +104,6 @@
     int eof;
 
     // LAVP: extras
-    double lastPTScopied;
     Frame* last_frame;
 }
 @end;
