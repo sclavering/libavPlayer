@@ -39,8 +39,6 @@
 #define AV_NOSYNC_THRESHOLD 10.0
 
 
-void video_display(VideoState *is);
-
 double compute_target_delay(double delay, VideoState *is);
 
 int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial);
@@ -60,15 +58,6 @@ void free_picture(Frame *vp)
         vp->frm_bmp = NULL;
     }
 }
-
-void video_display(VideoState *is)
-{
-    if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
-        video_open(is, NULL);
-    }
-}
-
-#pragma mark -
 
 int video_open(VideoState *is, Frame *vp){
     /* LAVP: No need for SDL support; Independent from screen rect */
@@ -196,7 +185,9 @@ void video_refresh(VideoState *is, double *remaining_time)
         LAVPUnlockMutex(is->pictq.mutex);
     }
 
-    video_display(is);
+    if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
+        video_open(is, NULL);
+    }
 
     frame_queue_next(&is->pictq);
 
