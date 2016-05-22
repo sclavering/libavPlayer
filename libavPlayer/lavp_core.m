@@ -394,7 +394,7 @@ int read_thread(VideoState* is)
                     is->queue_attachments_req = 1;
                     is->eof = 0;
                     if (is->paused) {
-                        stream_set_paused(is, false);
+                        lavp_set_paused(is, false);
                         is->is_temporarily_unpaused_to_handle_seeking = true;
                     }
                 }
@@ -563,10 +563,11 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
     }
 }
 
-void stream_set_paused(VideoState *is, bool pause)
+void lavp_set_paused(VideoState *is, bool pause)
 {
     if(pause == is->paused)
         return;
+    is->is_temporarily_unpaused_to_handle_seeking = false;
     if (is->paused && !pause) {
         is->frame_timer += av_gettime_relative() / 1000000.0 - is->vidclk.last_updated;
         if (is->read_pause_return != AVERROR(ENOSYS)) is->vidclk.paused = 0;
@@ -579,12 +580,6 @@ void stream_set_paused(VideoState *is, bool pause)
         else
             LAVPAudioQueueStart(is);
     }
-}
-
-void lavp_set_paused(VideoState *is, bool pause)
-{
-    stream_set_paused(is, pause);
-    is->is_temporarily_unpaused_to_handle_seeking = false;
 }
 
 void stream_close(VideoState *is)

@@ -192,8 +192,7 @@ void video_refresh(VideoState *is, double *remaining_time)
     frame_queue_next(&is->pictq);
 
     if (is->is_temporarily_unpaused_to_handle_seeking) {
-        stream_set_paused(is, true);
-        is->is_temporarily_unpaused_to_handle_seeking = false;
+        lavp_set_paused(is, true);
     }
 }
 
