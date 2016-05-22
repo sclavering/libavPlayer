@@ -35,9 +35,10 @@ double get_master_clock(VideoState *is);
 
 void stream_seek(VideoState *is, int64_t pos, int64_t rel);
 void stream_set_paused(VideoState *is, bool pause);
-void toggle_pause(VideoState *is);
 
 void stream_close(VideoState *is);
 VideoState* stream_open(id lavpMovie, NSURL *sourceURL);
 double stream_playRate(VideoState *is);
 void stream_setPlayRate(VideoState *is, double newRate);
+
+void lavp_set_paused(VideoState *is, bool pause);

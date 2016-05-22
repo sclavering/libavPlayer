@@ -427,8 +427,8 @@ int read_thread(VideoState* is)
                     (!is->audio_st || (is->auddec->finished == is->audioq.serial && frame_queue_nb_remaining(&is->sampq) == 0)) &&
                     (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
-                    toggle_pause(is);
-                    [   is->movieWrapper haveReachedEOF];
+                    lavp_set_paused(is, true);
+                    [is->movieWrapper haveReachedEOF];
                 }
 
                 ret = av_read_frame(is->ic, pkt);
@@ -580,9 +580,9 @@ void stream_set_paused(VideoState *is, bool pause)
     }
 }
 
-void toggle_pause(VideoState *is)
+void lavp_set_paused(VideoState *is, bool pause)
 {
-    stream_set_paused(is, !is->paused);
+    stream_set_paused(is, pause);
     is->step = 0;
 }
 

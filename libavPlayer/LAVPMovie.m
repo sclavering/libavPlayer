@@ -45,7 +45,7 @@
             if (!isnan(get_master_clock(is)) && frame_queue_nb_remaining(&is->pictq)) break;
         }
         if (retry < 0) NSLog(@"ERROR: stream_open timeout detected.");
-        toggle_pause(is);
+        lavp_set_paused(is, true);
     }
 
     return self;
@@ -144,7 +144,7 @@
 }
 
 - (void) setPaused:(BOOL)shouldPause {
-    if(shouldPause ? !is->paused : is->paused) toggle_pause(is);
+    lavp_set_paused(is, shouldPause);
     if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
 }
 
