@@ -362,7 +362,6 @@ Frame* lavp_get_current_frame(VideoState *is)
         goto finish;
 
     Frame *vp = frame_queue_peek(&is->pictq);
-    if (!vp) vp = frame_queue_peek_last(&is->pictq);
 
     if (!vp)
         goto finish;
