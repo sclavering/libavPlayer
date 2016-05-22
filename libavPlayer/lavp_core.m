@@ -572,18 +572,18 @@ void stream_set_paused(VideoState *is, bool pause)
         set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
     }
     is->paused = is->audclk.paused = is->vidclk.paused = pause;
-}
-
-void toggle_pause(VideoState *is)
-{
-    stream_set_paused(is, !is->paused);
-    is->step = 0;
     if (is->audio_stream >= 0) {
         if (is->paused)
             LAVPAudioQueuePause(is);
         else
             LAVPAudioQueueStart(is);
     }
+}
+
+void toggle_pause(VideoState *is)
+{
+    stream_set_paused(is, !is->paused);
+    is->step = 0;
 }
 
 void step_to_next_frame(VideoState *is)
