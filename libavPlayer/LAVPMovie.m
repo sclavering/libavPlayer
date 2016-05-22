@@ -201,11 +201,6 @@
     }
 }
 
-- (void) allocPicture
-{
-    alloc_picture(is);
-}
-
 - (void) refreshPicture
 {
     refresh_loop_wait_event(is);

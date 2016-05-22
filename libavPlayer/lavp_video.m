@@ -217,8 +217,6 @@ void video_refresh(VideoState *is, double *remaining_time)
         stream_toggle_pause(is);
 }
 
-/* allocate a picture (needs to do that in main thread to avoid
- potential locking problems */
 void alloc_picture(VideoState *is)
 {
     /* LAVP: Use AVFrame instead of SDL_YUVOverlay */
@@ -264,25 +262,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         vp->width = src_frame->width;
         vp->height = src_frame->height;
 
-        /* the allocation must be done in the main thread to avoid
-         locking problems. */
-        /* LAVP: Using is->decoderThread */
-        id movieWrapper = is->movieWrapper;
-        NSThread *thread = is->decoderThread;
-        [movieWrapper performSelector:@selector(allocPicture) onThread:thread withObject:nil waitUntilDone:NO];
-
-        /* wait until the picture is allocated */
-        LAVPLockMutex(is->pictq.mutex);
-        while (!vp->allocated && !is->videoq.abort_request) {
-            LAVPCondWait(is->pictq.cond, is->pictq.mutex);
-        }
-        /* if the queue is aborted, we have to pop the pending ALLOC event or wait for the allocation to complete */
-        if (is->videoq.abort_request) {
-            while (!vp->allocated && !is->abort_request) {
-                LAVPCondWait(is->pictq.cond, is->pictq.mutex);
-            }
-        }
-        LAVPUnlockMutex(is->pictq.mutex);
+        alloc_picture(is);
 
         if (is->videoq.abort_request)
             return -1;
