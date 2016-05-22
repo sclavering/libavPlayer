@@ -116,7 +116,6 @@
         if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
         stream_seek(is, newTime, 0);
     }
-    if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
     if(!wasPaused) self.paused = false;
 }
 
