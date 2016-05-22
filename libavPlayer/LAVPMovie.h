@@ -43,6 +43,8 @@
 @property (readonly) NSSize frameSize;
 @property (readonly) int64_t durationInMicroseconds;
 @property (assign) int64_t currentTimeInMicroseconds;
+
+// How far along we are in playing the movie.  0.0 for the start, and 1.0 for the end.
 @property (assign) double position;
 
 @property BOOL paused;

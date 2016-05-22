@@ -89,11 +89,6 @@
     return [self _currentTimeInMicroseconds];
 }
 
-- (void) setCurrentTimeInMicroseconds:(int64_t)newTime
-{
-    [self _seek:newTime];
-}
-
 - (double) position
 {
     // position uses double value between 0.0 and 1.0
@@ -111,32 +106,26 @@
     return (double)position/duration;
 }
 
-- (void) setPosition:(double)newPosition
-{
+- (void) setPosition:(double)newPosition {
+    [self setCurrentTimeInMicroseconds: newPosition * self.durationInMicroseconds];
+}
+
+- (void) setCurrentTimeInMicroseconds:(int64_t)newTime {
     // If you seek without pausing the seeking takes ages (several seconds).
     bool wasPaused = self.paused;
     self.paused = true;
-    [self _setPosition:newPosition];
-    if(!wasPaused) self.paused = false;
-}
-
-- (void) _setPosition:(double)newPosition
-{
-    // position uses double value between 0.0 and 1.0
-
-    int64_t duration = [self durationInMicroseconds];
-
-    // clipping
-    newPosition = (newPosition<0.0 ? 0.0 : newPosition);
-    newPosition = (newPosition>1.0 ? 1.0 : newPosition);
-
+    if(newTime < 0) newTime = 0;
+    if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
     self.busy = YES;
-
-    [self _seek: newPosition * duration];
-
+    if(is && is->ic) {
+        // This exists because get_master_clock() returns NAN after seeking while paused, and we need to mask that.
+        lastPosition = newTime;
+        if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
+        stream_seek(is, newTime, 0);
+    }
     self.busy = NO;
-
     if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
+    if(!wasPaused) self.paused = false;
 }
 
 - (BOOL) paused {
@@ -216,20 +205,6 @@
         return lastPosition;
     }
     return 0;
-}
-
-- (void) _seek:(int64_t)pos {
-    // pos is in microseconds
-
-    if (is && is->ic) {
-        // This exists because get_master_clock() returns NAN after seeking while paused, and we need to mask that.
-        lastPosition = pos;
-
-        int64_t ts = FFMIN(is->ic->duration , FFMAX(0, pos));
-        if (is->ic->start_time != AV_NOPTS_VALUE)
-            ts += is->ic->start_time;
-        stream_seek(is, ts, -10);
-    }
 }
 
 - (void) haveReachedEOF
