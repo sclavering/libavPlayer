@@ -325,33 +325,27 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 int video_thread(VideoState *is)
 {
     AVFrame *frame= av_frame_alloc();
-    double pts;
-    double duration;
-    int ret;
     AVRational tb = is->video_st->time_base;
     AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
 
     for(;;) {
         @autoreleasepool {
-            ret = get_video_frame(is, frame);
-            if (ret < 0) {
-                goto the_end;
-            }
+            int ret = get_video_frame(is, frame);
+            if (ret < 0)
+                break;
             if (!ret)
                 continue;
 
-            duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-            pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            double duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
+            double pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
             ret = queue_picture(is, frame, pts, duration, av_frame_get_pkt_pos(frame), is->viddec->pkt_serial);
             av_frame_unref(frame);
-
             if (ret < 0)
-                goto the_end;
+                break;
         }
     }
-the_end:
-    av_frame_free(&frame);
 
+    av_frame_free(&frame);
     return 0;
 }
 
