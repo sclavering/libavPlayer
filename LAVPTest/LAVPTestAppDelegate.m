@@ -151,7 +151,7 @@ NSString* formatTime(int64_t usec)
     NSSlider *pos = (NSSlider*) sender;
     double_t newPos = [pos doubleValue];
 
-    if ([pos window] == viewwindow && !viewmovie.busy) {
+    if ([pos window] == viewwindow) {
         if (newPos != viewPrev) {
             [viewmovie setPosition:newPos];
             viewPrev = newPos;

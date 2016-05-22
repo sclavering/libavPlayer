@@ -110,14 +110,12 @@
     self.paused = true;
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
-    self.busy = YES;
     if(is && is->ic) {
         // This exists because get_master_clock() returns NAN after seeking while paused, and we need to mask that.
         lastPosition = newTime;
         if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
         stream_seek(is, newTime, 0);
     }
-    self.busy = NO;
     if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
     if(!wasPaused) self.paused = false;
 }

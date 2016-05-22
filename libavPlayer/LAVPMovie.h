@@ -53,7 +53,6 @@
 @property (assign) double rate;
 
 @property (assign) float volume;
-@property BOOL busy;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
 
