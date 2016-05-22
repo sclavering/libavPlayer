@@ -229,26 +229,17 @@
         if (is->ic->start_time != AV_NOPTS_VALUE)
             ts += is->ic->start_time;
         stream_seek(is, ts, -10);
-
-        // Without the following code, the video output doesn't consistently update if seeking while paused (sometimes it doesn't update at all, and sometimes it's showing not quite the right frame).
-
-        int count = 0, limit = 200;
-        // Wait till avformat_seek_file() is completed
-        for ( ; limit > count; count++) {
-            if (!is->seek_req) break;
-            usleep(10000);
-        }
-        // wait till is->paused == true
-        for ( ; limit > count; count++) {
-            if (is->paused) break;
-            usleep(10000);
-        }
     }
 }
 
 - (void) haveReachedEOF
 {
     if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:false];
+}
+
+- (void) haveFinishedSeekingWhilePaused
+{
+    if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
 }
 
 @end

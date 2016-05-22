@@ -25,8 +25,8 @@
 #import "lavp_video.h"
 #import "packetqueue.h"
 #import "lavp_audio.h"
-
 #import "lavp_util.h"
+#import "LAVPMovie+Internal.h"
 
 
 /* no AV sync correction is done if below the minimum AV sync threshold */
@@ -193,6 +193,7 @@ void video_refresh(VideoState *is, double *remaining_time)
 
     if (is->is_temporarily_unpaused_to_handle_seeking) {
         lavp_set_paused(is, true);
+        [is->movieWrapper haveFinishedSeekingWhilePaused];
     }
 }
 

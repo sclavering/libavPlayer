@@ -4,4 +4,5 @@
 @interface LAVPMovie (Internal)
 - (Frame*) getCurrentFrame;
 - (void) haveReachedEOF;
+- (void) haveFinishedSeekingWhilePaused;
 @end
