@@ -61,23 +61,10 @@ void free_picture(Frame *vp)
     }
 }
 
-/*
- TODO:
- fill_rectangle()
- fill_border()
- calculate_display_rect()
- video_image_display()
- compute_mod()
- video_audio_display()
- */
-
-/* display the current picture, if any */
 void video_display(VideoState *is)
 {
     if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
         video_open(is, NULL);
-    } else if (is->video_st) {
-        //video_image_display(is); /* TODO */
     }
 }
 
