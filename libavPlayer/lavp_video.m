@@ -191,8 +191,7 @@ void video_refresh(VideoState *is, double *remaining_time)
 
     frame_queue_next(&is->pictq);
 
-    if (is->step && !is->paused)
-        stream_toggle_pause(is);
+    if (is->step && !is->paused) stream_set_paused(is, true);
 }
 
 void alloc_picture(VideoState *is)

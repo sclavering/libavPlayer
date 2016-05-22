@@ -562,22 +562,21 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
     }
 }
 
-/* pause or resume the video */
-void stream_toggle_pause(VideoState *is)
+void stream_set_paused(VideoState *is, bool pause)
 {
-    if (is->paused) {
+    if(pause == is->paused)
+        return;
+    if (is->paused && !pause) {
         is->frame_timer += av_gettime_relative() / 1000000.0 - is->vidclk.last_updated;
-        if (is->read_pause_return != AVERROR(ENOSYS)) {
-            is->vidclk.paused = 0;
-        }
+        if (is->read_pause_return != AVERROR(ENOSYS)) is->vidclk.paused = 0;
         set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
     }
-    is->paused = is->audclk.paused = is->vidclk.paused = !is->paused;
+    is->paused = is->audclk.paused = is->vidclk.paused = pause;
 }
 
 void toggle_pause(VideoState *is)
 {
-    stream_toggle_pause(is);
+    stream_set_paused(is, !is->paused);
     is->step = 0;
     if (is->audio_stream >= 0) {
         if (is->paused)
@@ -590,8 +589,7 @@ void toggle_pause(VideoState *is)
 void step_to_next_frame(VideoState *is)
 {
     /* if the stream is paused unpause it, then step */
-    if (is->paused)
-        stream_toggle_pause(is);
+    if (is->paused) stream_set_paused(is, false);
     is->step = 1;
 }
 
