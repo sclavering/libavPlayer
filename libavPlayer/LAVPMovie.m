@@ -84,25 +84,19 @@
     return is->ic ? is->ic->duration : 0;
 }
 
-- (int64_t) currentTimeInMicroseconds
-{
-    return [self _currentTimeInMicroseconds];
+- (int64_t) currentTimeInMicroseconds {
+    if(!is || !is->ic) return 0;
+    double pos = get_master_clock(is) * 1e6;
+    if(!isnan(pos)) lastPosition = pos;
+    return lastPosition;
 }
 
-- (double) position
-{
-    // position uses double value between 0.0 and 1.0
-
-    int64_t position = [self _currentTimeInMicroseconds];
+- (double) position {
+    int64_t position = [self currentTimeInMicroseconds];
     int64_t duration = [self durationInMicroseconds];
-
-    // check if no duration
-    if (duration == 0) return 0;
-
-    // clipping
+    if(duration == 0) return 0;
     position = (position < 0 ? 0 : position);
     position = (position > duration ? duration : position);
-
     return (double)position/duration;
 }
 
@@ -193,18 +187,6 @@
 - (void) refreshPicture
 {
     refresh_loop_wait_event(is);
-}
-
-- (int64_t) _currentTimeInMicroseconds
-{
-    if (is && is->ic) {
-        double pos = get_master_clock(is) * 1e6;
-        if (!isnan(pos)) {
-            lastPosition = pos;
-        }
-        return lastPosition;
-    }
-    return 0;
 }
 
 - (void) haveReachedEOF
