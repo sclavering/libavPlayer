@@ -100,55 +100,55 @@ int audio_decode_frame(VideoState *is)
             if (!(af = frame_queue_peek_readable(&is->sampq)))
                 return -1;
             frame_queue_next(&is->sampq);
-        } while (af->serial != is->audioq.serial);
+        } while (af->frm_serial != is->audioq.serial);
 
         {
-            data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frame),
-                                                   af->frame->nb_samples,
-                                                   af->frame->format, 1);
+            data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame),
+                                                   af->frm_frame->nb_samples,
+                                                   af->frm_frame->format, 1);
 
             dec_channel_layout =
-                (af->frame->channel_layout && av_frame_get_channels(af->frame) == av_get_channel_layout_nb_channels(af->frame->channel_layout)) ?
-                af->frame->channel_layout : av_get_default_channel_layout(av_frame_get_channels(af->frame));
-            wanted_nb_samples = synchronize_audio(is, af->frame->nb_samples);
+                (af->frm_frame->channel_layout && av_frame_get_channels(af->frm_frame) == av_get_channel_layout_nb_channels(af->frm_frame->channel_layout)) ?
+                af->frm_frame->channel_layout : av_get_default_channel_layout(av_frame_get_channels(af->frm_frame));
+            wanted_nb_samples = synchronize_audio(is, af->frm_frame->nb_samples);
 
-            if (af->frame->format        != is->audio_src.fmt            ||
+            if (af->frm_frame->format        != is->audio_src.fmt            ||
                 dec_channel_layout       != is->audio_src.channel_layout ||
-                af->frame->sample_rate   != is->audio_src.freq           ||
-                (wanted_nb_samples       != af->frame->nb_samples && !is->swr_ctx)) {
+                af->frm_frame->sample_rate   != is->audio_src.freq           ||
+                (wanted_nb_samples       != af->frm_frame->nb_samples && !is->swr_ctx)) {
 
                 swr_free(&is->swr_ctx);
                 is->swr_ctx = swr_alloc_set_opts(NULL,
                                                  is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq,
-                                                 dec_channel_layout,           af->frame->format, af->frame->sample_rate,
+                                                 dec_channel_layout,           af->frm_frame->format, af->frm_frame->sample_rate,
                                                  0, NULL);
                 if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
                     av_log(NULL, AV_LOG_ERROR,
                            "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
-                           af->frame->sample_rate, av_get_sample_fmt_name(af->frame->format), av_frame_get_channels(af->frame),
+                           af->frm_frame->sample_rate, av_get_sample_fmt_name(af->frm_frame->format), av_frame_get_channels(af->frm_frame),
                            is->audio_tgt.freq, av_get_sample_fmt_name(is->audio_tgt.fmt), is->audio_tgt.channels);
                     swr_free(&is->swr_ctx);
                     return -1;
                 }
                 is->audio_src.channel_layout = dec_channel_layout;
-                is->audio_src.channels       = av_frame_get_channels(af->frame);
-                is->audio_src.freq = af->frame->sample_rate;
-                is->audio_src.fmt = af->frame->format;
+                is->audio_src.channels       = av_frame_get_channels(af->frm_frame);
+                is->audio_src.freq = af->frm_frame->sample_rate;
+                is->audio_src.fmt = af->frm_frame->format;
             }
 
             if (is->swr_ctx) {
-                const uint8_t **in = (const uint8_t **)af->frame->extended_data;
+                const uint8_t **in = (const uint8_t **)af->frm_frame->extended_data;
                 uint8_t **out = &is->audio_buf1;
-                int out_count = (int64_t)wanted_nb_samples * is->audio_tgt.freq / af->frame->sample_rate + 256;
+                int out_count = (int64_t)wanted_nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate + 256;
                 int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, out_count, is->audio_tgt.fmt, 0);
                 int len2;
                 if (out_size < 0) {
                     av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
                     return -1;
                 }
-                if (wanted_nb_samples != af->frame->nb_samples) {
-                    if (swr_set_compensation(is->swr_ctx, (wanted_nb_samples - af->frame->nb_samples) * is->audio_tgt.freq / af->frame->sample_rate,
-                                             wanted_nb_samples * is->audio_tgt.freq / af->frame->sample_rate) < 0) {
+                if (wanted_nb_samples != af->frm_frame->nb_samples) {
+                    if (swr_set_compensation(is->swr_ctx, (wanted_nb_samples - af->frm_frame->nb_samples) * is->audio_tgt.freq / af->frm_frame->sample_rate,
+                                             wanted_nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate) < 0) {
                         av_log(NULL, AV_LOG_ERROR, "swr_set_compensation() failed\n");
                         return -1;
                     }
@@ -156,7 +156,7 @@ int audio_decode_frame(VideoState *is)
                 av_fast_malloc(&is->audio_buf1, &is->audio_buf1_size, out_size);
                 if (!is->audio_buf1)
                     return AVERROR(ENOMEM);
-                len2 = swr_convert(is->swr_ctx, out, out_count, in, af->frame->nb_samples);
+                len2 = swr_convert(is->swr_ctx, out, out_count, in, af->frm_frame->nb_samples);
                 if (len2 < 0) {
                     av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
                     return -1;
@@ -169,17 +169,17 @@ int audio_decode_frame(VideoState *is)
                 is->audio_buf = is->audio_buf1;
                 resampled_data_size = len2 * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
             } else {
-                is->audio_buf = af->frame->data[0];
+                is->audio_buf = af->frm_frame->data[0];
                 resampled_data_size = data_size;
             }
 
             audio_clock0 = is->audio_clock;
             /* update the audio clock with the pts */
-            if (!isnan(af->pts))
-                is->audio_clock = af->pts + (double) af->frame->nb_samples / af->frame->sample_rate;
+            if (!isnan(af->frm_pts))
+                is->audio_clock = af->frm_pts + (double) af->frm_frame->nb_samples / af->frm_frame->sample_rate;
             else
                 is->audio_clock = NAN;
-            is->audio_clock_serial = af->serial;
+            is->audio_clock_serial = af->frm_serial;
             return resampled_data_size;
         }
     }
@@ -526,12 +526,12 @@ int audio_thread(VideoState *is)
             if (!(af = frame_queue_peek_writable(&is->sampq)))
                 goto the_end;
 
-            af->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            af->pos = av_frame_get_pkt_pos(frame);
-            af->serial = is->auddec->pkt_serial;
-            af->duration = av_q2d((AVRational){frame->nb_samples, frame->sample_rate});
+            af->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            af->frm_pos = av_frame_get_pkt_pos(frame);
+            af->frm_serial = is->auddec->pkt_serial;
+            af->frm_duration = av_q2d((AVRational){frame->nb_samples, frame->sample_rate});
 
-            av_frame_move_ref(af->frame, frame);
+            av_frame_move_ref(af->frm_frame, frame);
             frame_queue_push(&is->sampq);
         }
     } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);

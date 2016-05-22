@@ -2,15 +2,15 @@
 
 /* Common struct for handling all types of decoded data and allocated render buffers. */
 typedef struct Frame {
-    AVFrame *frame;
-    int serial;
-    double pts;           /* presentation timestamp for the frame */
-    double duration;      /* estimated duration of the frame */
-    int64_t pos;          /* byte position of the frame in the input file */
-    AVFrame *bmp; // lavp: SDL_Overlay* in ffplay
-    int allocated;
-    int width;
-    int height;
+    AVFrame *frm_frame;
+    int frm_serial;
+    double frm_pts;           /* presentation timestamp for the frame */
+    double frm_duration;      /* estimated duration of the frame */
+    int64_t frm_pos;          /* byte position of the frame in the input file */
+    AVFrame *frm_bmp; // lavp: SDL_Overlay* in ffplay
+    int frm_allocated;
+    int frm_width;
+    int frm_height;
 } Frame;
 
 typedef struct FrameQueue {

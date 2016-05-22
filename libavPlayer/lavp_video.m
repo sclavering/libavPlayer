@@ -54,10 +54,10 @@ void video_refresh(VideoState *is, double *remaining_time);
 
 void free_picture(Frame *vp)
 {
-    if (vp->bmp) {
-        avpicture_free((AVPicture*)vp->bmp);
-        av_free(vp->bmp);
-        vp->bmp = NULL;
+    if (vp->frm_bmp) {
+        avpicture_free((AVPicture*)vp->frm_bmp);
+        av_free(vp->frm_bmp);
+        vp->frm_bmp = NULL;
     }
 }
 
@@ -87,9 +87,9 @@ int video_open(VideoState *is, Frame *vp){
     /* LAVP: No need for SDL support; Independent from screen rect */
     int w,h;
 
-    if (vp && vp->width * vp->height) {
-        w = vp->width;
-        h = vp->height;
+    if (vp && vp->frm_width * vp->frm_height) {
+        w = vp->frm_width;
+        h = vp->frm_height;
     } else if (is->video_st && is->video_st->codec->width){
         w = is->video_st->codec->width;
         h = is->video_st->codec->height;
@@ -134,10 +134,10 @@ double compute_target_delay(double delay, VideoState *is)
 }
 
 static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
-    if (vp->serial == nextvp->serial) {
-        double duration = nextvp->pts - vp->pts;
+    if (vp->frm_serial == nextvp->frm_serial) {
+        double duration = nextvp->frm_pts - vp->frm_pts;
         if (isnan(duration) || duration <= 0 || duration > is->max_frame_duration)
-            return vp->duration;
+            return vp->frm_duration;
         else
             return duration;
     } else {
@@ -178,14 +178,14 @@ void video_refresh(VideoState *is, double *remaining_time)
         lastvp = frame_queue_peek_last(&is->pictq);
         vp = frame_queue_peek(&is->pictq);
 
-        if (vp->serial != is->videoq.serial) {
+        if (vp->frm_serial != is->videoq.serial) {
             frame_queue_next(&is->pictq);
             continue;
         }
         break;
     }
 
-    if (lastvp->serial != vp->serial)
+    if (lastvp->frm_serial != vp->frm_serial)
         is->frame_timer = av_gettime_relative() / 1000000.0;
 
     if (!is->paused) {
@@ -204,8 +204,8 @@ void video_refresh(VideoState *is, double *remaining_time)
             is->frame_timer = time;
 
         LAVPLockMutex(is->pictq.mutex);
-        if (!isnan(vp->pts))
-            update_video_pts(is, vp->pts, vp->pos, vp->serial);
+        if (!isnan(vp->frm_pts))
+            update_video_pts(is, vp->frm_pts, vp->frm_pos, vp->frm_serial);
         LAVPUnlockMutex(is->pictq.mutex);
     }
 
@@ -236,11 +236,11 @@ void alloc_picture(VideoState *is)
 
     video_open(is, vp);
 
-    vp->pts     = -1;
-    vp->width   = is->video_st->codec->width;
-    vp->height  = is->video_st->codec->height;
-    vp->bmp = picture;
-    vp->allocated = 1;
+    vp->frm_pts     = -1;
+    vp->frm_width   = is->video_st->codec->width;
+    vp->frm_height  = is->video_st->codec->height;
+    vp->frm_bmp = picture;
+    vp->frm_allocated = 1;
 
     LAVPCondSignal(is->pictq.cond);
     LAVPUnlockMutex(is->pictq.mutex);
@@ -254,13 +254,13 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         return -1;
 
     /* alloc or resize hardware picture buffer */
-    if (!vp->bmp || !vp->allocated ||
-        vp->width != is->video_st->codec->width ||
-        vp->height != is->video_st->codec->height) {
+    if (!vp->frm_bmp || !vp->frm_allocated ||
+        vp->frm_width != is->video_st->codec->width ||
+        vp->frm_height != is->video_st->codec->height) {
 
-        vp->allocated = 0;
-        vp->width = src_frame->width;
-        vp->height = src_frame->height;
+        vp->frm_allocated = 0;
+        vp->frm_width = src_frame->width;
+        vp->frm_height = src_frame->height;
 
         alloc_picture(is);
 
@@ -269,45 +269,45 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
     }
 
     /* if the frame is not skipped, then display it */
-    if (vp->bmp) {
+    if (vp->frm_bmp) {
         AVPicture pict = { { 0 } };
 
         /* get a pointer on the bitmap */
         /* LAVP: Using AVFrame */
         memset(&pict,0,sizeof(AVPicture));
-        pict.data[0] = vp->bmp->data[0];
-        pict.data[1] = vp->bmp->data[1];
-        pict.data[2] = vp->bmp->data[2];
+        pict.data[0] = vp->frm_bmp->data[0];
+        pict.data[1] = vp->frm_bmp->data[1];
+        pict.data[2] = vp->frm_bmp->data[2];
 
-        pict.linesize[0] = vp->bmp->linesize[0];
-        pict.linesize[1] = vp->bmp->linesize[1];
-        pict.linesize[2] = vp->bmp->linesize[2];
+        pict.linesize[0] = vp->frm_bmp->linesize[0];
+        pict.linesize[1] = vp->frm_bmp->linesize[1];
+        pict.linesize[2] = vp->frm_bmp->linesize[2];
 
         /* LAVP: duplicate or create YUV420P picture */
         LAVPLockMutex(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
-            CVF_CopyPlane((const UInt8 *)src_frame->data[0], src_frame->linesize[0], vp->height, pict.data[0], pict.linesize[0], vp->height);
-            CVF_CopyPlane((const UInt8 *)src_frame->data[1], src_frame->linesize[1], vp->height, pict.data[1], pict.linesize[1], vp->height/2);
-            CVF_CopyPlane((const UInt8 *)src_frame->data[2], src_frame->linesize[2], vp->height, pict.data[2], pict.linesize[2], vp->height/2);
+            CVF_CopyPlane((const UInt8 *)src_frame->data[0], src_frame->linesize[0], vp->frm_height, pict.data[0], pict.linesize[0], vp->frm_height);
+            CVF_CopyPlane((const UInt8 *)src_frame->data[1], src_frame->linesize[1], vp->frm_height, pict.data[1], pict.linesize[1], vp->frm_height/2);
+            CVF_CopyPlane((const UInt8 *)src_frame->data[2], src_frame->linesize[2], vp->frm_height, pict.data[2], pict.linesize[2], vp->frm_height/2);
         } else {
             /* convert image format */
             is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
-                                                       vp->width, vp->height, src_frame->format,
-                                                       vp->width, vp->height, AV_PIX_FMT_YUV420P,
+                                                       vp->frm_width, vp->frm_height, src_frame->format,
+                                                       vp->frm_width, vp->frm_height, AV_PIX_FMT_YUV420P,
                                                        SWS_BICUBIC, NULL, NULL, NULL);
             if (is->img_convert_ctx == NULL) {
                 av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
                 exit(1);
             }
             sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize,
-                      0, vp->height, pict.data, pict.linesize);
+                      0, vp->frm_height, pict.data, pict.linesize);
         }
         LAVPUnlockMutex(is->pictq.mutex);
 
-        vp->pts = pts;
-        vp->duration = duration;
-        vp->pos = pos;
-        vp->serial = serial;
+        vp->frm_pts = pts;
+        vp->frm_duration = duration;
+        vp->frm_pos = pos;
+        vp->frm_serial = serial;
 
         /* now we can update the picture count */
         frame_queue_push(&is->pictq);
@@ -395,11 +395,11 @@ Frame* lavp_get_current_frame(VideoState *is)
     if (!vp)
         goto finish;
 
-    if (vp->pts >= 0 && vp->pts == is->lastPTScopied)
+    if (vp->frm_pts >= 0 && vp->frm_pts == is->lastPTScopied)
         goto finish;
 
     is->last_frame = vp;
-    is->lastPTScopied = vp->pts;
+    is->lastPTScopied = vp->frm_pts;
     success = true;
 
 finish:

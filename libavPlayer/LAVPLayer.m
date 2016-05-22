@@ -331,14 +331,14 @@ GLuint init_shader(GLenum kind, const char* code) {
     // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
     if(frm) {
         glBindTexture(GL_TEXTURE_2D, _textures[0]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->bmp->linesize[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width, frm->height, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[0]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->frm_width, frm->frm_height, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[0]);
         glBindTexture(GL_TEXTURE_2D, _textures[1]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->bmp->linesize[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width / 2, frm->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[1]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->frm_width / 2, frm->frm_height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[1]);
         glBindTexture(GL_TEXTURE_2D, _textures[2]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->bmp->linesize[2]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->width / 2, frm->height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->bmp->data[2]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[2]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frm->frm_width / 2, frm->frm_height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[2]);
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

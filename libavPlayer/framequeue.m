@@ -3,7 +3,7 @@
 
 void frame_queue_unref_item(Frame *vp)
 {
-    av_frame_unref(vp->frame);
+    av_frame_unref(vp->frm_frame);
 }
 
 int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int keep_last)
@@ -18,7 +18,7 @@ int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int keep_la
     f->max_size = FFMIN(max_size, FRAME_QUEUE_SIZE);
     f->keep_last = !!keep_last;
     for (i = 0; i < f->max_size; i++)
-        if (!(f->queue[i].frame = av_frame_alloc()))
+        if (!(f->queue[i].frm_frame = av_frame_alloc()))
             return AVERROR(ENOMEM);
     return 0;
 }
@@ -29,7 +29,7 @@ void frame_queue_destory(FrameQueue *f)
     for (i = 0; i < f->max_size; i++) {
         Frame *vp = &f->queue[i];
         frame_queue_unref_item(vp);
-        av_frame_free(&vp->frame);
+        av_frame_free(&vp->frm_frame);
         free_picture(vp);
     }
     LAVPDestroyMutex(f->mutex);
@@ -132,8 +132,8 @@ int frame_queue_nb_remaining(FrameQueue *f)
 int64_t frame_queue_last_pos(FrameQueue *f)
 {
     Frame *fp = &f->queue[f->rindex];
-    if (f->rindex_shown && fp->serial == f->pktq->serial)
-        return fp->pos;
+    if (f->rindex_shown && fp->frm_serial == f->pktq->serial)
+        return fp->frm_pos;
     else
         return -1;
 }
