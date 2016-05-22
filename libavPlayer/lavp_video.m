@@ -255,15 +255,12 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
     if (!(vp = frame_queue_peek_writable(&is->pictq)))
         return -1;
 
-    vp->sar = src_frame->sample_aspect_ratio;
-
     /* alloc or resize hardware picture buffer */
-    if (!vp->bmp || vp->reallocate || !vp->allocated ||
+    if (!vp->bmp || !vp->allocated ||
         vp->width != is->video_st->codec->width ||
         vp->height != is->video_st->codec->height) {
 
         vp->allocated = 0;
-        vp->reallocate = 0;
         vp->width = src_frame->width;
         vp->height = src_frame->height;
 

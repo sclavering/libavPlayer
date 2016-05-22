@@ -9,10 +9,8 @@ typedef struct Frame {
     int64_t pos;          /* byte position of the frame in the input file */
     AVFrame *bmp; // lavp: SDL_Overlay* in ffplay
     int allocated;
-    int reallocate;
     int width;
     int height;
-    AVRational sar;
 } Frame;
 
 typedef struct FrameQueue {
