@@ -39,7 +39,6 @@ int stream_component_open(VideoState *is, int stream_index);
 void stream_component_close(VideoState *is, int stream_index);
 int is_realtime(AVFormatContext *s);
 int read_thread(VideoState *is);
-void step_to_next_frame(VideoState *is);
 
 /* =========================================================== */
 
@@ -394,8 +393,10 @@ int read_thread(VideoState* is)
                     is->seek_req = 0;
                     is->queue_attachments_req = 1;
                     is->eof = 0;
-                    if (is->paused)
-                        step_to_next_frame(is);
+                    if (is->paused) {
+                        stream_set_paused(is, false);
+                        is->is_temporarily_unpaused_to_handle_seeking = true;
+                    }
                 }
 
                 if (is->queue_attachments_req) {
@@ -583,14 +584,7 @@ void stream_set_paused(VideoState *is, bool pause)
 void lavp_set_paused(VideoState *is, bool pause)
 {
     stream_set_paused(is, pause);
-    is->step = 0;
-}
-
-void step_to_next_frame(VideoState *is)
-{
-    /* if the stream is paused unpause it, then step */
-    if (is->paused) stream_set_paused(is, false);
-    is->step = 1;
+    is->is_temporarily_unpaused_to_handle_seeking = false;
 }
 
 void stream_close(VideoState *is)

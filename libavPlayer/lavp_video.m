@@ -191,9 +191,9 @@ void video_refresh(VideoState *is, double *remaining_time)
 
     frame_queue_next(&is->pictq);
 
-    if (is->step) {
+    if (is->is_temporarily_unpaused_to_handle_seeking) {
         stream_set_paused(is, true);
-        is->step = 0;
+        is->is_temporarily_unpaused_to_handle_seeking = false;
     }
 }
 

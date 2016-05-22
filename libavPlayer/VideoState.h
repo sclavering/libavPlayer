@@ -40,7 +40,7 @@
 
     char* filename; /* LAVP: char filename[1024] */
     int width, height, xleft, ytop;
-    int step;
+    bool is_temporarily_unpaused_to_handle_seeking;
     //
     LAVPcond *continue_read_thread;
 
