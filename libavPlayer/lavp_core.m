@@ -171,9 +171,6 @@ int stream_component_open(VideoState *is, int stream_index)
     av_codec_set_lowres(avctx, 0);
     avctx->error_concealment = 3;
 
-    if(codec->capabilities & CODEC_CAP_DR1)
-        avctx->flags |= CODEC_FLAG_EMU_EDGE;
-
     AVDictionary *codec_opts = NULL; // LAVP: Dummy
 
     opts = filter_codec_opts(codec_opts, avctx->codec_id, ic, ic->streams[stream_index], codec);
