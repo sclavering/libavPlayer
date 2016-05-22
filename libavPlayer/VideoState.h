@@ -4,7 +4,6 @@
 @interface VideoState : NSObject {
 @public
     /* moved from global parameter */
-    int seek_by_bytes;     /* static int seek_by_bytes = -1; */
     int infinite_buffer;            /* static int infinite_buffer = -1; */
     double rdftspeed;               /* double rdftspeed = 0.02; */
 

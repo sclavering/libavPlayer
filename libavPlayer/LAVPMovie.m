@@ -225,30 +225,10 @@
         // This exists because get_master_clock() returns NAN after seeking while paused, and we need to mask that.
         lastPosition = pos;
 
-        if (is->seek_by_bytes || is->ic->duration <= 0) {
-            double frac = (double)pos / (get_master_clock(is) * 1.0e6);
-
-            int64_t size =  avio_size(is->ic->pb);
-
-            int64_t target_b = 0; // in bytes
-            int64_t current_b = -1;
-            if (current_b < 0 && is->video_stream >= 0)
-                current_b = frame_queue_last_pos(&is->pictq);
-            if (current_b < 0 && is->audio_stream >= 0)
-                current_b = frame_queue_last_pos(&is->sampq);
-            if (current_b < 0)
-                current_b = avio_tell(is->ic->pb);
-
-            target_b = FFMIN(size, current_b * frac); // in byte
-            stream_seek(is, target_b, 0, 1);
-        } else {
-            int64_t ts = FFMIN(is->ic->duration , FFMAX(0, pos));
-
-            if (is->ic->start_time != AV_NOPTS_VALUE)
-                ts += is->ic->start_time;
-
-            stream_seek(is, ts, -10, 0);
-        }
+        int64_t ts = FFMIN(is->ic->duration , FFMAX(0, pos));
+        if (is->ic->start_time != AV_NOPTS_VALUE)
+            ts += is->ic->start_time;
+        stream_seek(is, ts, -10);
 
         // Without the following code, the video output doesn't consistently update if seeking while paused (sometimes it doesn't update at all, and sometimes it's showing not quite the right frame).
 

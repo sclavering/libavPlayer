@@ -550,18 +550,14 @@ double get_master_clock(VideoState *is)
 }
 
 /* seek in the stream */
-void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes)
+void stream_seek(VideoState *is, int64_t pos, int64_t rel)
 {
     if (!is->seek_req) {
         is->seek_pos = pos;
         is->seek_rel = rel;
         is->seek_flags &= ~AVSEEK_FLAG_BYTE;
-        if (seek_by_bytes)
-            is->seek_flags |= AVSEEK_FLAG_BYTE;
         is->seek_req = 1;
-
         is->remaining_time = 0.0; // LAVP: reset remaining time
-
         LAVPCondSignal(is->continue_read_thread);
     }
 }
@@ -752,8 +748,6 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
 
     if (is->ic->pb)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
-
-    is->seek_by_bytes = !!(is->ic->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", is->ic->iformat->name);
 
     is->max_frame_duration = (is->ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
 

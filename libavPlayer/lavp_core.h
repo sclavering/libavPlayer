@@ -33,7 +33,7 @@ void set_clock_speed(Clock *c, double speed);
 void init_clock(Clock *c, int *queue_serial);
 double get_master_clock(VideoState *is);
 
-void stream_seek(VideoState *is, int64_t pos, int64_t rel, int seek_by_bytes);
+void stream_seek(VideoState *is, int64_t pos, int64_t rel);
 void stream_toggle_pause(VideoState *is);
 void toggle_pause(VideoState *is);
 
