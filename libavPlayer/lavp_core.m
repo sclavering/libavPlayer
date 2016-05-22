@@ -502,27 +502,6 @@ int read_thread(VideoState* is)
 #pragma mark functions (main_thread)
 
 
-static int lockmgr(void **mtx, enum AVLockOp op)
-{
-    switch(op) {
-        case AV_LOCK_CREATE:
-            *mtx = LAVPCreateMutex();
-            if(!*mtx)
-                return 1;
-            return 0;
-        case AV_LOCK_OBTAIN:
-            LAVPLockMutex(*mtx);
-            return 0;
-        case AV_LOCK_RELEASE:
-            LAVPUnlockMutex(*mtx);
-            return 0;
-        case AV_LOCK_DESTROY:
-            LAVPDestroyMutex(*mtx);
-            return 0;
-    }
-    return 1;
-}
-
 double get_clock(Clock *c)
 {
     if (*c->queue_serial != c->serial)
@@ -655,8 +634,6 @@ void stream_close(VideoState *is)
         is->movieWrapper = NULL;
     }
 
-    av_lockmgr_register(NULL);
-    //
     avformat_network_deinit();
     av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
@@ -701,12 +678,6 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
         /* register all codecs, demux and protocols */
         av_register_all();
         avformat_network_init();
-
-        //
-        if (av_lockmgr_register(lockmgr)) {
-            av_log(NULL, AV_LOG_FATAL, "Could not initialize lock manager!\n");
-            goto bail;
-        }
     }
 
     /* ======================================== */
