@@ -197,35 +197,6 @@ void video_refresh(VideoState *is, double *remaining_time)
     }
 }
 
-void alloc_picture(VideoState *is)
-{
-    /* LAVP: Use AVFrame instead of SDL_YUVOverlay */
-    AVFrame *picture = av_frame_alloc();
-    int ret = av_image_alloc(picture->data, picture->linesize,
-                             is->video_st->codec->width, is->video_st->codec->height, AV_PIX_FMT_YUV420P, 0x10);
-    assert(ret > 0);
-
-    //
-    Frame *vp;
-
-    LAVPLockMutex(is->pictq.mutex);
-
-    vp = &is->pictq.queue[is->pictq.windex];
-
-    free_picture(vp);
-
-    video_open(is, vp);
-
-    vp->frm_pts     = -1;
-    vp->frm_width   = is->video_st->codec->width;
-    vp->frm_height  = is->video_st->codec->height;
-    vp->frm_bmp = picture;
-    vp->frm_allocated = 1;
-
-    LAVPCondSignal(is->pictq.cond);
-    LAVPUnlockMutex(is->pictq.mutex);
-}
-
 int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
 {
     Frame *vp;
@@ -242,7 +213,21 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         vp->frm_width = src_frame->width;
         vp->frm_height = src_frame->height;
 
-        alloc_picture(is);
+        AVFrame *picture = av_frame_alloc();
+        int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codec->width, is->video_st->codec->height, AV_PIX_FMT_YUV420P, 0x10);
+        assert(ret > 0);
+        Frame *vp2;
+        LAVPLockMutex(is->pictq.mutex);
+        vp2 = &is->pictq.queue[is->pictq.windex];
+        free_picture(vp2);
+        video_open(is, vp2);
+        vp2->frm_pts     = -1;
+        vp2->frm_width   = is->video_st->codec->width;
+        vp2->frm_height  = is->video_st->codec->height;
+        vp2->frm_bmp = picture;
+        vp2->frm_allocated = 1;
+        LAVPCondSignal(is->pictq.cond);
+        LAVPUnlockMutex(is->pictq.mutex);
 
         if (is->videoq.abort_request)
             return -1;
