@@ -478,21 +478,10 @@ int read_thread(VideoState* is)
 
         /* ================================================================================== */
 
-        /* wait until the end */
-        while (!is->abort_request) {
-            usleep(10*1000);
-        }
-
         // finish thread
         ret = 0;
 
     bail:
-        /* close each stream */
-        if (is->audio_stream >= 0)
-            stream_component_close(is, is->audio_stream);
-        if (is->video_stream >= 0)
-            stream_component_close(is, is->video_stream);
-
         lavp_pthread_mutex_destroy(wait_mutex);
 
         return ret;
@@ -594,7 +583,15 @@ void stream_close(VideoState *is)
             is->parse_group = NULL;
             is->parse_queue = NULL;
         }
-        //
+
+        /* close each stream */
+        if (is->audio_stream >= 0)
+            stream_component_close(is, is->audio_stream);
+        if (is->video_stream >= 0)
+            stream_component_close(is, is->video_stream);
+
+        avformat_close_input(&is->ic);
+
         packet_queue_destroy(&is->videoq);
         packet_queue_destroy(&is->audioq);
 
@@ -607,12 +604,6 @@ void stream_close(VideoState *is)
         // LAVP: free image converter
         if (is->img_convert_ctx)
             sws_freeContext(is->img_convert_ctx);
-
-        // LAVP: free format context
-        if (is->ic) {
-            avformat_close_input(&is->ic);
-            is->ic = NULL;
-        }
 
         is->movieWrapper = NULL;
     }
