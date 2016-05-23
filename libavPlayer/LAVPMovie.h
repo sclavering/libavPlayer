@@ -49,8 +49,8 @@
 
 @property BOOL paused;
 
-// Normally 1.0.  Adjust this to play faster or slower.  Pausing is separate from rate, i.e. if accessed while paused this returns the rate that will be used if playback were resumed.
-@property (assign) double rate;
+// Normally 100.  Adjust this to play faster or slower.  Pausing is separate from speed, i.e. if accessed while paused this returns the speed that will be used if playback were resumed.  This is an integer percentage (rather than a double fraction) to make accumulated rounding errors impossible.
+@property (assign) int playbackSpeedPercent;
 
 @property (assign) float volume;
 

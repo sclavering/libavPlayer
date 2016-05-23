@@ -645,6 +645,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     is->infinite_buffer = -1;
 
     is->paused = 0;
+    is->playbackSpeedPercent = 100;
     is->playRate = 1.0;
 
     is->video_stream = -1;
@@ -791,23 +792,19 @@ fail:
     return NULL;
 }
 
-/*
- TODO:
- stream_cycle_channel()
- toggle_audio_display()
- */
 
-double stream_playRate(VideoState *is)
+int lavp_get_playback_speed_percent(VideoState *is)
 {
-    return is->playRate;
+    if (!is || !is->ic || is->ic->duration <= 0) return 0;
+    return is->playbackSpeedPercent;
 }
 
-void stream_setPlayRate(VideoState *is, double newRate)
+void lavp_set_playback_speed_percent(VideoState *is, int speed)
 {
-    assert(newRate > 0.0);
-
-    is->playRate = newRate;
-
-    set_clock_speed(&is->vidclk, newRate);
-    set_clock_speed(&is->audclk, newRate);
+    if (!is || speed < 0) return;
+    if (is->playbackSpeedPercent == speed) return;
+    is->playbackSpeedPercent = speed;
+    is->playRate = (double)speed / 100.0;
+    set_clock_speed(&is->vidclk, is->playRate);
+    set_clock_speed(&is->audclk, is->playRate);
 }

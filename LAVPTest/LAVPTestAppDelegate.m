@@ -112,7 +112,7 @@ NSString* formatTime(int64_t usec)
     } else {
         if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) [viewmovie setPosition:0];
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
-        viewmovie.rate = shiftKey ? 1.5 : 1.0;
+        viewmovie.playbackSpeedPercent = shiftKey ? 150 : 100;
         viewmovie.paused = false;
     }
 }

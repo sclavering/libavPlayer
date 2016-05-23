@@ -37,7 +37,8 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel);
 
 void stream_close(VideoState *is);
 VideoState* stream_open(id lavpMovie, NSURL *sourceURL);
-double stream_playRate(VideoState *is);
-void stream_setPlayRate(VideoState *is, double newRate);
 
 void lavp_set_paused(VideoState *is, bool pause);
+
+int lavp_get_playback_speed_percent(VideoState *is);
+void lavp_set_playback_speed_percent(VideoState *is, int speed);

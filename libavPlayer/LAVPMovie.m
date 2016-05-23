@@ -128,15 +128,15 @@
     if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
 }
 
-- (double) rate {
-    if (is->ic && is->ic->duration <= 0) return 0.0f;
-    return stream_playRate(is);
+- (int) playbackSpeedPercent {
+    if (is->ic && is->ic->duration <= 0) return 0;
+    return lavp_get_playback_speed_percent(is);
 }
 
-- (void) setRate:(double)rate {
-    if(!is || rate <= 0.0) return;
-    if(self.rate == rate) return;
-    stream_setPlayRate(is, rate);
+- (void) setPlaybackSpeedPercent:(int)speed {
+    if(!is || speed <= 0) return;
+    if(self.playbackSpeedPercent == speed) return;
+    lavp_set_playback_speed_percent(is, speed);
 }
 
 - (float) volume {

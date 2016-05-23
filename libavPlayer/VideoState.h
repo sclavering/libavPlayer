@@ -54,8 +54,8 @@
     PacketQueue audioq;
     PacketQueue videoq;
 
-    /* Extension; playRate */
-    double playRate;
+    int playbackSpeedPercent;
+    double playRate; // derived from playbackSpeedPercent
 
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
