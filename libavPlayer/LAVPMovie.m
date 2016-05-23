@@ -65,9 +65,9 @@
 
 - (NSSize) frameSize {
     NSSize size = NSMakeSize(is->width, is->height);
-    if (is->video_st && is->video_st->codec) {
+    if (is->video_st && is->video_st->codecpar) {
         AVRational sRatio = is->video_st->sample_aspect_ratio;
-        AVRational cRatio = is->video_st->codec->sample_aspect_ratio;
+        AVRational cRatio = is->video_st->codecpar->sample_aspect_ratio;
         if (sRatio.num * sRatio.den) {
             // Use stream aspect ratio
             size = NSMakeSize(is->width * sRatio.num / sRatio.den, is->height);

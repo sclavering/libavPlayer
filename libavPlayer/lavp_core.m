@@ -69,7 +69,7 @@ AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
         codec            = s->oformat ? avcodec_find_encoder(codec_id)
         : avcodec_find_decoder(codec_id);
 
-    switch (st->codec->codec_type) {
+    switch (st->codecpar->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
             prefix  = 'v';
             flags  |= AV_OPT_FLAG_VIDEO_PARAM;
@@ -125,7 +125,7 @@ AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
         return NULL;
     }
     for (i = 0; i < s->nb_streams; i++)
-        opts[i] = filter_codec_opts(codec_opts, s->streams[i]->codec->codec_id,
+        opts[i] = filter_codec_opts(codec_opts, s->streams[i]->codecpar->codec_id,
                                     s, s->streams[i], NULL);
     return opts;
 }
@@ -142,7 +142,7 @@ int stream_component_open(VideoState *is, int stream_index)
     AVCodecContext *avctx;
     AVCodec *codec;
     const char *forced_codec_name = NULL;
-    AVDictionary *opts;
+    AVDictionary *opts = NULL;
     AVDictionaryEntry *t = NULL;
     int sample_rate, nb_channels;
     int64_t channel_layout;
@@ -150,7 +150,15 @@ int stream_component_open(VideoState *is, int stream_index)
 
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return -1;
-    avctx = ic->streams[stream_index]->codec;
+
+    avctx = avcodec_alloc_context3(NULL);
+    if (!avctx)
+        return AVERROR(ENOMEM);
+
+    ret = avcodec_parameters_to_context(avctx, ic->streams[stream_index]->codecpar);
+    if (ret < 0)
+        goto fail;
+    av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
 
     codec = avcodec_find_decoder(avctx->codec_id);
 
@@ -162,7 +170,8 @@ int stream_component_open(VideoState *is, int stream_index)
                                       "No codec could be found with name '%s'\n", forced_codec_name);
         else                   av_log(NULL, AV_LOG_WARNING,
                                       "No codec could be found with id %d\n", avctx->codec_id);
-        return -1;
+        ret = AVERROR(EINVAL);
+        goto fail;
     }
 
     avctx->codec_id = codec->id;
@@ -178,10 +187,11 @@ int stream_component_open(VideoState *is, int stream_index)
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
     if (avcodec_open2(avctx, codec, &opts) < 0)
-        return -1;
+        goto fail;
     if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
         av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-        return AVERROR_OPTION_NOT_FOUND;
+        ret = AVERROR_OPTION_NOT_FOUND;
+        goto fail;
     }
 
     is->eof = 0;
@@ -206,7 +216,7 @@ int stream_component_open(VideoState *is, int stream_index)
 
             /* prepare audio output */
             if ((ret = audio_open(is, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) < 0)
-                return ret;
+                goto out;
             is->audio_hw_buf_size = ret;
             is->audio_src = is->audio_tgt;
             is->audio_buf_size  = 0;
@@ -230,8 +240,13 @@ int stream_component_open(VideoState *is, int stream_index)
         default:
             break;
     }
+    goto out;
 
-    //NSLog(@"DEBUG: stream_component_open(%d) done", stream_index);
+fail:
+    avcodec_free_context(&avctx);
+out:
+    av_dict_free(&opts);
+
     return 0;
 }
 
@@ -240,13 +255,13 @@ void stream_component_close(VideoState *is, int stream_index)
     //NSLog(@"DEBUG: stream_component_close(%d)", stream_index);
 
     AVFormatContext *ic = is->ic;
-    AVCodecContext *avctx;
+    AVCodecParameters *codecpar;
 
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return;
-    avctx = ic->streams[stream_index]->codec;
+    codecpar = ic->streams[stream_index]->codecpar;
 
-    switch(avctx->codec_type) {
+    switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             decoder_abort(is->auddec, &is->sampq);
 
@@ -270,8 +285,7 @@ void stream_component_close(VideoState *is, int stream_index)
     }
 
     ic->streams[stream_index]->discard = AVDISCARD_ALL;
-    avcodec_close(avctx);
-    switch(avctx->codec_type) {
+    switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             is->audio_st = NULL;
             is->audio_stream = -1;

@@ -93,6 +93,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
 
 void decoder_destroy(Decoder *d) {
     av_packet_unref(&d->pkt);
+    avcodec_free_context(&d->avctx);
 }
 
 void decoder_abort(Decoder *d, FrameQueue *fq)

@@ -66,9 +66,9 @@ int video_open(VideoState *is, Frame *vp){
     if (vp && vp->frm_width * vp->frm_height) {
         w = vp->frm_width;
         h = vp->frm_height;
-    } else if (is->video_st && is->video_st->codec->width){
-        w = is->video_st->codec->width;
-        h = is->video_st->codec->height;
+    } else if (is->video_st && is->video_st->codecpar->width){
+        w = is->video_st->codecpar->width;
+        h = is->video_st->codecpar->height;
     } else {
         w = 640;
         h = 480;
@@ -205,14 +205,14 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         return -1;
 
     /* alloc or resize hardware picture buffer */
-    if (!vp->frm_bmp || vp->frm_width != is->video_st->codec->width || vp->frm_height != is->video_st->codec->height) {
+    if (!vp->frm_bmp || vp->frm_width != is->video_st->codecpar->width || vp->frm_height != is->video_st->codecpar->height) {
 
         vp->frm_bmp = NULL;
         vp->frm_width = src_frame->width;
         vp->frm_height = src_frame->height;
 
         AVFrame *picture = av_frame_alloc();
-        int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codec->width, is->video_st->codec->height, AV_PIX_FMT_YUV420P, 0x10);
+        int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codecpar->width, is->video_st->codecpar->height, AV_PIX_FMT_YUV420P, 0x10);
         assert(ret > 0);
         Frame *vp2;
         pthread_mutex_lock(is->pictq.mutex);
@@ -220,8 +220,8 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         free_picture(vp2);
         video_open(is, vp2);
         vp2->frm_pts     = -1;
-        vp2->frm_width   = is->video_st->codec->width;
-        vp2->frm_height  = is->video_st->codec->height;
+        vp2->frm_width   = is->video_st->codecpar->width;
+        vp2->frm_height  = is->video_st->codecpar->height;
         vp2->frm_bmp = picture;
         pthread_cond_signal(is->pictq.cond);
         pthread_mutex_unlock(is->pictq.mutex);
