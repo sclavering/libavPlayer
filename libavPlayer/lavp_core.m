@@ -318,7 +318,7 @@ int read_thread(VideoState* is)
 
         int st_index[AVMEDIA_TYPE_NB] = {-1};
 
-        LAVPmutex* wait_mutex = LAVPCreateMutex();
+        pthread_mutex_t* wait_mutex = lavp_pthread_mutex_create();
 
         // LAVP: Choose best stream for Video, Audio
         int vid_index = -1;
@@ -418,9 +418,9 @@ int read_thread(VideoState* is)
                              || (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))
                          ))) {
                          /* wait 10 ms */
-                         LAVPLockMutex(wait_mutex);
-                         LAVPCondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
-                         LAVPUnlockMutex(wait_mutex);
+                         pthread_mutex_lock(wait_mutex);
+                         lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
+                         pthread_mutex_unlock(wait_mutex);
                          continue;
                      }
 
@@ -443,9 +443,9 @@ int read_thread(VideoState* is)
                     }
                     if (is->ic->pb && is->ic->pb->error)
                         break;
-                    LAVPLockMutex(wait_mutex);
-                    LAVPCondWaitTimeout(is->continue_read_thread, wait_mutex, 10);
-                    LAVPUnlockMutex(wait_mutex);
+                    pthread_mutex_lock(wait_mutex);
+                    lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
+                    pthread_mutex_unlock(wait_mutex);
                     continue;
                 } else {
                     is->eof = 0;
@@ -493,7 +493,7 @@ int read_thread(VideoState* is)
         if (is->video_stream >= 0)
             stream_component_close(is, is->video_stream);
 
-        LAVPDestroyMutex(wait_mutex);
+        lavp_pthread_mutex_destroy(wait_mutex);
 
         return ret;
     }
@@ -559,7 +559,7 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
         is->seek_flags &= ~AVSEEK_FLAG_BYTE;
         is->seek_req = 1;
         is->remaining_time = 0.0; // LAVP: reset remaining time
-        LAVPCondSignal(is->continue_read_thread);
+        pthread_cond_signal(is->continue_read_thread);
     }
 }
 
@@ -602,7 +602,7 @@ void stream_close(VideoState *is)
         frame_queue_destory(&is->pictq);
         frame_queue_destory(&is->sampq);
 
-        LAVPDestroyCond(is->continue_read_thread);
+        lavp_pthread_cond_destroy(is->continue_read_thread);
 
         // LAVP: free image converter
         if (is->img_convert_ctx)
@@ -761,7 +761,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
         packet_queue_init(&is->audioq);
         packet_queue_init(&is->videoq);
 
-        is->continue_read_thread = LAVPCreateCond();
+        is->continue_read_thread = lavp_pthread_cond_create();
 
         //
         init_clock(&is->vidclk, &is->videoq.serial);

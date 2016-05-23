@@ -5,7 +5,7 @@
 @implementation Decoder
 @end
 
-void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond) {
+void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, pthread_cond_t *empty_queue_cond) {
     d->avctx = avctx;
     d->queue = queue;
     d->empty_queue_cond = empty_queue_cond;
@@ -25,7 +25,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
             AVPacket pkt;
             do {
                 if (d->queue->nb_packets == 0)
-                    LAVPCondSignal(d->empty_queue_cond);
+                    pthread_cond_signal(d->empty_queue_cond);
                 if (packet_queue_get(d->queue, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
                 if (pkt.data == flush_pkt.data) {

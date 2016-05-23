@@ -9,7 +9,7 @@
     int pkt_serial;
     int finished;
     int packet_pending;
-    LAVPcond *empty_queue_cond;
+    pthread_cond_t *empty_queue_cond;
     int64_t start_pts;
     AVRational start_pts_tb;
     int64_t next_pts;
@@ -20,7 +20,7 @@
 }
 @end;
 
-void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, LAVPcond *empty_queue_cond);
+void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, pthread_cond_t *empty_queue_cond);
 int decoder_decode_frame(Decoder *d, AVFrame *frame);
 void decoder_destroy(Decoder *d);
 void decoder_abort(Decoder *d, FrameQueue *fq);

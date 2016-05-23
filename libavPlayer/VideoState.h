@@ -41,7 +41,7 @@
     int width, height;
     bool is_temporarily_unpaused_to_handle_seeking;
     //
-    LAVPcond *continue_read_thread;
+    pthread_cond_t *continue_read_thread;
 
     /* stream index */
     int video_stream, audio_stream;

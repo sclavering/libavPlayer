@@ -27,17 +27,8 @@
 #include <mach/mach_time.h>
 #include <sys/time.h>
 
-void LAVPCondWait(LAVPcond *cond, LAVPmutex *mutex)
+void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms)
 {
-	//assert(cond);
-	
-	pthread_cond_wait(cond, mutex);
-}
-
-void LAVPCondWaitTimeout(LAVPcond *cond, LAVPmutex *mutex, int ms)
-{
-	//assert(cond);
-    
     if (ms <= 0)
         ms = 1;
     
@@ -62,14 +53,7 @@ void LAVPCondWaitTimeout(LAVPcond *cond, LAVPmutex *mutex, int ms)
     pthread_cond_timedwait( cond, mutex, &limit );
 }
 
-void LAVPCondSignal(LAVPcond *cond)
-{
-	//assert(cond);
-	
-	pthread_cond_signal(cond);
-}
-
-void LAVPDestroyCond(LAVPcond *cond)
+void lavp_pthread_cond_destroy(pthread_cond_t *cond)
 {
 	//assert(cond);
 	
@@ -77,28 +61,15 @@ void LAVPDestroyCond(LAVPcond *cond)
 	free(cond);
 }
 
-LAVPcond* LAVPCreateCond()
+pthread_cond_t* lavp_pthread_cond_create()
 {
-	LAVPcond *cond = calloc(1, sizeof(pthread_cond_t));
+	pthread_cond_t *cond = calloc(1, sizeof(pthread_cond_t));
 	int result = pthread_cond_init(cond, NULL);
 	assert(!result);
 	return cond;
 }
 
-void LAVPLockMutex(LAVPmutex *mutex){
-	//assert(mutex);
-	
-	pthread_mutex_lock(mutex);
-}
-
-void LAVPUnlockMutex(LAVPmutex *mutex)
-{
-	//assert(mutex);
-	
-	pthread_mutex_unlock(mutex);
-}
-
-void LAVPDestroyMutex(LAVPmutex *mutex)
+void lavp_pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
 	//assert(mutex);
 	
@@ -106,9 +77,9 @@ void LAVPDestroyMutex(LAVPmutex *mutex)
 	free(mutex);
 }
 
-LAVPmutex* LAVPCreateMutex()
+pthread_mutex_t* lavp_pthread_mutex_create()
 {
-	LAVPmutex *mutex = calloc(1, sizeof(pthread_mutex_t));
+	pthread_mutex_t *mutex = calloc(1, sizeof(pthread_mutex_t));
 	int result = pthread_mutex_init(mutex, NULL);
 	assert(!result);
 	return mutex;

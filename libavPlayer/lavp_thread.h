@@ -25,16 +25,9 @@
 
 #include <pthread.h>
 
-typedef pthread_cond_t LAVPcond;
-typedef pthread_mutex_t LAVPmutex;
+pthread_cond_t* lavp_pthread_cond_create(void);
+void lavp_pthread_cond_destroy(pthread_cond_t *cond);
+void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms);
 
-LAVPcond* LAVPCreateCond(void);
-void LAVPDestroyCond(LAVPcond *cond);
-void LAVPCondWait(LAVPcond *cond, LAVPmutex *mutex);
-void LAVPCondWaitTimeout(LAVPcond *cond, LAVPmutex *mutex, int ms);
-void LAVPCondSignal(LAVPcond *cond);
-
-LAVPmutex* LAVPCreateMutex(void);
-void LAVPDestroyMutex(LAVPmutex *mutex);
-void LAVPLockMutex(LAVPmutex *mutex);
-void LAVPUnlockMutex(LAVPmutex *mutex);
+pthread_mutex_t* lavp_pthread_mutex_create(void);
+void lavp_pthread_mutex_destroy(pthread_mutex_t *mutex);

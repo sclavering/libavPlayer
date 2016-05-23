@@ -179,10 +179,10 @@ void video_refresh(VideoState *is, double *remaining_time)
         if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
             is->frame_timer = time;
 
-        LAVPLockMutex(is->pictq.mutex);
+        pthread_mutex_lock(is->pictq.mutex);
         if (!isnan(vp->frm_pts))
             update_video_pts(is, vp->frm_pts, vp->frm_pos, vp->frm_serial);
-        LAVPUnlockMutex(is->pictq.mutex);
+        pthread_mutex_unlock(is->pictq.mutex);
     }
 
     if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
@@ -215,7 +215,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codec->width, is->video_st->codec->height, AV_PIX_FMT_YUV420P, 0x10);
         assert(ret > 0);
         Frame *vp2;
-        LAVPLockMutex(is->pictq.mutex);
+        pthread_mutex_lock(is->pictq.mutex);
         vp2 = &is->pictq.queue[is->pictq.windex];
         free_picture(vp2);
         video_open(is, vp2);
@@ -223,8 +223,8 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         vp2->frm_width   = is->video_st->codec->width;
         vp2->frm_height  = is->video_st->codec->height;
         vp2->frm_bmp = picture;
-        LAVPCondSignal(is->pictq.cond);
-        LAVPUnlockMutex(is->pictq.mutex);
+        pthread_cond_signal(is->pictq.cond);
+        pthread_mutex_unlock(is->pictq.mutex);
 
         if (is->videoq.abort_request)
             return -1;
@@ -246,7 +246,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         pict.linesize[2] = vp->frm_bmp->linesize[2];
 
         /* LAVP: duplicate or create YUV420P picture */
-        LAVPLockMutex(is->pictq.mutex);
+        pthread_mutex_lock(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
             CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], vp->frm_height, pict.data[0], pict.linesize[0], vp->frm_height);
             CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], vp->frm_height, pict.data[1], pict.linesize[1], vp->frm_height/2);
@@ -264,7 +264,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
             sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize,
                       0, vp->frm_height, pict.data, pict.linesize);
         }
-        LAVPUnlockMutex(is->pictq.mutex);
+        pthread_mutex_unlock(is->pictq.mutex);
 
         vp->frm_pts = pts;
         vp->frm_duration = duration;
@@ -339,7 +339,7 @@ int video_thread(VideoState *is)
 
 Frame* lavp_get_current_frame(VideoState *is)
 {
-    LAVPLockMutex(is->pictq.mutex);
+    pthread_mutex_lock(is->pictq.mutex);
     bool success = false;
 
     if (frame_queue_nb_remaining(&is->pictq) <= 0)
@@ -357,6 +357,6 @@ Frame* lavp_get_current_frame(VideoState *is)
     success = true;
 
 finish:
-    LAVPUnlockMutex(is->pictq.mutex);
+    pthread_mutex_unlock(is->pictq.mutex);
     return success ? is->last_frame : NULL;
 }

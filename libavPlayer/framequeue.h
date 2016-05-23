@@ -20,8 +20,8 @@ typedef struct FrameQueue {
     int max_size;
     int keep_last;
     int rindex_shown;
-    LAVPmutex *mutex;
-    LAVPcond *cond;
+    pthread_mutex_t *mutex;
+    pthread_cond_t *cond;
     PacketQueue *pktq;
 } FrameQueue;
 
