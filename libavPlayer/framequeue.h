@@ -8,7 +8,6 @@ typedef struct Frame {
     double frm_duration;      /* estimated duration of the frame */
     int64_t frm_pos;          /* byte position of the frame in the input file */
     AVFrame *frm_bmp; // lavp: SDL_Overlay* in ffplay
-    int frm_allocated;
     int frm_width;
     int frm_height;
 } Frame;

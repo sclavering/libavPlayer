@@ -205,11 +205,9 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         return -1;
 
     /* alloc or resize hardware picture buffer */
-    if (!vp->frm_bmp || !vp->frm_allocated ||
-        vp->frm_width != is->video_st->codec->width ||
-        vp->frm_height != is->video_st->codec->height) {
+    if (!vp->frm_bmp || vp->frm_width != is->video_st->codec->width || vp->frm_height != is->video_st->codec->height) {
 
-        vp->frm_allocated = 0;
+        vp->frm_bmp = NULL;
         vp->frm_width = src_frame->width;
         vp->frm_height = src_frame->height;
 
@@ -225,7 +223,6 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         vp2->frm_width   = is->video_st->codec->width;
         vp2->frm_height  = is->video_st->codec->height;
         vp2->frm_bmp = picture;
-        vp2->frm_allocated = 1;
         LAVPCondSignal(is->pictq.cond);
         LAVPUnlockMutex(is->pictq.mutex);
 
