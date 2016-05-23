@@ -5,7 +5,6 @@
 @public
     /* moved from global parameter */
     int infinite_buffer;            /* static int infinite_buffer = -1; */
-    double rdftspeed;               /* double rdftspeed = 0.02; */
 
     int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
 
@@ -39,7 +38,7 @@
     Decoder* viddec;
 
     char* filename; /* LAVP: char filename[1024] */
-    int width, height, xleft, ytop;
+    int width, height;
     bool is_temporarily_unpaused_to_handle_seeking;
     //
     LAVPcond *continue_read_thread;

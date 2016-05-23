@@ -643,7 +643,6 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     is->last_frame = NULL;
 
     is->infinite_buffer = -1;
-    is->rdftspeed = 0.02;
 
     is->paused = 0;
     is->playRate = 1.0;
