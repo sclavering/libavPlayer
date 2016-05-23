@@ -232,25 +232,23 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 
     /* if the frame is not skipped, then display it */
     if (vp->frm_bmp) {
-        AVPicture pict = { { 0 } };
+        uint8_t *data[4];
+        int linesize[4];
 
-        /* get a pointer on the bitmap */
-        /* LAVP: Using AVFrame */
-        memset(&pict,0,sizeof(AVPicture));
-        pict.data[0] = vp->frm_bmp->data[0];
-        pict.data[1] = vp->frm_bmp->data[1];
-        pict.data[2] = vp->frm_bmp->data[2];
+        data[0] = vp->frm_bmp->data[0];
+        data[1] = vp->frm_bmp->data[1];
+        data[2] = vp->frm_bmp->data[2];
 
-        pict.linesize[0] = vp->frm_bmp->linesize[0];
-        pict.linesize[1] = vp->frm_bmp->linesize[1];
-        pict.linesize[2] = vp->frm_bmp->linesize[2];
+        linesize[0] = vp->frm_bmp->linesize[0];
+        linesize[1] = vp->frm_bmp->linesize[1];
+        linesize[2] = vp->frm_bmp->linesize[2];
 
         /* LAVP: duplicate or create YUV420P picture */
         pthread_mutex_lock(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
-            CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], vp->frm_height, pict.data[0], pict.linesize[0], vp->frm_height);
-            CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], vp->frm_height, pict.data[1], pict.linesize[1], vp->frm_height/2);
-            CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], vp->frm_height, pict.data[2], pict.linesize[2], vp->frm_height/2);
+            CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], vp->frm_height, data[0], linesize[0], vp->frm_height);
+            CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], vp->frm_height, data[1], linesize[1], vp->frm_height/2);
+            CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], vp->frm_height, data[2], linesize[2], vp->frm_height/2);
         } else {
             /* convert image format */
             is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
@@ -262,7 +260,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
                 exit(1);
             }
             sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize,
-                      0, vp->frm_height, pict.data, pict.linesize);
+                      0, vp->frm_height, data, linesize);
         }
         pthread_mutex_unlock(is->pictq.mutex);
 
