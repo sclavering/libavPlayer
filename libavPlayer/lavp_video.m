@@ -59,27 +59,6 @@ void free_picture(Frame *vp)
     }
 }
 
-int video_open(VideoState *is, Frame *vp){
-    /* LAVP: No need for SDL support; Independent from screen rect */
-    int w,h;
-
-    if (vp && vp->frm_width * vp->frm_height) {
-        w = vp->frm_width;
-        h = vp->frm_height;
-    } else if (is->video_st && is->video_st->codecpar->width){
-        w = is->video_st->codecpar->width;
-        h = is->video_st->codecpar->height;
-    } else {
-        w = 640;
-        h = 480;
-    }
-
-    is->width = w;
-    is->height = h;
-
-    return 0;
-}
-
 double compute_target_delay(double delay, VideoState *is)
 {
     double sync_threshold, diff;
@@ -185,10 +164,6 @@ void video_refresh(VideoState *is, double *remaining_time)
         pthread_mutex_unlock(is->pictq.mutex);
     }
 
-    if (0 == is->width * is->height ) { // LAVP: zero rect is not allowed
-        video_open(is, NULL);
-    }
-
     frame_queue_next(&is->pictq);
 
     if (is->is_temporarily_unpaused_to_handle_seeking) {
@@ -204,12 +179,8 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
     if (!(vp = frame_queue_peek_writable(&is->pictq)))
         return -1;
 
-    /* alloc or resize hardware picture buffer */
-    if (!vp->frm_bmp || vp->frm_width != is->video_st->codecpar->width || vp->frm_height != is->video_st->codecpar->height) {
-
+    if (!vp->frm_bmp) {
         vp->frm_bmp = NULL;
-        vp->frm_width = src_frame->width;
-        vp->frm_height = src_frame->height;
 
         AVFrame *picture = av_frame_alloc();
         int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codecpar->width, is->video_st->codecpar->height, AV_PIX_FMT_YUV420P, 0x10);
@@ -218,10 +189,7 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         pthread_mutex_lock(is->pictq.mutex);
         vp2 = &is->pictq.queue[is->pictq.windex];
         free_picture(vp2);
-        video_open(is, vp2);
-        vp2->frm_pts     = -1;
-        vp2->frm_width   = is->video_st->codecpar->width;
-        vp2->frm_height  = is->video_st->codecpar->height;
+        vp2->frm_pts = -1;
         vp2->frm_bmp = picture;
         pthread_cond_signal(is->pictq.cond);
         pthread_mutex_unlock(is->pictq.mutex);
@@ -246,21 +214,20 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         /* LAVP: duplicate or create YUV420P picture */
         pthread_mutex_lock(is->pictq.mutex);
         if (src_frame->format == AV_PIX_FMT_YUV420P) {
-            CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], vp->frm_height, data[0], linesize[0], vp->frm_height);
-            CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], vp->frm_height, data[1], linesize[1], vp->frm_height/2);
-            CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], vp->frm_height, data[2], linesize[2], vp->frm_height/2);
+            CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], is->height, data[0], linesize[0], is->height);
+            CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], is->height, data[1], linesize[1], is->height/2);
+            CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], is->height, data[2], linesize[2], is->height/2);
         } else {
             /* convert image format */
             is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
-                                                       vp->frm_width, vp->frm_height, src_frame->format,
-                                                       vp->frm_width, vp->frm_height, AV_PIX_FMT_YUV420P,
+                                                       is->width, is->height, src_frame->format,
+                                                       is->width, is->height, AV_PIX_FMT_YUV420P,
                                                        SWS_BICUBIC, NULL, NULL, NULL);
             if (is->img_convert_ctx == NULL) {
                 av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
                 exit(1);
             }
-            sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize,
-                      0, vp->frm_height, data, linesize);
+            sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize, 0, is->height, data, linesize);
         }
         pthread_mutex_unlock(is->pictq.mutex);
 

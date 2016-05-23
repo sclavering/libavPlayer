@@ -79,6 +79,11 @@
     return size;
 }
 
+// I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.
+- (NSSize) sizeForGLTextures {
+    return is ? NSMakeSize(is->width, is->height) : NSMakeSize(1, 1);
+}
+
 - (int64_t) durationInMicroseconds {
     return is->ic ? is->ic->duration : 0;
 }

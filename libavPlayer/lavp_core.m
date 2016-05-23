@@ -230,6 +230,8 @@ int stream_component_open(VideoState *is, int stream_index)
         case AVMEDIA_TYPE_VIDEO:
             is->video_stream = stream_index;
             is->video_st = ic->streams[stream_index];
+            is->width = is->video_st->codecpar->width;
+            is->height = is->video_st->codecpar->height;
 
             is->viddec = [[Decoder alloc] init];
             decoder_init(is->viddec, avctx, &is->videoq, is->continue_read_thread);
@@ -785,6 +787,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
             });
         }
     }
+
     return is;
 
 bail:
