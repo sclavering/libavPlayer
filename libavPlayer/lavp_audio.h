@@ -33,7 +33,8 @@ void LAVPAudioQueueStart(VideoState *is);
 void LAVPAudioQueuePause(VideoState *is);
 void LAVPAudioQueueStop(VideoState *is);
 void LAVPAudioQueueDealloc(VideoState *is);
-AudioQueueParameterValue getVolume(VideoState *is);
-void setVolume(VideoState *is, AudioQueueParameterValue volume);
 
 int audio_thread(VideoState *is);
+
+int lavp_get_volume_percent(VideoState *is);
+void lavp_set_volume_percent(VideoState *is, int volume);

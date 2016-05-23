@@ -433,19 +433,6 @@ void LAVPAudioQueueDealloc(VideoState *is)
     //NSLog(@"DEBUG: LAVPAudioQueueDealloc done");
 }
 
-AudioQueueParameterValue getVolume(VideoState *is)
-{
-    if (!is->outAQ) return 0.0;
-
-    OSStatus err = 0;
-    AudioQueueParameterValue volume;
-
-    err = AudioQueueGetParameter(is->outAQ, kAudioQueueParam_Volume, &volume);
-    assert(!err);
-
-    return volume;
-}
-
 void setVolume(VideoState *is, AudioQueueParameterValue volume)
 {
     if (!is->outAQ) return;
@@ -538,4 +525,16 @@ int audio_thread(VideoState *is)
 the_end:
     av_frame_free(&frame);
     return ret;
+}
+
+
+int lavp_get_volume_percent(VideoState *is) {
+    return is ? is->volume_percent : 100;
+}
+
+void lavp_set_volume_percent(VideoState *is, int volume) {
+    if (!is) return;
+    is->volume_percent = volume;
+    AudioQueueParameterValue newVolume = (AudioQueueParameterValue)volume / 100.0;
+    if (is->audio_stream >= 0) setVolume(is, newVolume);
 }

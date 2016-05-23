@@ -68,6 +68,8 @@
 
     // LAVPaudio
 
+    int volume_percent;
+
     /* same order as original struct */
     double audio_clock;
     int audio_clock_serial;

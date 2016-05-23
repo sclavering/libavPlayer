@@ -32,7 +32,6 @@
 {
     self = [super init];
     if (self) {
-        currentVol = 1.0;
         is = stream_open(self, sourceURL);
         if (!is) return nil;
 
@@ -139,15 +138,12 @@
     lavp_set_playback_speed_percent(is, speed);
 }
 
-- (float) volume {
-    // Could use: is->audio_stream >= 0 ? getVolume(is) : 0
-    return currentVol;
+- (int) volumePercent {
+    return lavp_get_volume_percent(is);
 }
 
-- (void) setVolume:(float)volume {
-    currentVol = volume;
-    AudioQueueParameterValue newVolume = volume;
-    if (is->audio_stream >= 0) setVolume(is, newVolume);
+- (void) setVolumePercent:(int)volume {
+    lavp_set_volume_percent(is, volume);
 }
 
 - (Frame*) getCurrentFrame {

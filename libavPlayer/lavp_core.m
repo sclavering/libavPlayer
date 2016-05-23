@@ -639,6 +639,8 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
 
     /* ======================================== */
 
+    is->volume_percent = 100;
+
     is->movieWrapper = movieWrapper;
     is->last_frame = NULL;
 
