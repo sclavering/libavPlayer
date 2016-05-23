@@ -788,6 +788,8 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
         }
     }
 
+    // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
+    is->is_temporarily_unpaused_to_handle_seeking = true;
     return is;
 
 bail:

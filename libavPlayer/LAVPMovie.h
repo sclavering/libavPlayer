@@ -47,6 +47,7 @@
 // How far along we are in playing the movie.  0.0 for the start, and 1.0 for the end.
 @property (assign) double position;
 
+// Movies start out paused.  Set this to start/stop playing.
 @property BOOL paused;
 
 // Normally 100.  Adjust this to play faster or slower.  Pausing is separate from speed, i.e. if accessed while paused this returns the speed that will be used if playback were resumed.  This is an integer percentage (rather than a double fraction) to make accumulated rounding errors impossible.

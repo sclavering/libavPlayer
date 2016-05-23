@@ -34,17 +34,7 @@
     if (self) {
         is = stream_open(self, sourceURL);
         if (!is) return nil;
-
         [NSThread detachNewThreadSelector:@selector(threadMain) toTarget:self withObject:nil];
-
-        int msec = 10;
-        int retry = 2000 / msec; // 2.0 sec max
-        while(retry--) {
-            usleep(msec * 1000);
-            if (!isnan(get_master_clock(is)) && frame_queue_nb_remaining(&is->pictq)) break;
-        }
-        if (retry < 0) NSLog(@"ERROR: stream_open timeout detected.");
-        lavp_set_paused(is, true);
     }
 
     return self;
