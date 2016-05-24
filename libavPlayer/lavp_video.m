@@ -180,8 +180,6 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         return -1;
 
     if (!vp->frm_bmp) {
-        vp->frm_bmp = NULL;
-
         AVFrame *picture = av_frame_alloc();
         int ret = av_image_alloc(picture->data, picture->linesize, is->video_st->codecpar->width, is->video_st->codecpar->height, AV_PIX_FMT_YUV420P, 0x10);
         assert(ret > 0);
@@ -198,47 +196,45 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
             return -1;
     }
 
-    /* if the frame is not skipped, then display it */
-    if (vp->frm_bmp) {
-        uint8_t *data[4];
-        int linesize[4];
+    uint8_t *data[4];
+    int linesize[4];
 
-        data[0] = vp->frm_bmp->data[0];
-        data[1] = vp->frm_bmp->data[1];
-        data[2] = vp->frm_bmp->data[2];
+    data[0] = vp->frm_bmp->data[0];
+    data[1] = vp->frm_bmp->data[1];
+    data[2] = vp->frm_bmp->data[2];
 
-        linesize[0] = vp->frm_bmp->linesize[0];
-        linesize[1] = vp->frm_bmp->linesize[1];
-        linesize[2] = vp->frm_bmp->linesize[2];
+    linesize[0] = vp->frm_bmp->linesize[0];
+    linesize[1] = vp->frm_bmp->linesize[1];
+    linesize[2] = vp->frm_bmp->linesize[2];
 
-        /* LAVP: duplicate or create YUV420P picture */
-        pthread_mutex_lock(is->pictq.mutex);
-        if (src_frame->format == AV_PIX_FMT_YUV420P) {
-            CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], is->height, data[0], linesize[0], is->height);
-            CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], is->height, data[1], linesize[1], is->height/2);
-            CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], is->height, data[2], linesize[2], is->height/2);
-        } else {
-            /* convert image format */
-            is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
-                                                       is->width, is->height, src_frame->format,
-                                                       is->width, is->height, AV_PIX_FMT_YUV420P,
-                                                       SWS_BICUBIC, NULL, NULL, NULL);
-            if (is->img_convert_ctx == NULL) {
-                av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
-                exit(1);
-            }
-            sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize, 0, is->height, data, linesize);
+    /* LAVP: duplicate or create YUV420P picture */
+    pthread_mutex_lock(is->pictq.mutex);
+    if (src_frame->format == AV_PIX_FMT_YUV420P) {
+        CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], is->height, data[0], linesize[0], is->height);
+        CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], is->height, data[1], linesize[1], is->height/2);
+        CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], is->height, data[2], linesize[2], is->height/2);
+    } else {
+        /* convert image format */
+        is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
+                                                   is->width, is->height, src_frame->format,
+                                                   is->width, is->height, AV_PIX_FMT_YUV420P,
+                                                   SWS_BICUBIC, NULL, NULL, NULL);
+        if (is->img_convert_ctx == NULL) {
+            av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
+            exit(1);
         }
-        pthread_mutex_unlock(is->pictq.mutex);
-
-        vp->frm_pts = pts;
-        vp->frm_duration = duration;
-        vp->frm_pos = pos;
-        vp->frm_serial = serial;
-
-        /* now we can update the picture count */
-        frame_queue_push(&is->pictq);
+        sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize, 0, is->height, data, linesize);
     }
+    pthread_mutex_unlock(is->pictq.mutex);
+
+    vp->frm_pts = pts;
+    vp->frm_duration = duration;
+    vp->frm_pos = pos;
+    vp->frm_serial = serial;
+
+    /* now we can update the picture count */
+    frame_queue_push(&is->pictq);
+
     return 0;
 }
 
