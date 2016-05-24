@@ -40,7 +40,6 @@
 
 double compute_target_delay(double delay, VideoState *is);
 
-int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial);
 int get_video_frame(VideoState *is, AVFrame *frame);
 void video_refresh(VideoState *is, double *remaining_time);
 
@@ -162,29 +161,6 @@ void video_refresh(VideoState *is, double *remaining_time)
     }
 }
 
-int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duration, int64_t pos, int serial)
-{
-    Frame *vp;
-
-    // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
-    if (src_frame->format != AV_PIX_FMT_YUV420P)
-        return -1;
-
-    if (!(vp = frame_queue_peek_writable(&is->pictq)))
-        return -1;
-
-    vp->frm_pts = pts;
-    vp->frm_duration = duration;
-    vp->frm_pos = pos;
-    vp->frm_serial = serial;
-
-    av_frame_move_ref(vp->frm_frame, src_frame);
-
-    frame_queue_push(&is->pictq);
-
-    return 0;
-}
-
 int get_video_frame(VideoState *is, AVFrame *frame)
 {
     int got_picture;
@@ -223,10 +199,23 @@ int video_thread(VideoState *is)
                 continue;
 
             double duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-            double pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            ret = queue_picture(is, frame, pts, duration, av_frame_get_pkt_pos(frame), is->viddec->pkt_serial);
-            if (ret < 0)
+
+            // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
+            if (frame->format != AV_PIX_FMT_YUV420P)
                 break;
+
+            Frame *fr;
+            if (!(fr = frame_queue_peek_writable(&is->pictq)))
+                break;
+
+            fr->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
+            fr->frm_duration = duration;
+            fr->frm_pos = av_frame_get_pkt_pos(frame);
+            fr->frm_serial = is->viddec->pkt_serial;
+
+            av_frame_move_ref(fr->frm_frame, frame);
+
+            frame_queue_push(&is->pictq);
         }
     }
 
