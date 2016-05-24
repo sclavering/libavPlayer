@@ -514,7 +514,6 @@ int audio_thread(VideoState *is)
                 goto the_end;
 
             af->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            af->frm_pos = av_frame_get_pkt_pos(frame);
             af->frm_serial = is->auddec->pkt_serial;
             af->frm_duration = av_q2d((AVRational){frame->nb_samples, frame->sample_rate});
 

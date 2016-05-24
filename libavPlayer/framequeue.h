@@ -6,7 +6,6 @@ typedef struct Frame {
     int frm_serial;
     double frm_pts;           /* presentation timestamp for the frame */
     double frm_duration;      /* estimated duration of the frame */
-    int64_t frm_pos;          /* byte position of the frame in the input file */
 } Frame;
 
 typedef struct FrameQueue {

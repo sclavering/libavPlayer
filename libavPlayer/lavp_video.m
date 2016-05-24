@@ -206,7 +206,6 @@ int video_thread(VideoState *is)
 
             fr->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
             fr->frm_duration = duration;
-            fr->frm_pos = av_frame_get_pkt_pos(frame);
             fr->frm_serial = is->viddec->pkt_serial;
 
             av_frame_move_ref(fr->frm_frame, frame);
