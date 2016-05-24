@@ -28,7 +28,6 @@
 
 double get_video_clock(VideoState *is);
 void refresh_loop_wait_event(VideoState *is);
-void free_picture(Frame *vp);
 int video_thread(VideoState *is);
 
 Frame* lavp_get_current_frame(VideoState *is);

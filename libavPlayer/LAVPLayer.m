@@ -332,14 +332,14 @@ GLuint init_shader(GLenum kind, const char* code) {
     if(frm) {
         NSSize sz = [_movie sizeForGLTextures];
         glBindTexture(GL_TEXTURE_2D, _textures[0]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width, sz.height, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[0]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_frame->linesize[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width, sz.height, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_frame->data[0]);
         glBindTexture(GL_TEXTURE_2D, _textures[1]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[1]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_frame->linesize[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_frame->data[1]);
         glBindTexture(GL_TEXTURE_2D, _textures[2]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_bmp->linesize[2]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_bmp->data[2]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, frm->frm_frame->linesize[2]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, frm->frm_frame->data[2]);
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -30,7 +30,6 @@ void frame_queue_destory(FrameQueue *f)
         Frame *vp = &f->queue[i];
         frame_queue_unref_item(vp);
         av_frame_free(&vp->frm_frame);
-        free_picture(vp);
     }
     lavp_pthread_mutex_destroy(f->mutex);
     lavp_pthread_cond_destroy(f->cond);
