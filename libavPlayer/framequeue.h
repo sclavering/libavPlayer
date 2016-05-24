@@ -27,14 +27,10 @@ int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int keep_la
 void frame_queue_destory(FrameQueue *f);
 void frame_queue_signal(FrameQueue *f);
 Frame *frame_queue_peek(FrameQueue *f);
-Frame *frame_queue_peek_next(FrameQueue *f);
 Frame *frame_queue_peek_last(FrameQueue *f);
 Frame *frame_queue_peek_readable(FrameQueue *f);
 Frame *frame_queue_peek_writable(FrameQueue *f);
 void frame_queue_push(FrameQueue *f);
 void frame_queue_next(FrameQueue *f);
-/* jump back to the previous frame if available by resetting rindex_shown */
-int frame_queue_prev(FrameQueue *f);
 /* return the number of undisplayed frames in the queue */
 int frame_queue_nb_remaining(FrameQueue *f);
-int64_t frame_queue_last_pos(FrameQueue *f);

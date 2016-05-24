@@ -47,11 +47,6 @@ Frame *frame_queue_peek(FrameQueue *f)
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
-Frame *frame_queue_peek_next(FrameQueue *f)
-{
-    return &f->queue[(f->rindex + f->rindex_shown + 1) % f->max_size];
-}
-
 Frame *frame_queue_peek_last(FrameQueue *f)
 {
     return &f->queue[f->rindex];
@@ -113,26 +108,8 @@ void frame_queue_next(FrameQueue *f)
     pthread_mutex_unlock(f->mutex);
 }
 
-/* jump back to the previous frame if available by resetting rindex_shown */
-int frame_queue_prev(FrameQueue *f)
-{
-    int ret = f->rindex_shown;
-    f->rindex_shown = 0;
-    return ret;
-}
-
 /* return the number of undisplayed frames in the queue */
 int frame_queue_nb_remaining(FrameQueue *f)
 {
     return f->size - f->rindex_shown;
-}
-
-/* return last shown position */
-int64_t frame_queue_last_pos(FrameQueue *f)
-{
-    Frame *fp = &f->queue[f->rindex];
-    if (f->rindex_shown && fp->frm_serial == f->pktq->serial)
-        return fp->frm_pos;
-    else
-        return -1;
 }
