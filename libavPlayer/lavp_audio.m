@@ -276,8 +276,6 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
 {
     if (is->outAQ) return;
 
-    //NSLog(@"DEBUG: LAVPAudioQueueInit");
-
     if (!avctx->sample_rate) {
         // NOTE: is->outAQ, is->audioDispatchQueue are left uninitialized
 
@@ -327,7 +325,6 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
         err = AudioQueueAllocateBuffer(is->outAQ, inBufferByteSize, &outBuffer);
         assert(err == 0 && outBuffer != NULL);
 
-        // Nullify data
         memset(outBuffer->mAudioData, 0, outBuffer->mAudioDataBytesCapacity);
 
         // Enqueue dummy data to start queuing
@@ -339,8 +336,6 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
 void LAVPAudioQueueStart(VideoState *is)
 {
     if (!is->outAQ) return;
-
-    //NSLog(@"DEBUG: LAVPAudioQueueStart");
 
     // Update playback rate
     BOOL pitchDiff = audio_isPitchChanged(is);
@@ -355,13 +350,9 @@ void LAVPAudioQueueStart(VideoState *is)
         assert(!pitchDiff);
     }
 
-    //
-    OSStatus err = 0;
     unsigned int inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60;    // Prepare for 1/60 sec
-
-    err = AudioQueuePrime(is->outAQ, inNumberOfFramesToPrepare, 0);
+    OSStatus err = AudioQueuePrime(is->outAQ, inNumberOfFramesToPrepare, 0);
     assert(err == 0);
-
     err = AudioQueueStart(is->outAQ, NULL);
     assert(err == 0);
 }
@@ -369,15 +360,8 @@ void LAVPAudioQueueStart(VideoState *is)
 void LAVPAudioQueuePause(VideoState *is)
 {
     if (!is->outAQ) return;
-
-    //NSLog(@"DEBUG: LAVPAudioQueuePause");
-
-    //
-    OSStatus err = 0;
-
-    err = AudioQueueFlush(is->outAQ);
+    OSStatus err = AudioQueueFlush(is->outAQ);
     assert(err == 0);
-
     err = AudioQueuePause(is->outAQ);
     assert(err == 0);
 }
@@ -386,41 +370,30 @@ void LAVPAudioQueueStop(VideoState *is)
 {
     if (!is->outAQ) return;
 
-    //NSLog(@"DEBUG: LAVPAudioQueueStop");
-
-    // Check AudioQueue is running or not
     OSStatus err = 0;
     unsigned int currentRunning = 0;
     unsigned int currentRunningSize = sizeof(currentRunning);
-
     err = AudioQueueGetProperty(is->outAQ, kAudioQueueProperty_IsRunning, &currentRunning, &currentRunningSize);
     assert(err == 0);
 
     // Stop AudioQueue
     if (currentRunning) {
-        // Specifying YES with AudioQueueStop() to wait untill done
+        // Specifying YES with AudioQueueStop() to wait until done
         err = AudioQueueStop(is->outAQ, YES);
         assert(err == 0);
     }
-
-    //NSLog(@"DEBUG: LAVPAudioQueueStop done");
 }
 
 void LAVPAudioQueueDealloc(VideoState *is)
 {
     if (!is->outAQ) return;
 
-    //NSLog(@"DEBUG: LAVPAudioQueueDealloc");
-
     // stop AudioQueue
     OSStatus err = 0;
-
     err = AudioQueueReset(is->outAQ);
     assert(err == 0);
-
     err = AudioQueueDispose(is->outAQ, NO);
     assert(err == 0);
-
     is->outAQ = NULL;
 
     // stop dispatch queue
@@ -429,67 +402,33 @@ void LAVPAudioQueueDealloc(VideoState *is)
         audioDispatchQueue = NULL; // ARC
         is->audioDispatchQueue = NULL;
     }
-
-    //NSLog(@"DEBUG: LAVPAudioQueueDealloc done");
 }
 
 void setVolume(VideoState *is, AudioQueueParameterValue volume)
 {
     if (!is->outAQ) return;
-
-    OSStatus err = 0;
-
-    err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_Volume, volume);
+    OSStatus err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_Volume, volume);
     assert(!err);
 }
 
 BOOL audio_isPitchChanged(VideoState *is)
 {
     if (!is->outAQ) return NO;
-
-    OSStatus err = 0;
-
     // Compare current playrate b/w AudioQueue and VideoState
     float currentRate = 0;
-    err = AudioQueueGetParameter(is->outAQ, kAudioQueueParam_PlayRate, &currentRate);    // acceleration
+    OSStatus err = AudioQueueGetParameter(is->outAQ, kAudioQueueParam_PlayRate, &currentRate);    // acceleration
     assert(err == 0);
-
-    if (currentRate == is->playRate) {
-        return NO;
-    } else {
-        return YES;
-    }
+    return currentRate != is->playRate;
 }
 
 void audio_updatePitch(VideoState *is)
 {
     if (!is->outAQ) return;
-
-    OSStatus err = 0;
-
-    assert(is->playRate > 0.0);
-
-    //NSLog(@"DEBUG: is->playRate = %.1f", is->playRate);
-
-    if (is->playRate == 1.0) {
-        // Set playrate
-        err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_PlayRate, is->playRate);
-        assert(err == 0);
-
-        // Bypass TimePitch
-        unsigned int propValue = 1;
-        err = AudioQueueSetProperty (is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
-        assert(err == 0);
-    } else {
-        // Set playrate
-        err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_PlayRate, is->playRate);
-        assert(err == 0);
-
-        // Use TimePitch (using FFT filter)
-        unsigned int propValue = 0;
-        err = AudioQueueSetProperty (is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
-        assert(err == 0);
-    }
+    OSStatus err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_PlayRate, is->playRate);
+    assert(err == 0);
+    unsigned int propValue = (is->playbackSpeedPercent == 100);
+    err = AudioQueueSetProperty(is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
+    assert(err == 0);
 }
 
 int audio_thread(VideoState *is)
