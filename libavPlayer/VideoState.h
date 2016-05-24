@@ -99,8 +99,6 @@
     //
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
-    struct SwsContext *img_convert_ctx;
-
     int eof;
 
     // LAVP: extras

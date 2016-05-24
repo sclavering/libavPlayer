@@ -176,6 +176,10 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
 {
     Frame *vp;
 
+    // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
+    if (src_frame->format != AV_PIX_FMT_YUV420P)
+        return -1;
+
     if (!(vp = frame_queue_peek_writable(&is->pictq)))
         return -1;
 
@@ -213,17 +217,6 @@ int queue_picture(VideoState *is, AVFrame *src_frame, double pts, double duratio
         CVF_CopyPlane(src_frame->data[0], src_frame->linesize[0], is->height, data[0], linesize[0], is->height);
         CVF_CopyPlane(src_frame->data[1], src_frame->linesize[1], is->height, data[1], linesize[1], is->height/2);
         CVF_CopyPlane(src_frame->data[2], src_frame->linesize[2], is->height, data[2], linesize[2], is->height/2);
-    } else {
-        /* convert image format */
-        is->img_convert_ctx = sws_getCachedContext(is->img_convert_ctx,
-                                                   is->width, is->height, src_frame->format,
-                                                   is->width, is->height, AV_PIX_FMT_YUV420P,
-                                                   SWS_BICUBIC, NULL, NULL, NULL);
-        if (is->img_convert_ctx == NULL) {
-            av_log(NULL, AV_LOG_FATAL, "Cannot initialize the conversion context\n");
-            exit(1);
-        }
-        sws_scale(is->img_convert_ctx, (void*)src_frame->data, src_frame->linesize, 0, is->height, data, linesize);
     }
     pthread_mutex_unlock(is->pictq.mutex);
 

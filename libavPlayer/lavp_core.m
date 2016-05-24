@@ -617,10 +617,6 @@ void stream_close(VideoState *is)
 
         lavp_pthread_cond_destroy(is->continue_read_thread);
 
-        // LAVP: free image converter
-        if (is->img_convert_ctx)
-            sws_freeContext(is->img_convert_ctx);
-
         is->movieWrapper = NULL;
     }
 
