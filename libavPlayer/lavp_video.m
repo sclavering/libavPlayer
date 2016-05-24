@@ -89,11 +89,6 @@ static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
     }
 }
 
-static void update_video_pts(VideoState *is, double pts, int64_t pos, int serial) {
-    /* update current video pts */
-    set_clock(&is->vidclk, pts, serial);
-}
-
 void refresh_loop_wait_event(VideoState *is) {
     double remaining_time = 0.0;
 
@@ -149,7 +144,8 @@ void video_refresh(VideoState *is, double *remaining_time)
 
         pthread_mutex_lock(is->pictq.mutex);
         if (!isnan(vp->frm_pts))
-            update_video_pts(is, vp->frm_pts, vp->frm_pos, vp->frm_serial);
+            set_clock(&is->vidclk, vp->frm_pts, vp->frm_serial);
+
         pthread_mutex_unlock(is->pictq.mutex);
     }
 
