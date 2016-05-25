@@ -32,7 +32,7 @@
 {
     self = [super init];
     if (self) {
-        is = stream_open(self, sourceURL);
+        is = stream_open(sourceURL);
         if (!is) return nil;
         [NSThread detachNewThreadSelector:@selector(threadMain) toTarget:self withObject:nil];
     }
@@ -52,6 +52,10 @@
 }
 
 #pragma mark -
+
+- (void) setOutput:(id<LAVPMovieOutput>)output {
+    is->weakOutput = output;
+}
 
 - (NSSize) frameSize {
     NSSize size = NSMakeSize(is->width, is->height);
@@ -119,8 +123,6 @@
 
 - (void) setPaused:(BOOL)shouldPause {
     lavp_set_paused(is, shouldPause);
-    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
-    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
 }
 
 - (int) playbackSpeedPercent {
@@ -176,16 +178,6 @@
 - (void) refreshPicture
 {
     refresh_loop_wait_event(is);
-}
-
-- (void) haveReachedEOF {
-    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
-    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:false];
-}
-
-- (void) haveFinishedSeekingWhilePaused {
-    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
-    if(movieOutput) [movieOutput movieOutputNeedsSingleUpdate];
 }
 
 @end

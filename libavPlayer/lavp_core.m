@@ -410,7 +410,7 @@ int read_thread(VideoState* is)
                     is->queue_attachments_req = 1;
                     is->eof = 0;
                     if (is->paused) {
-                        lavp_set_paused(is, false);
+                        lavp_set_paused_internal(is, false);
                         is->is_temporarily_unpaused_to_handle_seeking = true;
                     }
                 }
@@ -445,8 +445,6 @@ int read_thread(VideoState* is)
                     (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     lavp_set_paused(is, true);
-                    __strong LAVPMovie* movieWrapper = is->movieWrapper;
-                    if(movieWrapper) [movieWrapper haveReachedEOF];
                 }
 
                 ret = av_read_frame(is->ic, pkt);
@@ -569,7 +567,7 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
     }
 }
 
-void lavp_set_paused(VideoState *is, bool pause)
+void lavp_set_paused_internal(VideoState *is, bool pause)
 {
     if(pause == is->paused)
         return;
@@ -586,6 +584,13 @@ void lavp_set_paused(VideoState *is, bool pause)
         else
             LAVPAudioQueueStart(is);
     }
+}
+
+void lavp_set_paused(VideoState *is, bool pause)
+{
+    lavp_set_paused_internal(is, pause);
+    __strong id<LAVPMovieOutput> movieOutput = is ? is->weakOutput : NULL;
+    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }
 
 void stream_close(VideoState *is)
@@ -618,14 +623,14 @@ void stream_close(VideoState *is)
 
         lavp_pthread_cond_destroy(is->continue_read_thread);
 
-        is->movieWrapper = NULL;
+        is->weakOutput = NULL;
     }
 
     avformat_network_deinit();
     av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
 
-VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
+VideoState* stream_open(NSURL *sourceURL)
 {
     // LAVP: in ffplay.c this is done only once, in main().  Re-doing it ought to be fine, as av_init_packet() is documented as not modifying .data
     av_init_packet(&flush_pkt);
@@ -645,7 +650,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
 
     is->volume_percent = 100;
 
-    is->movieWrapper = movieWrapper;
+    is->weakOutput = NULL;
     is->last_frame = NULL;
 
     is->infinite_buffer = -1;

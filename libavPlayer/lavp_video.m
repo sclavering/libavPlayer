@@ -152,8 +152,9 @@ void video_refresh(VideoState *is, double *remaining_time)
     frame_queue_next(&is->pictq);
 
     if (is->is_temporarily_unpaused_to_handle_seeking) {
-        lavp_set_paused(is, true);
-        [is->movieWrapper haveFinishedSeekingWhilePaused];
+        lavp_set_paused_internal(is, true);
+        __strong id<LAVPMovieOutput> movieOutput = is->weakOutput;
+        if(movieOutput) [movieOutput movieOutputNeedsSingleUpdate];
     }
 }
 

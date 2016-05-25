@@ -36,8 +36,9 @@ double get_master_clock(VideoState *is);
 void stream_seek(VideoState *is, int64_t pos, int64_t rel);
 
 void stream_close(VideoState *is);
-VideoState* stream_open(id lavpMovie, NSURL *sourceURL);
+VideoState* stream_open(NSURL *sourceURL);
 
+void lavp_set_paused_internal(VideoState *is, bool pause);
 void lavp_set_paused(VideoState *is, bool pause);
 
 int lavp_get_playback_speed_percent(VideoState *is);

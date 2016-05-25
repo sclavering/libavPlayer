@@ -173,10 +173,10 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
     if(_movie) {
         _movie.paused = true;
-        _movie.movieOutput = nil;
+        [_movie setOutput:nil];
     }
     _movie = movie;
-    _movie.movieOutput = self;
+    [_movie setOutput:self];
 
     [self setNeedsDisplay];
 
@@ -185,6 +185,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 }
 
 /* =============================================================================================== */
+
 #pragma mark -
 #pragma mark LAVPMovieOutput impl
 

@@ -35,9 +35,6 @@
     float currentVol;
 }
 
-// In practice this is an LAVPLayer.  The movie needs to be able to tell it to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.
-@property (weak) id<LAVPMovieOutput> movieOutput;
-
 @property (retain, readonly) NSURL *url;
 
 @property (readonly) NSSize frameSize;
@@ -57,6 +54,9 @@
 @property (assign) int volumePercent;
 
 - (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
+
+// Typically an LAVPLayer should be passed to this.  It's used to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.  The argument is held as a weak reference.
+- (void) setOutput:(id<LAVPMovieOutput>)output;
 
 @end
 
