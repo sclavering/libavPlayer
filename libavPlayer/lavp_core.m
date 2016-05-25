@@ -445,7 +445,8 @@ int read_thread(VideoState* is)
                     (!is->video_st || (is->viddec->finished == is->videoq.serial && frame_queue_nb_remaining(&is->pictq) == 0))) {
                     // LAVP: force stream paused on EOF
                     lavp_set_paused(is, true);
-                    [is->movieWrapper haveReachedEOF];
+                    __strong LAVPMovie* movieWrapper = is->movieWrapper;
+                    if(movieWrapper) [movieWrapper haveReachedEOF];
                 }
 
                 ret = av_read_frame(is->ic, pkt);

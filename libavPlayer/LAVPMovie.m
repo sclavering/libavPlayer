@@ -119,7 +119,8 @@
 
 - (void) setPaused:(BOOL)shouldPause {
     lavp_set_paused(is, shouldPause);
-    if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
+    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
+    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!self.paused];
 }
 
 - (int) playbackSpeedPercent {
@@ -177,14 +178,14 @@
     refresh_loop_wait_event(is);
 }
 
-- (void) haveReachedEOF
-{
-    if(self.movieOutput) [self.movieOutput movieOutputNeedsContinuousUpdating:false];
+- (void) haveReachedEOF {
+    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
+    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:false];
 }
 
-- (void) haveFinishedSeekingWhilePaused
-{
-    if(self.movieOutput) [self.movieOutput movieOutputNeedsSingleUpdate];
+- (void) haveFinishedSeekingWhilePaused {
+    __strong id<LAVPMovieOutput> movieOutput = self.movieOutput;
+    if(movieOutput) [movieOutput movieOutputNeedsSingleUpdate];
 }
 
 @end
