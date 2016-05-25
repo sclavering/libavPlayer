@@ -39,9 +39,6 @@
     //
     pthread_cond_t *continue_read_thread;
 
-    /* stream index */
-    int video_stream, audio_stream;
-
     /* AVStream */
     AVStream *audio_st;
     AVStream *video_st;

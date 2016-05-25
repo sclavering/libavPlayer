@@ -36,7 +36,7 @@
 /* =========================================================== */
 
 int stream_component_open(VideoState *is, int stream_index);
-void stream_component_close(VideoState *is, int stream_index);
+static void stream_component_close(VideoState *is, AVStream *st);
 int read_thread(VideoState *is);
 
 /* =========================================================== */
@@ -86,7 +86,6 @@ int stream_component_open(VideoState *is, int stream_index)
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             // LAVP: set before audio_open
-            is->audio_stream = stream_index;
             is->audio_st = ic->streams[stream_index];
 
             is->auddec = [[Decoder alloc] init];
@@ -111,7 +110,6 @@ int stream_component_open(VideoState *is, int stream_index)
 
             break;
         case AVMEDIA_TYPE_VIDEO:
-            is->video_stream = stream_index;
             is->video_st = ic->streams[stream_index];
             is->width = is->video_st->codecpar->width;
             is->height = is->video_st->codecpar->height;
@@ -135,16 +133,11 @@ out:
     return 0;
 }
 
-void stream_component_close(VideoState *is, int stream_index)
+static void stream_component_close(VideoState *is, AVStream *st)
 {
-    //NSLog(@"DEBUG: stream_component_close(%d)", stream_index);
+    if (!st) return;
 
-    AVFormatContext *ic = is->ic;
-    AVCodecParameters *codecpar;
-
-    if (stream_index < 0 || stream_index >= ic->nb_streams)
-        return;
-    codecpar = ic->streams[stream_index]->codecpar;
+    AVCodecParameters *codecpar = st->codecpar;
 
     switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
@@ -169,21 +162,17 @@ void stream_component_close(VideoState *is, int stream_index)
             break;
     }
 
-    ic->streams[stream_index]->discard = AVDISCARD_ALL;
+    st->discard = AVDISCARD_ALL;
     switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             is->audio_st = NULL;
-            is->audio_stream = -1;
             break;
         case AVMEDIA_TYPE_VIDEO:
             is->video_st = NULL;
-            is->video_stream = -1;
             break;
         default:
             break;
     }
-
-    //NSLog(@"DEBUG: stream_component_close(%d) done", stream_index);
 }
 
 static int decode_interrupt_cb(void *ctx)
@@ -209,9 +198,8 @@ int read_thread(VideoState* is)
         if (vid_index >= 0)
             ret = stream_component_open(is, vid_index);
 
-        if (is->video_stream < 0 && is->audio_stream < 0) {
-            av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
-                   is->filename);
+        if (!is->video_st || !is->audio_st) {
+            av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s'", is->filename);
             ret = -1;
             goto bail;
         }
@@ -252,11 +240,11 @@ int read_thread(VideoState* is)
                         av_log(NULL, AV_LOG_ERROR,
                                "%s: error while seeking\n", is->ic->filename);
                     }else{
-                        if (is->audio_stream >= 0) {
+                        if (is->audio_st) {
                             packet_queue_flush(&is->audioq);
                             packet_queue_put(&is->audioq, &flush_pkt);
                         }
-                        if (is->video_stream >= 0) {
+                        if (is->video_st) {
                             packet_queue_flush(&is->videoq);
                             packet_queue_put(&is->videoq, &flush_pkt);
                         }
@@ -276,15 +264,15 @@ int read_thread(VideoState* is)
                         if ((ret = av_copy_packet(&copy, &is->video_st->attached_pic)) < 0)
                             goto bail;
                         packet_queue_put(&is->videoq, &copy);
-                        packet_queue_put_nullpacket(&is->videoq, is->video_stream);
+                        packet_queue_put_nullpacket(&is->videoq, is->video_st->index);
                     }
                     is->queue_attachments_req = 0;
                 }
 
                 /* if the queue are full, no need to read more */
                 if (is->audioq.size + is->videoq.size > MAX_QUEUE_SIZE
-                     || (   (is->audioq   .nb_packets > MIN_FRAMES || is->audio_stream < 0 || is->audioq.abort_request)
-                         && (is->videoq   .nb_packets > MIN_FRAMES || is->video_stream < 0 || is->videoq.abort_request
+                     || (   (is->audioq.nb_packets > MIN_FRAMES || !is->audio_st || is->audioq.abort_request)
+                         && (is->videoq.nb_packets > MIN_FRAMES || !is->video_st || is->videoq.abort_request
                              || (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))
                          )) {
                          /* wait 10 ms */
@@ -304,10 +292,8 @@ int read_thread(VideoState* is)
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
                     if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
-                        if (is->video_stream >= 0)
-                            packet_queue_put_nullpacket(&is->videoq, is->video_stream);
-                        if (is->audio_stream >= 0)
-                            packet_queue_put_nullpacket(&is->audioq, is->audio_stream);
+                        if (is->video_st) packet_queue_put_nullpacket(&is->videoq, is->video_st->index);
+                        if (is->audio_st) packet_queue_put_nullpacket(&is->audioq, is->audio_st->index);
                         is->eof = 1;
                     }
                     if (is->ic->pb && is->ic->pb->error)
@@ -320,9 +306,9 @@ int read_thread(VideoState* is)
                     is->eof = 0;
                 }
 
-                if (pkt->stream_index == is->audio_stream) {
+                if (pkt->stream_index == is->audio_st->index) {
                     packet_queue_put(&is->audioq, pkt);
-                } else if (pkt->stream_index == is->video_stream
+                } else if (pkt->stream_index == is->video_st->index
                            && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
                     packet_queue_put(&is->videoq, pkt);
                 } else {
@@ -416,7 +402,7 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
         set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
     }
     is->paused = is->audclk.paused = is->vidclk.paused = pause;
-    if (is->audio_stream >= 0) {
+    if (is->audio_st) {
         if (is->paused)
             LAVPAudioQueuePause(is);
         else
@@ -445,10 +431,8 @@ void stream_close(VideoState *is)
         }
 
         /* close each stream */
-        if (is->audio_stream >= 0)
-            stream_component_close(is, is->audio_stream);
-        if (is->video_stream >= 0)
-            stream_component_close(is, is->video_stream);
+        if (is->audio_st) stream_component_close(is, is->audio_st);
+        if (is->video_st) stream_component_close(is, is->video_st);
 
         avformat_close_input(&is->ic);
 
@@ -495,8 +479,8 @@ VideoState* stream_open(NSURL *sourceURL)
     is->playbackSpeedPercent = 100;
     is->playRate = 1.0;
 
-    is->video_stream = -1;
-    is->audio_stream = -1;
+    is->video_st = NULL;
+    is->audio_st = NULL;
     is->eof = 0;
 
     /* ======================================== */
