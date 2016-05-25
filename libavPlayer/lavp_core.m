@@ -43,94 +43,6 @@ int read_thread(VideoState *is);
 /* =========================================================== */
 
 #pragma mark -
-#pragma mark functions (cmdutils.c)
-
-// extracted function from ffmpeg : cmdutils.c
-int check_stream_specifier(AVFormatContext *s, AVStream *st, const char *spec)
-{
-    int ret = avformat_match_stream_specifier(s, st, spec);
-    if (ret < 0)
-        av_log(s, AV_LOG_ERROR, "Invalid stream specifier: %s.\n", spec);
-    return ret;
-}
-
-// extracted function from ffmpeg : cmdutils.c
-AVDictionary *filter_codec_opts(AVDictionary *opts, enum AVCodecID codec_id,
-                                AVFormatContext *s, AVStream *st, AVCodec *codec)
-{
-    AVDictionary    *ret = NULL;
-    AVDictionaryEntry *t = NULL;
-    int            flags = s->oformat ? AV_OPT_FLAG_ENCODING_PARAM
-    : AV_OPT_FLAG_DECODING_PARAM;
-    char          prefix = 0;
-    const AVClass    *cc = avcodec_get_class();
-
-    if (!codec)
-        codec            = s->oformat ? avcodec_find_encoder(codec_id)
-        : avcodec_find_decoder(codec_id);
-
-    switch (st->codecpar->codec_type) {
-        case AVMEDIA_TYPE_VIDEO:
-            prefix  = 'v';
-            flags  |= AV_OPT_FLAG_VIDEO_PARAM;
-            break;
-        case AVMEDIA_TYPE_AUDIO:
-            prefix  = 'a';
-            flags  |= AV_OPT_FLAG_AUDIO_PARAM;
-            break;
-        default:
-            break;
-    }
-
-    while ((t = av_dict_get(opts, "", t, AV_DICT_IGNORE_SUFFIX))) {
-        char *p = strchr(t->key, ':');
-
-        /* check stream specification in opt name */
-        if (p)
-            switch (check_stream_specifier(s, st, p + 1)) {
-                case  1: *p = 0; break;
-                case  0:         continue;
-                default:         return NULL;
-            }
-
-        if (av_opt_find(&cc, t->key, NULL, flags, AV_OPT_SEARCH_FAKE_OBJ) ||
-            (codec && codec->priv_class &&
-             av_opt_find(&codec->priv_class, t->key, NULL, flags,
-                         AV_OPT_SEARCH_FAKE_OBJ)))
-            av_dict_set(&ret, t->key, t->value, 0);
-        else if (t->key[0] == prefix &&
-                 av_opt_find(&cc, t->key + 1, NULL, flags,
-                             AV_OPT_SEARCH_FAKE_OBJ))
-            av_dict_set(&ret, t->key + 1, t->value, 0);
-
-        if (p)
-            *p = ':';
-    }
-    return ret;
-}
-
-// extracted function from ffmpeg : cmdutils.c
-AVDictionary **setup_find_stream_info_opts(AVFormatContext *s,
-                                           AVDictionary *codec_opts)
-{
-    int i;
-    AVDictionary **opts;
-
-    if (!s->nb_streams)
-        return NULL;
-    opts = av_mallocz(s->nb_streams * sizeof(*opts));
-    if (!opts) {
-        av_log(NULL, AV_LOG_ERROR,
-               "Could not alloc memory for stream options.\n");
-        return NULL;
-    }
-    for (i = 0; i < s->nb_streams; i++)
-        opts[i] = filter_codec_opts(codec_opts, s->streams[i]->codecpar->codec_id,
-                                    s, s->streams[i], NULL);
-    return opts;
-}
-
-#pragma mark -
 #pragma mark functions (read_thread)
 
 /* open a given stream. Return 0 if OK */
@@ -143,7 +55,6 @@ int stream_component_open(VideoState *is, int stream_index)
     AVCodec *codec;
     const char *forced_codec_name = NULL;
     AVDictionary *opts = NULL;
-    AVDictionaryEntry *t = NULL;
     int sample_rate, nb_channels;
     int64_t channel_layout;
     int ret;
@@ -179,20 +90,10 @@ int stream_component_open(VideoState *is, int stream_index)
     av_codec_set_lowres(avctx, 0);
     avctx->error_concealment = 3;
 
-    AVDictionary *codec_opts = NULL; // LAVP: Dummy
-
-    opts = filter_codec_opts(codec_opts, avctx->codec_id, ic, ic->streams[stream_index], codec);
-    if (!av_dict_get(opts, "threads", NULL, 0))
-        av_dict_set(&opts, "threads", "auto", 0);
-    if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
-        av_dict_set(&opts, "refcounted_frames", "1", 0);
+    av_dict_set(&opts, "threads", "auto", 0);
+    av_dict_set(&opts, "refcounted_frames", "1", 0);
     if (avcodec_open2(avctx, codec, &opts) < 0)
         goto fail;
-    if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
-        av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-        ret = AVERROR_OPTION_NOT_FOUND;
-        goto fail;
-    }
 
     is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
@@ -724,24 +625,13 @@ VideoState* stream_open(NSURL *sourceURL)
 
     // Examine stream info
     {
-        AVDictionary **opts;
-        AVDictionary *codec_opts = NULL; // LAVP: Dummy
-        int orig_nb_streams;
-
-        opts = setup_find_stream_info_opts(is->ic, codec_opts);
-        orig_nb_streams = is->ic->nb_streams;
-
-        err = avformat_find_stream_info(is->ic, opts);
+        err = avformat_find_stream_info(is->ic, NULL);
         if (err < 0) {
             av_log(NULL, AV_LOG_WARNING,
                    "%s: could not find codec parameters\n", is->filename);
             ret = -1;
             goto bail;
         }
-
-        for (int i = 0; i < orig_nb_streams; i++)
-            av_dict_free(&opts[i]);
-        av_freep(&opts);
     }
 
     if (is->ic->pb)
