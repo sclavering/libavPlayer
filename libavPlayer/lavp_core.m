@@ -577,14 +577,10 @@ VideoState* stream_open(NSURL *sourceURL)
     /* original: read_thread() */
     // Open file
     {
-        AVFormatContext *ic = NULL;
-        AVDictionaryEntry *t = NULL;
-        AVDictionary *format_opts = NULL; // LAVP: difine as local value
-
-        ic = avformat_alloc_context();
+        AVFormatContext *ic = avformat_alloc_context();
         ic->interrupt_callback.callback = decode_interrupt_cb;
         ic->interrupt_callback.opaque = (__bridge void *)(is);
-        err = avformat_open_input(&ic, is->filename, is->iformat, &format_opts);
+        err = avformat_open_input(&ic, is->filename, is->iformat, NULL);
         if (err < 0) {
             // LAVP: inline for print_error(is->filename, err);
             {
@@ -596,11 +592,6 @@ VideoState* stream_open(NSURL *sourceURL)
                 av_log(NULL, AV_LOG_ERROR, "%s: %s\n", is->filename, errbuf_ptr);
             }
             ret = -1;
-            goto bail;
-        }
-        if ((t = av_dict_get(format_opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
-            av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-            ret = AVERROR_OPTION_NOT_FOUND;
             goto bail;
         }
         is->ic = ic;
