@@ -3,9 +3,6 @@
 // LAVP: in ffplay.c, this is just a struct, but we want to have dispatch_queue_t members, and Xcode says ARC prohibits storing those in a struct.
 @interface VideoState : NSObject {
 @public
-    /* moved from global parameter */
-    int infinite_buffer;            /* static int infinite_buffer = -1; */
-
     int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
 
     /* moved from local valuable */
@@ -26,7 +23,6 @@
     int64_t seek_rel;
     int read_pause_return;
     AVFormatContext *ic;
-    int realtime;
 
     Clock audclk;
     Clock vidclk;

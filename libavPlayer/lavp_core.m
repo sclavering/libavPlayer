@@ -37,7 +37,6 @@
 
 int stream_component_open(VideoState *is, int stream_index);
 void stream_component_close(VideoState *is, int stream_index);
-int is_realtime(AVFormatContext *s);
 int read_thread(VideoState *is);
 
 /* =========================================================== */
@@ -193,22 +192,6 @@ static int decode_interrupt_cb(void *ctx)
     return is->abort_request;
 }
 
-int is_realtime(AVFormatContext *s)
-{
-    if(   !strcmp(s->iformat->name, "rtp")
-       || !strcmp(s->iformat->name, "rtsp")
-       || !strcmp(s->iformat->name, "sdp")
-       )
-        return 1;
-
-    if(s->pb && (   !strncmp(s->filename, "rtp:", 4)
-                 || !strncmp(s->filename, "udp:", 4)
-                 )
-       )
-        return 1;
-    return 0;
-}
-
 /* this thread gets the stream from the disk or the network */
 int read_thread(VideoState* is)
 {
@@ -241,9 +224,6 @@ int read_thread(VideoState* is)
             ret = -1;
             goto bail;
         }
-
-        if (is->infinite_buffer < 0 && is->realtime)
-            is->infinite_buffer = 1;
 
         /* ================================================================================== */
 
@@ -311,12 +291,11 @@ int read_thread(VideoState* is)
                 }
 
                 /* if the queue are full, no need to read more */
-                if (is->infinite_buffer<1 &&
-                    (is->audioq.size + is->videoq.size > MAX_QUEUE_SIZE
+                if (is->audioq.size + is->videoq.size > MAX_QUEUE_SIZE
                      || (   (is->audioq   .nb_packets > MIN_FRAMES || is->audio_stream < 0 || is->audioq.abort_request)
                          && (is->videoq   .nb_packets > MIN_FRAMES || is->video_stream < 0 || is->videoq.abort_request
                              || (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))
-                         ))) {
+                         )) {
                          /* wait 10 ms */
                          pthread_mutex_lock(wait_mutex);
                          lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
@@ -537,8 +516,6 @@ VideoState* stream_open(NSURL *sourceURL)
     is->weakOutput = NULL;
     is->last_frame = NULL;
 
-    is->infinite_buffer = -1;
-
     is->paused = 0;
     is->playbackSpeedPercent = 100;
     is->playRate = 1.0;
@@ -612,10 +589,6 @@ VideoState* stream_open(NSURL *sourceURL)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
     is->max_frame_duration = (is->ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
-
-    //
-
-    is->realtime = is_realtime(is->ic);
 
     for (int i = 0; i < is->ic->nb_streams; i++)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
