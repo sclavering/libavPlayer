@@ -499,6 +499,7 @@
 				);
 				FRAMEWORK_VERSION = A;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_WARN_SHADOW = YES;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (
@@ -530,6 +531,7 @@
 				);
 				FRAMEWORK_VERSION = A;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_WARN_SHADOW = YES;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = /Library/Frameworks;
 				LIBRARY_SEARCH_PATHS = (

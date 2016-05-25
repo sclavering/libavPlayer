@@ -630,7 +630,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *)&flush_pkt;
 
-    int err, i, ret;
+    int err, ret;
 
     // Initialize VideoState struct
     VideoState *is = [[VideoState alloc] init];
@@ -733,7 +733,7 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
             goto bail;
         }
 
-        for (i = 0; i < orig_nb_streams; i++)
+        for (int i = 0; i < orig_nb_streams; i++)
             av_dict_free(&opts[i]);
         av_freep(&opts);
     }
@@ -778,8 +778,8 @@ VideoState* stream_open(/* LAVPMovie* */ id movieWrapper, NSURL *sourceURL)
         {
             __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
             dispatch_group_async(is->parse_group, is->parse_queue, ^(void) {
-                __strong VideoState* is = weakIs;
-                if(is) read_thread(is);
+                __strong VideoState* strongIs = weakIs;
+                if(strongIs) read_thread(strongIs);
             });
         }
     }

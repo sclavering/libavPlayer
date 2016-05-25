@@ -119,7 +119,7 @@ void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is)
     d->dispatch_group = dispatch_group_create();
     __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
     dispatch_group_async(d->dispatch_group, d->dispatch_queue, ^(void) {
-        __strong VideoState* is = weakIs;
-        if(is) fn(is);
+        __strong VideoState* strongIs = weakIs;
+        if(strongIs) fn(strongIs);
     });
 }

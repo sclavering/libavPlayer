@@ -293,10 +293,10 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     if (!is->audioDispatchQueue) {
         __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
         void (^audioCallbackBlock)() = ^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer) {
-            __strong VideoState* is = weakIs;
+            __strong VideoState* strongIs = weakIs;
             /* AudioQueue Callback should be ignored when closing */
-            if (!is || is->abort_request) return;
-            audio_callback(is, inAQ, inBuffer);
+            if (!strongIs || strongIs->abort_request) return;
+            audio_callback(strongIs, inAQ, inBuffer);
         };
 
         dispatch_queue_t audioDispatchQueue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
