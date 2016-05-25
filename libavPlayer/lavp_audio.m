@@ -299,9 +299,8 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
             audio_callback(strongIs, inAQ, inBuffer);
         };
 
-        dispatch_queue_t audioDispatchQueue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
-        is->audioDispatchQueue = (__bridge_retained void*)audioDispatchQueue;
-        err = AudioQueueNewOutputWithDispatchQueue(&outAQ, &is->asbd, 0, (__bridge dispatch_queue_t)is->audioDispatchQueue, audioCallbackBlock);
+        is->audioDispatchQueue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
+        err = AudioQueueNewOutputWithDispatchQueue(&outAQ, &is->asbd, 0, is->audioDispatchQueue, audioCallbackBlock);
     }
 
     assert(err == 0 && outAQ != NULL);
@@ -397,11 +396,7 @@ void LAVPAudioQueueDealloc(VideoState *is)
     is->outAQ = NULL;
 
     // stop dispatch queue
-    if (is->audioDispatchQueue) {
-        dispatch_queue_t audioDispatchQueue = (__bridge_transfer dispatch_queue_t)is->audioDispatchQueue;
-        audioDispatchQueue = NULL; // ARC
-        is->audioDispatchQueue = NULL;
-    }
+    if (is->audioDispatchQueue) is->audioDispatchQueue = NULL;
 }
 
 void setVolume(VideoState *is, AudioQueueParameterValue volume)

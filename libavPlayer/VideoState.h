@@ -88,7 +88,7 @@
     /* LAVP: extension */
     AudioQueueRef outAQ;
     AudioStreamBasicDescription asbd;
-    void* audioDispatchQueue; // dispatch_queue_t
+    dispatch_queue_t audioDispatchQueue;
 
     /* =========================================================== */
 
