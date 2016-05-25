@@ -29,17 +29,9 @@
 #include "avcodec.h"
 #include "avformat.h"
 #include "avutil.h"
-#include "swscale.h"
 
-#include "libavcodec/audioconvert.h"
-#include "libavcodec/avfft.h"
-#include "libavutil/imgutils.h"
-#include "libavutil/eval.h"
-#include "libavutil/parseutils.h"
 #include "libavutil/opt.h"
-#include "libavutil/colorspace.h"
 #include "libavutil/time.h"
-#include "libavutil/avstring.h"
 #include "libswresample/swresample.h"
 
 #import "lavp_thread.h"
