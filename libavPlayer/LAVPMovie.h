@@ -32,7 +32,6 @@
 @private
     VideoState *is;
     double lastPosition;
-    float currentVol;
 }
 
 @property (retain, readonly) NSURL *url;
