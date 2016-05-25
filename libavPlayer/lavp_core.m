@@ -48,21 +48,13 @@ int read_thread(VideoState *is);
 /* open a given stream. Return 0 if OK */
 int stream_component_open(VideoState *is, int stream_index)
 {
-    //NSLog(@"DEBUG: stream_component_open(%d)", stream_index);
-
     AVFormatContext *ic = is->ic;
-    AVCodecContext *avctx;
-    AVCodec *codec;
-    const char *forced_codec_name = NULL;
-    AVDictionary *opts = NULL;
-    int sample_rate, nb_channels;
-    int64_t channel_layout;
     int ret;
 
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return -1;
 
-    avctx = avcodec_alloc_context3(NULL);
+    AVCodecContext *avctx = avcodec_alloc_context3(NULL);
     if (!avctx)
         return AVERROR(ENOMEM);
 
@@ -71,16 +63,10 @@ int stream_component_open(VideoState *is, int stream_index)
         goto fail;
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
 
-    codec = avcodec_find_decoder(avctx->codec_id);
+    AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
 
-    //
-    if (forced_codec_name)
-        codec = avcodec_find_decoder_by_name(forced_codec_name);
     if (!codec) {
-        if (forced_codec_name) av_log(NULL, AV_LOG_WARNING,
-                                      "No codec could be found with name '%s'\n", forced_codec_name);
-        else                   av_log(NULL, AV_LOG_WARNING,
-                                      "No codec could be found with id %d\n", avctx->codec_id);
+        av_log(NULL, AV_LOG_WARNING, "No codec could be found with id %d\n", avctx->codec_id);
         ret = AVERROR(EINVAL);
         goto fail;
     }
@@ -90,6 +76,7 @@ int stream_component_open(VideoState *is, int stream_index)
     av_codec_set_lowres(avctx, 0);
     avctx->error_concealment = 3;
 
+    AVDictionary *opts = NULL;
     av_dict_set(&opts, "threads", "auto", 0);
     av_dict_set(&opts, "refcounted_frames", "1", 0);
     if (avcodec_open2(avctx, codec, &opts) < 0)
@@ -111,12 +98,8 @@ int stream_component_open(VideoState *is, int stream_index)
             }
             decoder_start(is->auddec, audio_thread, is);
 
-            sample_rate    = avctx->sample_rate;
-            nb_channels    = avctx->channels;
-            channel_layout = avctx->channel_layout;
-
             /* prepare audio output */
-            if ((ret = audio_open(is, channel_layout, nb_channels, sample_rate, &is->audio_tgt)) < 0)
+            if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
                 goto out;
             is->audio_hw_buf_size = ret;
             is->audio_src = is->audio_tgt;
