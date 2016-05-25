@@ -38,7 +38,6 @@
 		1660410318292F2B00E78594 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 1660410218292F2B00E78594 /* libiconv.dylib */; };
 		166F893813E0555A00B74CCA /* lavp_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 166F893613E0555A00B74CCA /* lavp_thread.c */; };
 		166F893913E0555A00B74CCA /* lavp_thread.h in Headers */ = {isa = PBXBuildFile; fileRef = 166F893713E0555A00B74CCA /* lavp_thread.h */; };
-		169D704313EE2A5700031A4A /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 169D704213EE2A5700031A4A /* QTKit.framework */; };
 		16A18F4913AC466F008825FF /* LAVPMovie.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A18F4713AC466F008825FF /* LAVPMovie.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A18F4813AC466F008825FF /* LAVPMovie.m */; };
 		16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FAB13AC567E008825FF /* CoreVideo.framework */; };
@@ -174,7 +173,6 @@
 				16E3B23213BA752C000E6062 /* Cocoa.framework in Frameworks */,
 				164826C013D399A2008E16A7 /* AudioToolbox.framework in Frameworks */,
 				16CFAA2B183CE911008DD4BF /* libswresample.a in Frameworks */,
-				169D704313EE2A5700031A4A /* QTKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
