@@ -50,30 +50,19 @@ void video_refresh(VideoState *is, double *remaining_time);
 
 double compute_target_delay(double delay, VideoState *is)
 {
-    double sync_threshold, diff;
-
     /* update delay to follow master synchronisation source */
-
-        /* if video is slave, we try to correct big delays by
-         duplicating or deleting a frame */
-        diff = get_clock(&is->vidclk) - get_master_clock(is);
-
-        /* skip or repeat frame. We take into account the
-         delay to compute the threshold. I still don't know
-         if it is the best guess */
-        sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-        if (!isnan(diff) && fabs(diff) < is->max_frame_duration) {
-            if (diff <= -sync_threshold)
-                delay = FFMAX(0, delay + diff);
-            else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
-                delay = delay + diff;
-            else if (diff >= sync_threshold)
-                delay = 2 * delay;
-        }
-
-    av_dlog(NULL, "video: delay=%0.3f A-V=%f\n",
-            delay, -diff);
-
+    /* if video is slave, we try to correct big delays by duplicating or deleting a frame */
+    double diff = get_clock(&is->vidclk) - get_master_clock(is);
+    /* skip or repeat frame. We take into account the delay to compute the threshold. I still don't know if it is the best guess */
+    double sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
+    if (!isnan(diff) && fabs(diff) < is->max_frame_duration) {
+        if (diff <= -sync_threshold)
+            delay = FFMAX(0, delay + diff);
+        else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
+            delay = delay + diff;
+        else if (diff >= sync_threshold)
+            delay = 2 * delay;
+    }
     return delay;
 }
 
