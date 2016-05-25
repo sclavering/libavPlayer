@@ -320,23 +320,9 @@ int read_thread(VideoState* is)
                     is->eof = 0;
                 }
 
-                // Queue packet
-                int64_t start_time = AV_NOPTS_VALUE; // LAVP:
-                int64_t duration = AV_NOPTS_VALUE; // LAVP:
-                int64_t stream_start_time; // LAVP:
-                int pkt_in_play_range; // LAVP:
-
-                /* check if packet is in play range specified by user, then queue, otherwise discard */
-                stream_start_time = is->ic->streams[pkt->stream_index]->start_time; // LAVP:
-                int64_t pkt_ts = pkt->pts == AV_NOPTS_VALUE ? pkt->dts : pkt->pts;
-                pkt_in_play_range = duration == AV_NOPTS_VALUE ||
-                        (pkt_ts - (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
-                        av_q2d(is->ic->streams[pkt->stream_index]->time_base) -
-                        (double)(start_time != AV_NOPTS_VALUE ? start_time : 0) / 1000000
-                        <= ((double)duration / 1000000);
-                if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
+                if (pkt->stream_index == is->audio_stream) {
                     packet_queue_put(&is->audioq, pkt);
-                } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
+                } else if (pkt->stream_index == is->video_stream
                            && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
                     packet_queue_put(&is->videoq, pkt);
                 } else {
@@ -344,8 +330,6 @@ int read_thread(VideoState* is)
                 }
             }
         }
-
-        /* ================================================================================== */
 
         // finish thread
         ret = 0;
