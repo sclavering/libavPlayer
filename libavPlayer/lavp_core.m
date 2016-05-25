@@ -197,26 +197,17 @@ int read_thread(VideoState* is)
 {
     @autoreleasepool {
 
-        int ret;
-
-        int st_index[AVMEDIA_TYPE_NB] = {-1};
-
         pthread_mutex_t* wait_mutex = lavp_pthread_mutex_create();
 
-        // LAVP: Choose best stream for Video, Audio
-        int vid_index = -1;
-        int aud_index = (st_index[AVMEDIA_TYPE_VIDEO]);
+        int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+        int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
 
-        st_index[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, vid_index, NULL, 0);
-        st_index[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1,  aud_index, NULL , 0);
+        if (aud_index >= 0)
+            stream_component_open(is, aud_index);
 
-        /* open the streams */
-        if (st_index[AVMEDIA_TYPE_AUDIO] >= 0)
-            stream_component_open(is, st_index[AVMEDIA_TYPE_AUDIO]);
-
-        ret = -1;
-        if (st_index[AVMEDIA_TYPE_VIDEO] >= 0)
-            ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
+        int ret = -1;
+        if (vid_index >= 0)
+            ret = stream_component_open(is, vid_index);
 
         if (is->video_stream < 0 && is->audio_stream < 0) {
             av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s' or configure filtergraph\n",
