@@ -177,7 +177,6 @@ int video_thread(VideoState *is)
     AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
 
     for(;;) {
-        @autoreleasepool {
             int ret = get_video_frame(is, frame);
             if (ret < 0)
                 break;
@@ -201,7 +200,6 @@ int video_thread(VideoState *is)
             av_frame_move_ref(fr->frm_frame, frame);
 
             frame_queue_push(&is->pictq);
-        }
     }
 
     av_frame_free(&frame);
