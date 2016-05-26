@@ -44,22 +44,18 @@ int read_thread(VideoState *is);
 #pragma mark functions (read_thread)
 
 /* open a given stream. Return 0 if OK */
-int stream_component_open(VideoState *is, int stream_index)
+static int stream_component_open(VideoState *is, AVStream *stream)
 {
-    AVFormatContext *ic = is->ic;
     int ret;
-
-    if (stream_index < 0 || stream_index >= ic->nb_streams)
-        return -1;
 
     AVCodecContext *avctx = avcodec_alloc_context3(NULL);
     if (!avctx)
         return AVERROR(ENOMEM);
 
-    ret = avcodec_parameters_to_context(avctx, ic->streams[stream_index]->codecpar);
+    ret = avcodec_parameters_to_context(avctx, stream->codecpar);
     if (ret < 0)
         goto fail;
-    av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
+    av_codec_set_pkt_timebase(avctx, stream->time_base);
 
     AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
 
@@ -81,11 +77,11 @@ int stream_component_open(VideoState *is, int stream_index)
         goto fail;
 
     is->eof = 0;
-    ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
+    stream->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             // LAVP: set before audio_open
-            is->audio_st = ic->streams[stream_index];
+            is->audio_st = stream;
 
             is->auddec = [[Decoder alloc] init];
             if(decoder_init(is->auddec, avctx, is->continue_read_thread, SAMPLE_QUEUE_SIZE) < 0)
@@ -111,7 +107,7 @@ int stream_component_open(VideoState *is, int stream_index)
 
             break;
         case AVMEDIA_TYPE_VIDEO:
-            is->video_st = ic->streams[stream_index];
+            is->video_st = stream;
             is->width = is->video_st->codecpar->width;
             is->height = is->video_st->codecpar->height;
 
@@ -519,9 +515,9 @@ VideoState* stream_open(NSURL *sourceURL)
         int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
         int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
         if (aud_index >= 0)
-            stream_component_open(is, aud_index);
+            stream_component_open(is, is->ic->streams[aud_index]);
         if (vid_index >= 0)
-            stream_component_open(is, vid_index);
+            stream_component_open(is, is->ic->streams[vid_index]);
         if (!is->video_st || !is->audio_st)
             goto fail;
 
