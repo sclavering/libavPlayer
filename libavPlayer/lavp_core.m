@@ -199,7 +199,6 @@ int read_thread(VideoState* is)
             ret = stream_component_open(is, vid_index);
 
         if (!is->video_st || !is->audio_st) {
-            av_log(NULL, AV_LOG_FATAL, "Failed to open file '%s'", is->filename);
             ret = -1;
             goto bail;
         }
@@ -236,10 +235,7 @@ int read_thread(VideoState* is)
                     //      of the seek_pos/seek_rel variables
 
                     ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
-                    if (ret < 0) {
-                        av_log(NULL, AV_LOG_ERROR,
-                               "%s: error while seeking\n", is->ic->filename);
-                    }else{
+                    if (ret >= 0) {
                         if (is->audio_st) {
                             packet_queue_flush(&is->audioq);
                             packet_queue_put(&is->audioq, &flush_pkt);
@@ -458,15 +454,10 @@ VideoState* stream_open(NSURL *sourceURL)
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *)&flush_pkt;
 
-    int err, ret;
+    int err;
 
     // Initialize VideoState struct
     VideoState *is = [[VideoState alloc] init];
-
-    const char* path = [[sourceURL path] fileSystemRepresentation];
-    if (path) {
-        is->filename = strdup(path);
-    }
 
     /* ======================================== */
 
@@ -516,33 +507,16 @@ VideoState* stream_open(NSURL *sourceURL)
         AVFormatContext *ic = avformat_alloc_context();
         ic->interrupt_callback.callback = decode_interrupt_cb;
         ic->interrupt_callback.opaque = (__bridge void *)(is);
-        err = avformat_open_input(&ic, is->filename, is->iformat, NULL);
-        if (err < 0) {
-            // LAVP: inline for print_error(is->filename, err);
-            {
-                char errbuf[128];
-                const char *errbuf_ptr = errbuf;
-
-                if (av_strerror(err, errbuf, sizeof(errbuf)) < 0)
-                    errbuf_ptr = strerror(AVUNERROR(err));
-                av_log(NULL, AV_LOG_ERROR, "%s: %s\n", is->filename, errbuf_ptr);
-            }
-            ret = -1;
-            goto bail;
-        }
+        err = avformat_open_input(&ic, [[sourceURL path] fileSystemRepresentation], is->iformat, NULL);
+        if (err < 0)
+            return NULL;
         is->ic = ic;
     }
 
     // Examine stream info
-    {
-        err = avformat_find_stream_info(is->ic, NULL);
-        if (err < 0) {
-            av_log(NULL, AV_LOG_WARNING,
-                   "%s: could not find codec parameters\n", is->filename);
-            ret = -1;
-            goto bail;
-        }
-    }
+    err = avformat_find_stream_info(is->ic, NULL);
+    if (err < 0)
+        return NULL;
 
     if (is->ic->pb)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
@@ -589,13 +563,6 @@ VideoState* stream_open(NSURL *sourceURL)
     // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
     is->is_temporarily_unpaused_to_handle_seeking = true;
     return is;
-
-bail:
-    av_log(NULL, AV_LOG_ERROR, "ret = %d, err = %d\n", ret, err);
-    if (is->filename)
-        free(is->filename);
-    is = NULL;
-    return NULL;
 
 fail:
     stream_close(is);

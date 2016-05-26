@@ -33,7 +33,6 @@
     Decoder* auddec;
     Decoder* viddec;
 
-    char* filename; /* LAVP: char filename[1024] */
     int width, height;
     bool is_temporarily_unpaused_to_handle_seeking;
     //
