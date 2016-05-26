@@ -185,23 +185,7 @@ static int decode_interrupt_cb(void *ctx)
 int read_thread(VideoState* is)
 {
         pthread_mutex_t* wait_mutex = lavp_pthread_mutex_create();
-
-        int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-        int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
-
-        if (aud_index >= 0)
-            stream_component_open(is, aud_index);
-
         int ret = -1;
-        if (vid_index >= 0)
-            ret = stream_component_open(is, vid_index);
-
-        if (!is->video_st || !is->audio_st) {
-            ret = -1;
-            goto bail;
-        }
-
-        /* ================================================================================== */
 
         // decode loop
         AVPacket pkt1, *pkt = &pkt1;
@@ -542,6 +526,15 @@ VideoState* stream_open(NSURL *sourceURL)
         init_clock(&is->audclk, &is->audioq.serial);
 
         is->audio_clock_serial = -1;
+
+        int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+        int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
+        if (aud_index >= 0)
+            stream_component_open(is, aud_index);
+        if (vid_index >= 0)
+            stream_component_open(is, vid_index);
+        if (!is->video_st || !is->audio_st)
+            goto fail;
 
         // LAVP: Use a dispatch queue instead of an SDL thread.
         is->parse_queue = dispatch_queue_create("parse", NULL);
