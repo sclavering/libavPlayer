@@ -12,7 +12,6 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
     if(err < 0) return err;
     packet_queue_init(&d->packetq);
-    d->queue = &d->packetq;
     return 0;
 }
 
@@ -22,15 +21,15 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     do {
         int ret = -1;
 
-        if (d->queue->abort_request)
+        if (d->packetq.abort_request)
             return -1;
 
-        if (!d->packet_pending || d->queue->serial != d->pkt_serial) {
+        if (!d->packet_pending || d->packetq.serial != d->pkt_serial) {
             AVPacket pkt;
             do {
-                if (d->queue->nb_packets == 0)
+                if (d->packetq.nb_packets == 0)
                     pthread_cond_signal(d->empty_queue_cond);
-                if (packet_queue_get(d->queue, &pkt, 1, &d->pkt_serial) < 0)
+                if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
                 if (pkt.data == flush_pkt.data) {
                     avcodec_flush_buffers(d->avctx);
@@ -38,7 +37,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
                     d->next_pts = d->start_pts;
                     d->next_pts_tb = d->start_pts_tb;
                 }
-            } while (pkt.data == flush_pkt.data || d->queue->serial != d->pkt_serial);
+            } while (pkt.data == flush_pkt.data || d->packetq.serial != d->pkt_serial);
             av_packet_unref(&d->pkt);
             d->pkt_temp = d->pkt = pkt;
             d->packet_pending = 1;
@@ -102,7 +101,7 @@ void decoder_destroy(Decoder *d) {
 
 void decoder_abort(Decoder *d, FrameQueue *fq)
 {
-    packet_queue_abort(d->queue);
+    packet_queue_abort(&d->packetq);
     frame_queue_signal(fq);
 
     // LAVP: release dispatch queue
@@ -110,14 +109,14 @@ void decoder_abort(Decoder *d, FrameQueue *fq)
     d->dispatch_group = NULL;
     d->dispatch_queue = NULL;
 
-    packet_queue_flush(d->queue);
+    packet_queue_flush(&d->packetq);
 }
 
 // LAVP: in ffplay the signature is:
 // static void decoder_start(Decoder *d, int (*fn)(void *), void *arg)
 void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is)
 {
-    packet_queue_start(d->queue);
+    packet_queue_start(&d->packetq);
     // LAVP: Use a dispatch queue instead of an SDL thread.
     d->dispatch_queue = dispatch_queue_create(NULL, NULL);
     d->dispatch_group = dispatch_group_create();

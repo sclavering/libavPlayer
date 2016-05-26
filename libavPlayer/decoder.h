@@ -4,7 +4,6 @@
 @public
     AVPacket pkt;
     AVPacket pkt_temp;
-    PacketQueue *queue;
     AVCodecContext *avctx;
     int pkt_serial;
     int finished;
