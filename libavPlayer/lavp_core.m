@@ -35,7 +35,6 @@
 
 /* =========================================================== */
 
-int stream_component_open(VideoState *is, int stream_index);
 static void stream_component_close(VideoState *is, AVStream *st);
 int read_thread(VideoState *is);
 
@@ -88,6 +87,10 @@ int stream_component_open(VideoState *is, int stream_index)
             // LAVP: set before audio_open
             is->audio_st = ic->streams[stream_index];
 
+            if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
+                goto fail;
+            packet_queue_init(&is->audioq);
+
             is->auddec = [[Decoder alloc] init];
             decoder_init(is->auddec, avctx, &is->audioq, is->continue_read_thread);
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
@@ -113,6 +116,10 @@ int stream_component_open(VideoState *is, int stream_index)
             is->video_st = ic->streams[stream_index];
             is->width = is->video_st->codecpar->width;
             is->height = is->video_st->codecpar->height;
+
+            if (frame_queue_init(&is->pictq, &is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
+                goto fail;
+            packet_queue_init(&is->videoq);
 
             is->viddec = [[Decoder alloc] init];
             decoder_init(is->viddec, avctx, &is->videoq, is->continue_read_thread);
@@ -511,17 +518,8 @@ VideoState* stream_open(NSURL *sourceURL)
 
     /* original: stream_open() */
     {
-        if (frame_queue_init(&is->pictq, &is->videoq, VIDEO_PICTURE_QUEUE_SIZE, 1) < 0)
-            goto fail;
-        if (frame_queue_init(&is->sampq, &is->audioq, SAMPLE_QUEUE_SIZE, 1) < 0)
-            goto fail;
-
-        packet_queue_init(&is->audioq);
-        packet_queue_init(&is->videoq);
-
         is->continue_read_thread = lavp_pthread_cond_create();
 
-        //
         init_clock(&is->vidclk, &is->videoq.serial);
         init_clock(&is->audclk, &is->audioq.serial);
 
