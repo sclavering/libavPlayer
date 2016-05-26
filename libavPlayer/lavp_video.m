@@ -159,7 +159,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
             double dpts = av_q2d(is->video_st->time_base) * frame->pts;
             double diff = dpts - get_master_clock(is);
             if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
-                diff - is->frame_last_filter_delay < 0 &&
+                diff < 0 &&
                 is->viddec->pkt_serial == is->vidclk.serial &&
                 is->videoq.nb_packets) {
                 av_frame_unref(frame);

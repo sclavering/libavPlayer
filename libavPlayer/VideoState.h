@@ -88,7 +88,6 @@
     // LAVPvideo
 
     double frame_timer;
-    double frame_last_filter_delay;
     //
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
