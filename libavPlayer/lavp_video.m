@@ -100,14 +100,14 @@ void video_refresh(VideoState *is, double *remaining_time)
     Frame *vp, *lastvp;
     for(;;) {
         // nothing to do, no picture to display in the queue
-        if (frame_queue_nb_remaining(&is->pictq) == 0) return;
+        if (frame_queue_nb_remaining(&is->viddec->frameq) == 0) return;
 
         /* dequeue the picture */
-        lastvp = frame_queue_peek_last(&is->pictq);
-        vp = frame_queue_peek(&is->pictq);
+        lastvp = frame_queue_peek_last(&is->viddec->frameq);
+        vp = frame_queue_peek(&is->viddec->frameq);
 
-        if (vp->frm_serial != is->videoq.serial) {
-            frame_queue_next(&is->pictq);
+        if (vp->frm_serial != is->viddec->packetq.serial) {
+            frame_queue_next(&is->viddec->frameq);
             continue;
         }
         break;
@@ -131,14 +131,14 @@ void video_refresh(VideoState *is, double *remaining_time)
         if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)
             is->frame_timer = time;
 
-        pthread_mutex_lock(is->pictq.mutex);
+        pthread_mutex_lock(is->viddec->frameq.mutex);
         if (!isnan(vp->frm_pts))
             set_clock(&is->vidclk, vp->frm_pts, vp->frm_serial);
 
-        pthread_mutex_unlock(is->pictq.mutex);
+        pthread_mutex_unlock(is->viddec->frameq.mutex);
     }
 
-    frame_queue_next(&is->pictq);
+    frame_queue_next(&is->viddec->frameq);
 
     if (is->is_temporarily_unpaused_to_handle_seeking) {
         lavp_set_paused_internal(is, true);
@@ -161,7 +161,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
             if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
                 diff < 0 &&
                 is->viddec->pkt_serial == is->vidclk.serial &&
-                is->videoq.nb_packets) {
+                is->viddec->packetq.nb_packets) {
                 av_frame_unref(frame);
                 got_picture = 0;
             }
@@ -190,7 +190,7 @@ int video_thread(VideoState *is)
                 break;
 
             Frame *fr;
-            if (!(fr = frame_queue_peek_writable(&is->pictq)))
+            if (!(fr = frame_queue_peek_writable(&is->viddec->frameq)))
                 break;
 
             fr->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
@@ -199,7 +199,7 @@ int video_thread(VideoState *is)
 
             av_frame_move_ref(fr->frm_frame, frame);
 
-            frame_queue_push(&is->pictq);
+            frame_queue_push(&is->viddec->frameq);
     }
 
     av_frame_free(&frame);
@@ -212,13 +212,13 @@ int video_thread(VideoState *is)
 
 Frame* lavp_get_current_frame(VideoState *is)
 {
-    pthread_mutex_lock(is->pictq.mutex);
+    pthread_mutex_lock(is->viddec->frameq.mutex);
     bool success = false;
 
-    if (frame_queue_nb_remaining(&is->pictq) <= 0)
+    if (frame_queue_nb_remaining(&is->viddec->frameq) <= 0)
         goto finish;
 
-    Frame *vp = frame_queue_peek(&is->pictq);
+    Frame *vp = frame_queue_peek(&is->viddec->frameq);
 
     if (!vp)
         goto finish;
@@ -230,6 +230,6 @@ Frame* lavp_get_current_frame(VideoState *is)
     success = true;
 
 finish:
-    pthread_mutex_unlock(is->pictq.mutex);
+    pthread_mutex_unlock(is->viddec->frameq.mutex);
     return success ? is->last_frame : NULL;
 }

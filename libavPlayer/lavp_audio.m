@@ -97,10 +97,10 @@ int audio_decode_frame(VideoState *is)
             return -1;
 
         do {
-            if (!(af = frame_queue_peek_readable(&is->sampq)))
+            if (!(af = frame_queue_peek_readable(&is->auddec->frameq)))
                 return -1;
-            frame_queue_next(&is->sampq);
-        } while (af->frm_serial != is->audioq.serial);
+            frame_queue_next(&is->auddec->frameq);
+        } while (af->frm_serial != is->auddec->packetq.serial);
 
         {
             data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame),
@@ -444,7 +444,7 @@ int audio_thread(VideoState *is)
         if (got_frame) {
             tb = (AVRational){1, frame->sample_rate};
 
-            if (!(af = frame_queue_peek_writable(&is->sampq)))
+            if (!(af = frame_queue_peek_writable(&is->auddec->frameq)))
                 goto the_end;
 
             af->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
@@ -452,7 +452,7 @@ int audio_thread(VideoState *is)
             af->frm_duration = av_q2d((AVRational){frame->nb_samples, frame->sample_rate});
 
             av_frame_move_ref(af->frm_frame, frame);
-            frame_queue_push(&is->sampq);
+            frame_queue_push(&is->auddec->frameq);
         }
     } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
 the_end:

@@ -5,11 +5,15 @@
 @implementation Decoder
 @end
 
-void decoder_init(Decoder *d, AVCodecContext *avctx, PacketQueue *queue, pthread_cond_t *empty_queue_cond) {
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size) {
     d->avctx = avctx;
-    d->queue = queue;
     d->empty_queue_cond = empty_queue_cond;
     d->start_pts = AV_NOPTS_VALUE;
+    int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
+    if(err < 0) return err;
+    packet_queue_init(&d->packetq);
+    d->queue = &d->packetq;
+    return 0;
 }
 
 int decoder_decode_frame(Decoder *d, AVFrame *frame) {
