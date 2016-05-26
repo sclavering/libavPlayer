@@ -184,8 +184,6 @@ static int decode_interrupt_cb(void *ctx)
 /* this thread gets the stream from the disk or the network */
 int read_thread(VideoState* is)
 {
-    @autoreleasepool {
-
         pthread_mutex_t* wait_mutex = lavp_pthread_mutex_create();
 
         int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
@@ -208,7 +206,6 @@ int read_thread(VideoState* is)
         // decode loop
         AVPacket pkt1, *pkt = &pkt1;
         for(;;) {
-            @autoreleasepool {
                 // Abort
                 if (is->abort_request) {
                     break;
@@ -310,7 +307,6 @@ int read_thread(VideoState* is)
                 } else {
                     av_packet_unref(pkt);
                 }
-            }
         }
 
         // finish thread
@@ -320,7 +316,6 @@ int read_thread(VideoState* is)
         lavp_pthread_mutex_destroy(wait_mutex);
 
         return ret;
-    }
 }
 
 #pragma mark -
