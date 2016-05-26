@@ -5,7 +5,8 @@
 @implementation Decoder
 @end
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size) {
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size, AVStream *stream) {
+    d->stream = stream;
     d->avctx = avctx;
     d->empty_queue_cond = empty_queue_cond;
     d->start_pts = AV_NOPTS_VALUE;

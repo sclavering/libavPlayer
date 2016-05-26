@@ -95,7 +95,7 @@ void refresh_loop_wait_event(VideoState *is) {
 /* called to display each frame */
 void video_refresh(VideoState *is, double *remaining_time)
 {
-    if (!is->video_st) return;
+    if (!is->viddec->stream) return;
 
     Frame *vp, *lastvp;
     for(;;) {
@@ -156,7 +156,7 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 
     if (got_picture) {
         if (frame->pts != AV_NOPTS_VALUE) {
-            double dpts = av_q2d(is->video_st->time_base) * frame->pts;
+            double dpts = av_q2d(is->viddec->stream->time_base) * frame->pts;
             double diff = dpts - get_master_clock(is);
             if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
                 diff < 0 &&
@@ -173,8 +173,8 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 int video_thread(VideoState *is)
 {
     AVFrame *frame= av_frame_alloc();
-    AVRational tb = is->video_st->time_base;
-    AVRational frame_rate = av_guess_frame_rate(is->ic, is->video_st, NULL);
+    AVRational tb = is->viddec->stream->time_base;
+    AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
 
     for(;;) {
             int ret = get_video_frame(is, frame);

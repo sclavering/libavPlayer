@@ -15,13 +15,14 @@
     AVRational next_pts_tb;
     FrameQueue frameq;
     PacketQueue packetq;
+    AVStream *stream;
     // LAVP: in ffplay there's just a single SDL_Thread* decoder_tid instead of these.
     dispatch_queue_t dispatch_queue;
     dispatch_group_t dispatch_group;
 }
 @end;
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size);
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size, AVStream *stream);
 int decoder_decode_frame(Decoder *d, AVFrame *frame);
 void decoder_destroy(Decoder *d);
 void decoder_abort(Decoder *d, FrameQueue *fq);

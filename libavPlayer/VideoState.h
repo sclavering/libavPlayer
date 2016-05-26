@@ -34,10 +34,6 @@
     bool is_temporarily_unpaused_to_handle_seeking;
     pthread_cond_t *continue_read_thread;
 
-    /* AVStream */
-    AVStream *audio_st;
-    AVStream *video_st;
-
     int playbackSpeedPercent;
     double playRate; // derived from playbackSpeedPercent
 

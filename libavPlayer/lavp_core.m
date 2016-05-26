@@ -80,16 +80,13 @@ static int stream_component_open(VideoState *is, AVStream *stream)
     stream->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-            // LAVP: set before audio_open
-            is->audio_st = stream;
-
             is->auddec = [[Decoder alloc] init];
-            if(decoder_init(is->auddec, avctx, is->continue_read_thread, SAMPLE_QUEUE_SIZE) < 0)
+            if(decoder_init(is->auddec, avctx, is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
                 goto fail;
 
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
-                is->auddec->start_pts = is->audio_st->start_time;
-                is->auddec->start_pts_tb = is->audio_st->time_base;
+                is->auddec->start_pts = is->auddec->stream->start_time;
+                is->auddec->start_pts_tb = is->auddec->stream->time_base;
             }
             decoder_start(is->auddec, audio_thread, is);
 
@@ -107,12 +104,11 @@ static int stream_component_open(VideoState *is, AVStream *stream)
 
             break;
         case AVMEDIA_TYPE_VIDEO:
-            is->video_st = stream;
-            is->width = is->video_st->codecpar->width;
-            is->height = is->video_st->codecpar->height;
+            is->width = stream->codecpar->width;
+            is->height = stream->codecpar->height;
 
             is->viddec = [[Decoder alloc] init];
-            if(decoder_init(is->viddec, avctx, is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE) < 0)
+            if(decoder_init(is->viddec, avctx, is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE, stream) < 0)
                 goto fail;
             decoder_start(is->viddec, video_thread, is);
 
@@ -163,10 +159,10 @@ static void stream_component_close(VideoState *is, AVStream *st)
     st->discard = AVDISCARD_ALL;
     switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-            is->audio_st = NULL;
+            is->auddec->stream = NULL;
             break;
         case AVMEDIA_TYPE_VIDEO:
-            is->video_st = NULL;
+            is->viddec->stream = NULL;
             break;
         default:
             break;
@@ -215,11 +211,11 @@ int read_thread(VideoState* is)
 
                     ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
                     if (ret >= 0) {
-                        if (is->audio_st) {
+                        if (is->auddec->stream) {
                             packet_queue_flush(&is->auddec->packetq);
                             packet_queue_put(&is->auddec->packetq, &flush_pkt);
                         }
-                        if (is->video_st) {
+                        if (is->viddec->stream) {
                             packet_queue_flush(&is->viddec->packetq);
                             packet_queue_put(&is->viddec->packetq, &flush_pkt);
                         }
@@ -234,21 +230,21 @@ int read_thread(VideoState* is)
                 }
 
                 if (is->queue_attachments_req) {
-                    if (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+                    if (is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
                         AVPacket copy;
-                        if ((ret = av_copy_packet(&copy, &is->video_st->attached_pic)) < 0)
+                        if ((ret = av_copy_packet(&copy, &is->viddec->stream->attached_pic)) < 0)
                             goto bail;
                         packet_queue_put(&is->viddec->packetq, &copy);
-                        packet_queue_put_nullpacket(&is->viddec->packetq, is->video_st->index);
+                        packet_queue_put_nullpacket(&is->viddec->packetq, is->viddec->stream->index);
                     }
                     is->queue_attachments_req = 0;
                 }
 
                 /* if the queue are full, no need to read more */
                 if (is->auddec->packetq.size + is->viddec->packetq.size > MAX_QUEUE_SIZE
-                     || (   (is->auddec->packetq.nb_packets > MIN_FRAMES || !is->audio_st || is->auddec->packetq.abort_request)
-                         && (is->viddec->packetq.nb_packets > MIN_FRAMES || !is->video_st || is->viddec->packetq.abort_request
-                             || (is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC))
+                     || (   (is->auddec->packetq.nb_packets > MIN_FRAMES || !is->auddec->stream || is->auddec->packetq.abort_request)
+                         && (is->viddec->packetq.nb_packets > MIN_FRAMES || !is->viddec->stream || is->viddec->packetq.abort_request
+                             || (is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC))
                          )) {
                          /* wait 10 ms */
                          pthread_mutex_lock(wait_mutex);
@@ -258,8 +254,8 @@ int read_thread(VideoState* is)
                      }
 
                 if (!is->paused &&
-                    (!is->audio_st || (is->auddec->finished == is->auddec->packetq.serial && frame_queue_nb_remaining(&is->auddec->frameq) == 0)) &&
-                    (!is->video_st || (is->viddec->finished == is->viddec->packetq.serial && frame_queue_nb_remaining(&is->viddec->frameq) == 0))) {
+                    (!is->auddec->stream || (is->auddec->finished == is->auddec->packetq.serial && frame_queue_nb_remaining(&is->auddec->frameq) == 0)) &&
+                    (!is->viddec->stream || (is->viddec->finished == is->viddec->packetq.serial && frame_queue_nb_remaining(&is->viddec->frameq) == 0))) {
                     // LAVP: force stream paused on EOF
                     lavp_set_paused(is, true);
                 }
@@ -267,8 +263,8 @@ int read_thread(VideoState* is)
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
                     if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
-                        if (is->video_st) packet_queue_put_nullpacket(&is->viddec->packetq, is->video_st->index);
-                        if (is->audio_st) packet_queue_put_nullpacket(&is->auddec->packetq, is->audio_st->index);
+                        if (is->viddec->stream) packet_queue_put_nullpacket(&is->viddec->packetq, is->viddec->stream->index);
+                        if (is->auddec->stream) packet_queue_put_nullpacket(&is->auddec->packetq, is->auddec->stream->index);
                         is->eof = 1;
                     }
                     if (is->ic->pb && is->ic->pb->error)
@@ -281,10 +277,10 @@ int read_thread(VideoState* is)
                     is->eof = 0;
                 }
 
-                if (pkt->stream_index == is->audio_st->index) {
+                if (pkt->stream_index == is->auddec->stream->index) {
                     packet_queue_put(&is->auddec->packetq, pkt);
-                } else if (pkt->stream_index == is->video_st->index
-                           && !(is->video_st && is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
+                } else if (pkt->stream_index == is->viddec->stream->index
+                           && !(is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
                     packet_queue_put(&is->viddec->packetq, pkt);
                 } else {
                     av_packet_unref(pkt);
@@ -375,7 +371,7 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
         set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
     }
     is->paused = is->audclk.paused = is->vidclk.paused = pause;
-    if (is->audio_st) {
+    if (is->auddec->stream) {
         if (is->paused)
             LAVPAudioQueuePause(is);
         else
@@ -404,8 +400,8 @@ void stream_close(VideoState *is)
         }
 
         /* close each stream */
-        if (is->audio_st) stream_component_close(is, is->audio_st);
-        if (is->video_st) stream_component_close(is, is->video_st);
+        if (is->auddec->stream) stream_component_close(is, is->auddec->stream);
+        if (is->viddec->stream) stream_component_close(is, is->viddec->stream);
 
         avformat_close_input(&is->ic);
 
@@ -446,9 +442,6 @@ VideoState* stream_open(NSURL *sourceURL)
     is->paused = 0;
     is->playbackSpeedPercent = 100;
     is->playRate = 1.0;
-
-    is->video_st = NULL;
-    is->audio_st = NULL;
     is->eof = 0;
 
     /* ======================================== */
@@ -518,7 +511,7 @@ VideoState* stream_open(NSURL *sourceURL)
             stream_component_open(is, is->ic->streams[aud_index]);
         if (vid_index >= 0)
             stream_component_open(is, is->ic->streams[vid_index]);
-        if (!is->video_st || !is->audio_st)
+        if (!is->viddec->stream || !is->auddec->stream)
             goto fail;
 
         init_clock(&is->vidclk, &is->viddec->packetq.serial);

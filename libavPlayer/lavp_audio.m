@@ -469,5 +469,5 @@ void lavp_set_volume_percent(VideoState *is, int volume) {
     if (!is) return;
     is->volume_percent = volume;
     AudioQueueParameterValue newVolume = (AudioQueueParameterValue)volume / 100.0;
-    if (is->audio_st) setVolume(is, newVolume);
+    if (is->auddec->stream) setVolume(is, newVolume);
 }
