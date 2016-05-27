@@ -432,12 +432,11 @@ int audio_thread(VideoState *is)
     Frame *af;
     int got_frame = 0;
     AVRational tb;
-    int ret = 0;
 
     if (!frame)
         return AVERROR(ENOMEM);
 
-    do {
+    for(;;) {
         if ((got_frame = decoder_decode_frame(is->auddec, frame)) < 0)
             goto the_end;
 
@@ -454,10 +453,10 @@ int audio_thread(VideoState *is)
             av_frame_move_ref(af->frm_frame, frame);
             frame_queue_push(&is->auddec->frameq);
         }
-    } while (ret >= 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF);
+    }
 the_end:
     av_frame_free(&frame);
-    return ret;
+    return 0;
 }
 
 
