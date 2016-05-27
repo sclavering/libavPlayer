@@ -33,9 +33,6 @@
 #import "LAVPMovie+Internal.h"
 
 
-/* =========================================================== */
-
-static void stream_component_close(VideoState *is, AVStream *st);
 int read_thread(VideoState *is);
 
 /* =========================================================== */
@@ -125,38 +122,6 @@ out:
     av_dict_free(&opts);
 
     return 0;
-}
-
-static void stream_component_close(VideoState *is, AVStream *st)
-{
-    if (!st) return;
-
-    AVCodecParameters *codecpar = st->codecpar;
-
-    switch (codecpar->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
-            decoder_abort(is->auddec, &is->auddec->frameq);
-            decoder_destroy(is->auddec);
-            break;
-        case AVMEDIA_TYPE_VIDEO:
-            decoder_abort(is->viddec, &is->viddec->frameq);
-            decoder_destroy(is->viddec);
-            break;
-        default:
-            break;
-    }
-
-    st->discard = AVDISCARD_ALL;
-    switch (codecpar->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
-            is->auddec->stream = NULL;
-            break;
-        case AVMEDIA_TYPE_VIDEO:
-            is->viddec->stream = NULL;
-            break;
-        default:
-            break;
-    }
 }
 
 static int decode_interrupt_cb(void *ctx)
@@ -389,26 +354,19 @@ void stream_close(VideoState *is)
             is->parse_queue = NULL;
         }
 
-        /* close each stream */
-        if (is->auddec->stream) stream_component_close(is, is->auddec->stream);
-        if (is->viddec->stream) stream_component_close(is, is->viddec->stream);
-
         // LAVP: Stop Audio Queue
         LAVPAudioQueueStop(is);
         LAVPAudioQueueDealloc(is);
+
+        decoder_destroy(is->auddec);
+        decoder_destroy(is->viddec);
+
         swr_free(&is->swr_ctx);
         av_freep(&is->audio_buf1);
         is->audio_buf1_size = 0;
         is->audio_buf = NULL;
 
         avformat_close_input(&is->ic);
-
-        packet_queue_destroy(&is->viddec->packetq);
-        packet_queue_destroy(&is->auddec->packetq);
-
-        /* free all pictures */
-        frame_queue_destory(&is->viddec->frameq);
-        frame_queue_destory(&is->auddec->frameq);
 
         lavp_pthread_cond_destroy(is->continue_read_thread);
 

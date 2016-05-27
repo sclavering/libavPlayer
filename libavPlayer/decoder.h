@@ -25,5 +25,4 @@
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size, AVStream *stream);
 int decoder_decode_frame(Decoder *d, AVFrame *frame);
 void decoder_destroy(Decoder *d);
-void decoder_abort(Decoder *d, FrameQueue *fq);
 void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is);

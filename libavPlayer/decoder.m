@@ -95,22 +95,23 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     return got_frame;
 }
 
-void decoder_destroy(Decoder *d) {
-    av_packet_unref(&d->pkt);
-    avcodec_free_context(&d->avctx);
-}
-
-void decoder_abort(Decoder *d, FrameQueue *fq)
+void decoder_destroy(Decoder *d)
 {
     packet_queue_abort(&d->packetq);
-    frame_queue_signal(fq);
+    frame_queue_signal(&d->frameq);
 
-    // LAVP: release dispatch queue
     dispatch_group_wait(d->dispatch_group, DISPATCH_TIME_FOREVER);
     d->dispatch_group = NULL;
     d->dispatch_queue = NULL;
 
     packet_queue_flush(&d->packetq);
+    d->stream->discard = AVDISCARD_ALL;
+    d->stream = NULL;
+    av_packet_unref(&d->pkt);
+    avcodec_free_context(&d->avctx);
+
+    packet_queue_destroy(&d->packetq);
+    frame_queue_destory(&d->frameq);
 }
 
 // LAVP: in ffplay the signature is:
