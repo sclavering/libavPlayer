@@ -45,27 +45,22 @@ double compute_target_delay(double delay, VideoState *is)
     double diff = get_clock(&is->vidclk) - get_master_clock(is);
     /* skip or repeat frame. We take into account the delay to compute the threshold. I still don't know if it is the best guess */
     double sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-    if (!isnan(diff) && fabs(diff) < is->max_frame_duration) {
-        if (diff <= -sync_threshold)
-            delay = FFMAX(0, delay + diff);
-        else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
-            delay = delay + diff;
-        else if (diff >= sync_threshold)
-            delay = 2 * delay;
-    }
+    if (isnan(diff) || fabs(diff) >= is->max_frame_duration) return delay;
+    if (diff <= -sync_threshold)
+        return FFMAX(0, delay + diff);
+    if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)
+        return delay + diff;
+    if (diff >= sync_threshold)
+        return 2 * delay;
     return delay;
 }
 
 static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
-    if (vp->frm_serial == nextvp->frm_serial) {
-        double duration = nextvp->frm_pts - vp->frm_pts;
-        if (isnan(duration) || duration <= 0 || duration > is->max_frame_duration)
-            return vp->frm_duration;
-        else
-            return duration;
-    } else {
-        return 0.0;
-    }
+    if (vp->frm_serial != nextvp->frm_serial) return 0.0;
+    double duration = nextvp->frm_pts - vp->frm_pts;
+    if (isnan(duration) || duration <= 0 || duration > is->max_frame_duration)
+        return vp->frm_duration;
+    return duration;
 }
 
 void video_refresh(VideoState *is)
