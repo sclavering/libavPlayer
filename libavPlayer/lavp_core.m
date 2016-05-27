@@ -121,7 +121,7 @@ fail:
 out:
     av_dict_free(&opts);
 
-    return 0;
+    return ret;
 }
 
 static int decode_interrupt_cb(void *ctx)
