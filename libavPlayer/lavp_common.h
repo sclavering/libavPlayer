@@ -43,14 +43,6 @@
 #define MAX_QUEUE_SIZE (15 * 1024 * 1024)
 #define MIN_FRAMES 25
 
-/* maximum audio speed change to get correct sync */
-#define SAMPLE_CORRECTION_PERCENT_MAX 10
-
-/* we use about AUDIO_DIFF_AVG_NB A-V differences to make the average */
-#define AUDIO_DIFF_AVG_NB   20
-
-/* =========================================================== */
-
 #define VIDEO_PICTURE_QUEUE_SIZE 15 /* LAVP: no-overrun patch in refresh_loop_wait_event() applied */
 #define SAMPLE_QUEUE_SIZE 9
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, VIDEO_PICTURE_QUEUE_SIZE)
