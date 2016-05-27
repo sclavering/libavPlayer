@@ -88,7 +88,6 @@ int audio_decode_frame(VideoState *is)
 {
     int data_size, resampled_data_size;
     int64_t dec_channel_layout;
-    av_unused double audio_clock0;
     int wanted_nb_samples;
 
     Frame *af;
@@ -173,7 +172,6 @@ int audio_decode_frame(VideoState *is)
                 resampled_data_size = data_size;
             }
 
-            audio_clock0 = is->audio_clock;
             /* update the audio clock with the pts */
             if (!isnan(af->frm_pts))
                 is->audio_clock = af->frm_pts + (double) af->frm_frame->nb_samples / af->frm_frame->sample_rate;
