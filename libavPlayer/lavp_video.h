@@ -26,8 +26,7 @@
 
 #import "lavp_common.h"
 
-double get_video_clock(VideoState *is);
-void refresh_loop_wait_event(VideoState *is);
 int video_thread(VideoState *is);
+void video_refresh(VideoState *is);
 
 Frame* lavp_get_current_frame(VideoState *is);

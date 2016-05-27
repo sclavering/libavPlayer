@@ -38,15 +38,6 @@
 #define AV_NOSYNC_THRESHOLD 10.0
 
 
-double compute_target_delay(double delay, VideoState *is);
-
-void video_refresh(VideoState *is, double *remaining_time);
-
-
-/* =========================================================== */
-
-#pragma mark -
-
 double compute_target_delay(double delay, VideoState *is)
 {
     /* update delay to follow master synchronisation source */
@@ -77,23 +68,14 @@ static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
     }
 }
 
-void refresh_loop_wait_event(VideoState *is) {
-    double remaining_time = 0.0;
-
-    // LAVP: use remaining time to avoid over-run
+void video_refresh(VideoState *is)
+{
     if (is->remaining_time > 1.0)
         return;
+    is->remaining_time = 0.0;
+    if (is->paused)
+        return;
 
-    if (!is->paused)
-        video_refresh(is, &remaining_time);
-
-    //
-    is->remaining_time = remaining_time;
-}
-
-/* called to display each frame */
-void video_refresh(VideoState *is, double *remaining_time)
-{
     if (!is->viddec->stream) return;
 
     Frame *vp, *lastvp;
@@ -115,14 +97,14 @@ void video_refresh(VideoState *is, double *remaining_time)
     if (lastvp->frm_serial != vp->frm_serial)
         is->frame_timer = av_gettime_relative() / 1000000.0;
 
-    if (!is->paused) {
+    {
         /* compute nominal last_duration */
         double last_duration = vp_duration(is, lastvp, vp);
         double delay = compute_target_delay(last_duration, is);
 
         double time = av_gettime_relative() / 1000000.0;
         if (time < is->frame_timer + delay) {
-            *remaining_time = FFMIN(is->frame_timer + delay - time, *remaining_time);
+            is->remaining_time = FFMIN(is->frame_timer + delay - time, 0.0);
             return;
         }
 

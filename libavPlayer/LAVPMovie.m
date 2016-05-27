@@ -183,7 +183,7 @@
 
 - (void) refreshPicture
 {
-    refresh_loop_wait_event(is);
+    video_refresh(is);
 }
 
 @end
