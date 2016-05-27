@@ -75,11 +75,6 @@ NSString* formatTime(int64_t usec)
     if (viewmovie) [self stopTimer];
 
     if (viewwindow) {
-        if (viewmovie) {
-            viewmovie.paused = true;
-            [view setMovie:nil];
-            viewmovie = nil;
-        }
         viewmovie = [[LAVPMovie alloc] initWithURL:url error:nil];
         [view setMovie:viewmovie];
     }
@@ -97,8 +92,6 @@ NSString* formatTime(int64_t usec)
     NSWindow *obj = [notification object];
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
-        viewmovie.paused = true;
-        [view setMovie:nil];
         viewmovie = nil;
         viewwindow = nil;
         NSLog(@"NOTE: viewwindow closed.");

@@ -50,7 +50,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self _gl_cleanup];
     if (_movie) {
-        _movie.paused = true;
+        [_movie invalidate];
         _movie = NULL;
     }
     if (_lock) _lock = NULL;
@@ -161,27 +161,23 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 #pragma mark -
 #pragma mark public
 
-- (LAVPMovie *) movie
-{
+- (LAVPMovie*) movie {
     return _movie;
 }
 
-- (void) setMovie:(LAVPMovie *)movie
-{
+- (void) setMovie:(LAVPMovie*)movie {
     self.asynchronous = NO;
     [_lock lock];
 
-    if(_movie) {
-        _movie.paused = true;
-        [_movie setOutput:nil];
-    }
+    if(_movie) [_movie invalidate];
     _movie = movie;
-    [_movie setOutput:self];
-
-    [self setNeedsDisplay];
+    if(_movie) {
+        [_movie setOutput:self];
+        [self setNeedsDisplay];
+    }
 
     [_lock unlock];
-    self.asynchronous = !movie.paused;
+    self.asynchronous = movie ? !movie.paused : false;
 }
 
 /* =============================================================================================== */

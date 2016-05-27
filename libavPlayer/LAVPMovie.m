@@ -41,14 +41,20 @@
 }
 
 - (void) dealloc {
-    NSLog(@"dealloc!");
-    // perform clean up
-    if (is && is->decoderThread) {
+    [self invalidate];
+}
+
+- (void) invalidate {
+    if(!is) return;
+    self.paused = true;
+    if(is->decoderThread) {
         NSThread *dt = is->decoderThread;
         [dt cancel];
         while (!dt.finished) usleep(10*1000);
-        stream_close(is);
+        is->decoderThread = nil;
     }
+    stream_close(is);
+    is = NULL;
 }
 
 #pragma mark -

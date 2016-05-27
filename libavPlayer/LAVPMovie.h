@@ -57,6 +57,7 @@
 // Typically an LAVPLayer should be passed to this.  It's used to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.  The argument is held as a weak reference.
 - (void) setOutput:(id<LAVPMovieOutput>)output;
 
+- (void) invalidate;
 @end
 
 
