@@ -40,7 +40,6 @@
 
 double compute_target_delay(double delay, VideoState *is);
 
-int get_video_frame(VideoState *is, AVFrame *frame);
 void video_refresh(VideoState *is, double *remaining_time);
 
 
@@ -147,29 +146,6 @@ void video_refresh(VideoState *is, double *remaining_time)
     }
 }
 
-int get_video_frame(VideoState *is, AVFrame *frame)
-{
-    int got_picture;
-
-    if ((got_picture = decoder_decode_frame(is->viddec, frame)) < 0)
-        return -1;
-
-    if (got_picture) {
-        if (frame->pts != AV_NOPTS_VALUE) {
-            double dpts = av_q2d(is->viddec->stream->time_base) * frame->pts;
-            double diff = dpts - get_master_clock(is);
-            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD &&
-                diff < 0 &&
-                is->viddec->pkt_serial == is->vidclk.serial &&
-                is->viddec->packetq.nb_packets) {
-                av_frame_unref(frame);
-                got_picture = 0;
-            }
-        }
-    }
-    return got_picture;
-}
-
 int video_thread(VideoState *is)
 {
     AVFrame *frame = av_frame_alloc();
@@ -178,11 +154,18 @@ int video_thread(VideoState *is)
     double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0;
 
     for(;;) {
-        int ret = get_video_frame(is, frame);
-        if (ret < 0)
-            break;
-        if (!ret)
-            continue;
+        int err = decoder_decode_frame(is->viddec, frame);
+        if (err < 0) break;
+        if (err == 0) continue;
+
+        if (frame->pts != AV_NOPTS_VALUE) {
+            double dpts = av_q2d(tb) * frame->pts;
+            double diff = dpts - get_master_clock(is);
+            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->vidclk.serial && is->viddec->packetq.nb_packets) {
+                av_frame_unref(frame);
+                continue;
+            }
+        }
 
         // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
         if (frame->format != AV_PIX_FMT_YUV420P)
