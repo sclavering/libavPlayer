@@ -429,26 +429,19 @@ void audio_updatePitch(VideoState *is)
 int audio_thread(VideoState *is)
 {
     AVFrame *frame = av_frame_alloc();
-    int got_frame = 0;
-    AVRational tb;
-
     if (!frame)
         return AVERROR(ENOMEM);
-
     for(;;) {
-        if ((got_frame = decoder_decode_frame(is->auddec, frame)) < 0)
-            goto the_end;
-
-        if (got_frame) {
-            tb = (AVRational){1, frame->sample_rate};
-            if(!decoder_push_frame(is->auddec, frame,
-                    /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
-                    /* duration */ av_q2d((AVRational){ frame->nb_samples, frame->sample_rate })
-                    ))
-                goto the_end;
-        }
+        int err = decoder_decode_frame(is->auddec, frame);
+        if (err < 0) break;
+        if (err == 0) continue;
+        AVRational tb = (AVRational){1, frame->sample_rate};
+        if(!decoder_push_frame(is->auddec, frame,
+                /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
+                /* duration */ av_q2d((AVRational){ frame->nb_samples, frame->sample_rate })
+                ))
+            break;
     }
-the_end:
     av_frame_free(&frame);
     return 0;
 }
