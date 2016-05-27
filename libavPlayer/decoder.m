@@ -157,3 +157,15 @@ bool decoder_finished(Decoder *d)
 {
     return d->finished == d->packetq.serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
+
+bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration)
+{
+    Frame* fr = frame_queue_peek_writable(&d->frameq);
+    if(!fr) return false;
+    fr->frm_pts = pts;
+    fr->frm_duration = duration;
+    fr->frm_serial = d->pkt_serial;
+    av_frame_move_ref(fr->frm_frame, frame);
+    frame_queue_push(&d->frameq);
+    return true;
+}

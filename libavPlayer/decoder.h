@@ -33,3 +33,5 @@ void decoder_update_for_eof(Decoder *d);
 
 bool decoder_needs_more_packets(Decoder *d);
 bool decoder_finished(Decoder *d);
+
+bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration);

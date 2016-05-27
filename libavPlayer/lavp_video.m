@@ -187,17 +187,11 @@ int video_thread(VideoState *is)
             if (frame->format != AV_PIX_FMT_YUV420P)
                 break;
 
-            Frame *fr;
-            if (!(fr = frame_queue_peek_writable(&is->viddec->frameq)))
+            if(!decoder_push_frame(is->viddec, frame,
+                    /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
+                    /* duration */ frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0
+                    ))
                 break;
-
-            fr->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            fr->frm_duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0;
-            fr->frm_serial = is->viddec->pkt_serial;
-
-            av_frame_move_ref(fr->frm_frame, frame);
-
-            frame_queue_push(&is->viddec->frameq);
     }
 
     av_frame_free(&frame);
