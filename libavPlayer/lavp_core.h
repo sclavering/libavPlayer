@@ -26,11 +26,6 @@
 
 #import "lavp_common.h"
 
-double get_clock(Clock *c);
-void set_clock_at(Clock *c, double pts, int serial, double time);
-void set_clock(Clock *c, double pts, int serial);
-void set_clock_speed(Clock *c, double speed);
-void init_clock(Clock *c, int *queue_serial);
 double get_master_clock(VideoState *is);
 
 void stream_seek(VideoState *is, int64_t pos, int64_t rel);
