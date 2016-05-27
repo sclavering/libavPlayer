@@ -183,8 +183,6 @@ int video_thread(VideoState *is)
             if (!ret)
                 continue;
 
-            double duration = (frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0);
-
             // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
             if (frame->format != AV_PIX_FMT_YUV420P)
                 break;
@@ -194,7 +192,7 @@ int video_thread(VideoState *is)
                 break;
 
             fr->frm_pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
-            fr->frm_duration = duration;
+            fr->frm_duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0;
             fr->frm_serial = is->viddec->pkt_serial;
 
             av_frame_move_ref(fr->frm_frame, frame);
