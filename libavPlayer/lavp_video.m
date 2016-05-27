@@ -42,7 +42,7 @@ double compute_target_delay(double delay, VideoState *is)
 {
     /* update delay to follow master synchronisation source */
     /* if video is slave, we try to correct big delays by duplicating or deleting a frame */
-    double diff = get_clock(&is->vidclk) - get_master_clock(is);
+    double diff = get_clock(&is->vidclk) - get_clock(&is->audclk);
     /* skip or repeat frame. We take into account the delay to compute the threshold. I still don't know if it is the best guess */
     double sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
     if (isnan(diff) || fabs(diff) >= is->max_frame_duration) return delay;
@@ -132,7 +132,7 @@ int video_thread(VideoState *is)
 
         if (frame->pts != AV_NOPTS_VALUE) {
             double dpts = av_q2d(tb) * frame->pts;
-            double diff = dpts - get_master_clock(is);
+            double diff = dpts - get_clock(&is->audclk);
             if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->vidclk.serial && is->viddec->packetq.nb_packets) {
                 av_frame_unref(frame);
                 continue;

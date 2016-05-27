@@ -226,14 +226,6 @@ int read_thread(VideoState* is)
 #pragma mark -
 #pragma mark functions (main_thread)
 
-/* get the current master clock value */
-double get_master_clock(VideoState *is)
-{
-    //NSLog(@"DEBUG: vidclk:%8.3f audclk:%8.3f", (double)get_clock(&is->vidclk), (double)get_clock(&is->audclk));
-    return get_clock(&is->audclk);
-}
-
-/* seek in the stream */
 void stream_seek(VideoState *is, int64_t pos, int64_t rel)
 {
     if (!is->seek_req) {

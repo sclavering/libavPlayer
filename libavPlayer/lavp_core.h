@@ -26,8 +26,6 @@
 
 #import "lavp_common.h"
 
-double get_master_clock(VideoState *is);
-
 void stream_seek(VideoState *is, int64_t pos, int64_t rel);
 
 void stream_close(VideoState *is);
