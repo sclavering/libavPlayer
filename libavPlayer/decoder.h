@@ -32,3 +32,4 @@ void decoder_update_for_seek(Decoder *d);
 void decoder_update_for_eof(Decoder *d);
 
 bool decoder_needs_more_packets(Decoder *d);
+bool decoder_finished(Decoder *d);

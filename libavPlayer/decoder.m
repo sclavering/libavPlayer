@@ -152,3 +152,8 @@ bool decoder_needs_more_packets(Decoder *d)
 {
     return !d->packetq.abort_request && d->packetq.nb_packets < MIN_FRAMES;
 }
+
+bool decoder_finished(Decoder *d)
+{
+    return d->finished == d->packetq.serial && frame_queue_nb_remaining(&d->frameq) == 0;
+}

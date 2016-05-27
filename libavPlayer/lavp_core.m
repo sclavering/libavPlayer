@@ -190,10 +190,7 @@ int read_thread(VideoState* is)
                     continue;
                 }
 
-                if (!is->paused &&
-                    (!is->auddec->stream || (is->auddec->finished == is->auddec->packetq.serial && frame_queue_nb_remaining(&is->auddec->frameq) == 0)) &&
-                    (!is->viddec->stream || (is->viddec->finished == is->viddec->packetq.serial && frame_queue_nb_remaining(&is->viddec->frameq) == 0))) {
-                    // LAVP: force stream paused on EOF
+                if (!is->paused && decoder_finished(is->auddec) && decoder_finished(is->viddec)) {
                     lavp_set_paused(is, true);
                 }
 
