@@ -136,17 +136,7 @@ static void stream_component_close(VideoState *is, AVStream *st)
     switch (codecpar->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             decoder_abort(is->auddec, &is->auddec->frameq);
-
-            // LAVP: Stop Audio Queue
-            LAVPAudioQueueStop(is);
-            LAVPAudioQueueDealloc(is);
-
             decoder_destroy(is->auddec);
-            swr_free(&is->swr_ctx);
-            av_freep(&is->audio_buf1);
-            is->audio_buf1_size = 0;
-            is->audio_buf = NULL;
-
             break;
         case AVMEDIA_TYPE_VIDEO:
             decoder_abort(is->viddec, &is->viddec->frameq);
@@ -402,6 +392,14 @@ void stream_close(VideoState *is)
         /* close each stream */
         if (is->auddec->stream) stream_component_close(is, is->auddec->stream);
         if (is->viddec->stream) stream_component_close(is, is->viddec->stream);
+
+        // LAVP: Stop Audio Queue
+        LAVPAudioQueueStop(is);
+        LAVPAudioQueueDealloc(is);
+        swr_free(&is->swr_ctx);
+        av_freep(&is->audio_buf1);
+        is->audio_buf1_size = 0;
+        is->audio_buf = NULL;
 
         avformat_close_input(&is->ic);
 
