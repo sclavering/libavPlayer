@@ -30,3 +30,5 @@ void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is);
 bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt);
 void decoder_update_for_seek(Decoder *d);
 void decoder_update_for_eof(Decoder *d);
+
+bool decoder_needs_more_packets(Decoder *d);

@@ -181,15 +181,14 @@ int read_thread(VideoState* is)
 
                 /* if the queue are full, no need to read more */
                 if (is->auddec->packetq.size + is->viddec->packetq.size > MAX_QUEUE_SIZE
-                     || (   (is->auddec->packetq.nb_packets > MIN_FRAMES || !is->auddec->stream || is->auddec->packetq.abort_request)
-                         && (is->viddec->packetq.nb_packets > MIN_FRAMES || !is->viddec->stream || is->viddec->packetq.abort_request)
-                         )) {
-                         /* wait 10 ms */
-                         pthread_mutex_lock(wait_mutex);
-                         lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
-                         pthread_mutex_unlock(wait_mutex);
-                         continue;
-                     }
+                     || (!decoder_needs_more_packets(is->auddec) && !decoder_needs_more_packets(is->viddec)))
+                {
+                    /* wait 10 ms */
+                    pthread_mutex_lock(wait_mutex);
+                    lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
+                    pthread_mutex_unlock(wait_mutex);
+                    continue;
+                }
 
                 if (!is->paused &&
                     (!is->auddec->stream || (is->auddec->finished == is->auddec->packetq.serial && frame_queue_nb_remaining(&is->auddec->frameq) == 0)) &&

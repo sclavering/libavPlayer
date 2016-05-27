@@ -147,3 +147,8 @@ void decoder_update_for_eof(Decoder *d)
 {
     packet_queue_put_nullpacket(&d->packetq, d->stream->index);
 }
+
+bool decoder_needs_more_packets(Decoder *d)
+{
+    return !d->packetq.abort_request && d->packetq.nb_packets < MIN_FRAMES;
+}
