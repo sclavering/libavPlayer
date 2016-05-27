@@ -5,14 +5,7 @@
 @public
     int64_t audio_callback_time;    /* static int64_t audio_callback_time; */
 
-    /* moved from local valuable */
-    double remaining_time;
-
-    // LAVPcore
-
-    /* same order as original struct */
     AVInputFormat *iformat;
-    //
     int abort_request;
     int paused;
     int last_paused;

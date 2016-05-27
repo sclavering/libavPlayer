@@ -65,9 +65,6 @@ static double vp_duration(VideoState *is, Frame *vp, Frame *nextvp) {
 
 void video_refresh(VideoState *is)
 {
-    if (is->remaining_time > 1.0)
-        return;
-    is->remaining_time = 0.0;
     if (is->paused)
         return;
 
@@ -98,10 +95,8 @@ void video_refresh(VideoState *is)
         double delay = compute_target_delay(last_duration, is);
 
         double time = av_gettime_relative() / 1000000.0;
-        if (time < is->frame_timer + delay) {
-            is->remaining_time = FFMIN(is->frame_timer + delay - time, 0.0);
+        if (time < is->frame_timer + delay)
             return;
-        }
 
         is->frame_timer += delay;
         if (delay > 0 && time - is->frame_timer > AV_SYNC_THRESHOLD_MAX)

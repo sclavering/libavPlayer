@@ -241,7 +241,6 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
         is->seek_rel = rel;
         is->seek_flags &= ~AVSEEK_FLAG_BYTE;
         is->seek_req = 1;
-        is->remaining_time = 0.0; // LAVP: reset remaining time
         pthread_cond_signal(is->continue_read_thread);
     }
 }
