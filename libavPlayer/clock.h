@@ -1,6 +1,5 @@
 typedef struct Clock {
     double pts;           /* clock base */
-    double pts_drift;     /* clock base minus time at which we updated the clock */
     double last_updated;
     double speed;
     int serial;           /* clock is based on a packet with this serial */

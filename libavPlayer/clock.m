@@ -8,7 +8,7 @@ double get_clock(Clock *c)
         return c->pts;
     } else {
         double time = av_gettime_relative() / 1000000.0;
-        return c->pts_drift + time - (time - c->last_updated) * (1.0 - c->speed);
+        return c->pts + (time - c->last_updated) * c->speed;
     }
 }
 
@@ -16,7 +16,6 @@ void set_clock_at(Clock *c, double pts, int serial, double time)
 {
     c->pts = pts;
     c->last_updated = time;
-    c->pts_drift = c->pts - time;
     c->serial = serial;
 }
 
