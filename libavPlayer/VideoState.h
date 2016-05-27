@@ -16,7 +16,6 @@
     int abort_request;
     int paused;
     int last_paused;
-    int queue_attachments_req;
     int seek_req;
     int seek_flags;
     int64_t seek_pos;

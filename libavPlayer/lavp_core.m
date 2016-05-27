@@ -101,6 +101,9 @@ static int stream_component_open(VideoState *is, AVStream *stream)
 
             break;
         case AVMEDIA_TYPE_VIDEO:
+            if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC)
+                goto fail;
+
             is->width = stream->codecpar->width;
             is->height = stream->codecpar->height;
 
@@ -109,7 +112,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
                 goto fail;
             decoder_start(is->viddec, video_thread, is);
 
-            is->queue_attachments_req = 1;
             break;
         default:
             break;
@@ -176,7 +178,6 @@ int read_thread(VideoState* is)
                         }
                     }
                     is->seek_req = 0;
-                    is->queue_attachments_req = 1;
                     is->eof = 0;
                     if (is->paused) {
                         lavp_set_paused_internal(is, false);
@@ -184,22 +185,10 @@ int read_thread(VideoState* is)
                     }
                 }
 
-                if (is->queue_attachments_req) {
-                    if (is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
-                        AVPacket copy;
-                        if ((ret = av_copy_packet(&copy, &is->viddec->stream->attached_pic)) < 0)
-                            goto bail;
-                        packet_queue_put(&is->viddec->packetq, &copy);
-                        packet_queue_put_nullpacket(&is->viddec->packetq, is->viddec->stream->index);
-                    }
-                    is->queue_attachments_req = 0;
-                }
-
                 /* if the queue are full, no need to read more */
                 if (is->auddec->packetq.size + is->viddec->packetq.size > MAX_QUEUE_SIZE
                      || (   (is->auddec->packetq.nb_packets > MIN_FRAMES || !is->auddec->stream || is->auddec->packetq.abort_request)
-                         && (is->viddec->packetq.nb_packets > MIN_FRAMES || !is->viddec->stream || is->viddec->packetq.abort_request
-                             || (is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC))
+                         && (is->viddec->packetq.nb_packets > MIN_FRAMES || !is->viddec->stream || is->viddec->packetq.abort_request)
                          )) {
                          /* wait 10 ms */
                          pthread_mutex_lock(wait_mutex);
@@ -234,8 +223,7 @@ int read_thread(VideoState* is)
 
                 if (pkt->stream_index == is->auddec->stream->index) {
                     packet_queue_put(&is->auddec->packetq, pkt);
-                } else if (pkt->stream_index == is->viddec->stream->index
-                           && !(is->viddec->stream && is->viddec->stream->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
+                } else if (pkt->stream_index == is->viddec->stream->index) {
                     packet_queue_put(&is->viddec->packetq, pkt);
                 } else {
                     av_packet_unref(pkt);
@@ -245,7 +233,6 @@ int read_thread(VideoState* is)
         // finish thread
         ret = 0;
 
-    bail:
         lavp_pthread_mutex_destroy(wait_mutex);
 
         return ret;
