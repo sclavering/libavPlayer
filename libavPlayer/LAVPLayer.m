@@ -259,8 +259,8 @@ static const char *const fragment_shader_src = "                             \
     glGenTextures(3, _textures);
     for(int i = 0; i < 3; ++i) {
         glBindTexture(GL_TEXTURE_2D, _textures[i]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 }
 
