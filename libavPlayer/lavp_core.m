@@ -462,12 +462,14 @@ VideoState* stream_open(NSURL *sourceURL)
         is->audio_clock_serial = -1;
 
         int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+        if (vid_index < 0)
+            goto fail;
         int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
-        if (aud_index >= 0)
-            stream_component_open(is, is->ic->streams[aud_index]);
-        if (vid_index >= 0)
-            stream_component_open(is, is->ic->streams[vid_index]);
-        if (!is->viddec->stream || !is->auddec->stream)
+        if (aud_index < 0)
+            goto fail;
+        if (stream_component_open(is, is->ic->streams[aud_index]) < 0)
+            goto fail;
+        if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
             goto fail;
 
         init_clock(&is->vidclk, &is->viddec->packetq.serial);
