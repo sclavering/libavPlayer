@@ -169,3 +169,11 @@ bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration)
     frame_queue_push(&d->frameq);
     return true;
 }
+
+Frame* decoder_get_current_frame_or_null(Decoder *d)
+{
+    pthread_mutex_lock(d->frameq.mutex);
+    Frame* rv = frame_queue_nb_remaining(&d->frameq) > 0 ? frame_queue_peek(&d->frameq) : NULL;
+    pthread_mutex_unlock(d->frameq.mutex);
+    return rv;
+}

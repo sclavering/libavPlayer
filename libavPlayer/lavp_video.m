@@ -182,30 +182,10 @@ int video_thread(VideoState *is)
     return 0;
 }
 
-/* ========================================================================= */
-
-#pragma mark -
-
 Frame* lavp_get_current_frame(VideoState *is)
 {
-    pthread_mutex_lock(is->viddec->frameq.mutex);
-    bool success = false;
-
-    if (frame_queue_nb_remaining(&is->viddec->frameq) <= 0)
-        goto finish;
-
-    Frame *vp = frame_queue_peek(&is->viddec->frameq);
-
-    if (!vp)
-        goto finish;
-
-    if (vp->frm_pts >= 0 && vp == is->last_frame)
-        goto finish;
-
-    is->last_frame = vp;
-    success = true;
-
-finish:
-    pthread_mutex_unlock(is->viddec->frameq.mutex);
-    return success ? is->last_frame : NULL;
+    Frame* fr = decoder_get_current_frame_or_null(is->viddec);
+    if(fr == is->last_frame) return NULL;
+    if(fr) is->last_frame = fr;
+    return fr;
 }
