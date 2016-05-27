@@ -172,26 +172,27 @@ int get_video_frame(VideoState *is, AVFrame *frame)
 
 int video_thread(VideoState *is)
 {
-    AVFrame *frame= av_frame_alloc();
+    AVFrame *frame = av_frame_alloc();
     AVRational tb = is->viddec->stream->time_base;
     AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
+    double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0;
 
     for(;;) {
-            int ret = get_video_frame(is, frame);
-            if (ret < 0)
-                break;
-            if (!ret)
-                continue;
+        int ret = get_video_frame(is, frame);
+        if (ret < 0)
+            break;
+        if (!ret)
+            continue;
 
-            // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
-            if (frame->format != AV_PIX_FMT_YUV420P)
-                break;
+        // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
+        if (frame->format != AV_PIX_FMT_YUV420P)
+            break;
 
-            if(!decoder_push_frame(is->viddec, frame,
-                    /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
-                    /* duration */ frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0
-                    ))
-                break;
+        if(!decoder_push_frame(is->viddec, frame,
+                /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
+                /* duration */ duration
+                ))
+            break;
     }
 
     av_frame_free(&frame);
