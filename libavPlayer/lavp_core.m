@@ -459,7 +459,7 @@ VideoState* stream_open(NSURL *sourceURL)
 
     /* original: opt_format() */
     // TODO
-    const char * extension = [[sourceURL pathExtension] cStringUsingEncoding:NSASCIIStringEncoding];
+    const char * extension = [sourceURL.pathExtension cStringUsingEncoding:NSASCIIStringEncoding];
 
     // LAVP: Guess file format
     if (extension) {
@@ -477,7 +477,7 @@ VideoState* stream_open(NSURL *sourceURL)
         AVFormatContext *ic = avformat_alloc_context();
         ic->interrupt_callback.callback = decode_interrupt_cb;
         ic->interrupt_callback.opaque = (__bridge void *)(is);
-        err = avformat_open_input(&ic, [[sourceURL path] fileSystemRepresentation], is->iformat, NULL);
+        err = avformat_open_input(&ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
         if (err < 0)
             return NULL;
         is->ic = ic;

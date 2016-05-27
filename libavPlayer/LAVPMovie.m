@@ -28,7 +28,7 @@
 
 @implementation LAVPMovie
 
-- (id) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
+- (instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
 {
     self = [super init];
     if (self) {
@@ -46,7 +46,7 @@
     if (is && is->decoderThread) {
         NSThread *dt = is->decoderThread;
         [dt cancel];
-        while (![dt isFinished]) usleep(10*1000);
+        while (!dt.finished) usleep(10*1000);
         stream_close(is);
     }
 }
@@ -90,8 +90,8 @@
 }
 
 - (double) position {
-    int64_t position = [self currentTimeInMicroseconds];
-    int64_t duration = [self durationInMicroseconds];
+    int64_t position = self.currentTimeInMicroseconds;
+    int64_t duration = self.durationInMicroseconds;
     if(duration == 0) return 0;
     position = (position < 0 ? 0 : position);
     position = (position > duration ? duration : position);
@@ -99,7 +99,7 @@
 }
 
 - (void) setPosition:(double)newPosition {
-    [self setCurrentTimeInMicroseconds: newPosition * self.durationInMicroseconds];
+    self.currentTimeInMicroseconds = newPosition * self.durationInMicroseconds;
 }
 
 - (void) setCurrentTimeInMicroseconds:(int64_t)newTime {
@@ -165,7 +165,7 @@
 
         //
         NSThread *dt = [NSThread currentThread];
-        while ( ![dt isCancelled] ) {
+        while ( !dt.cancelled ) {
             @autoreleasepool {
                 [runLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
             }

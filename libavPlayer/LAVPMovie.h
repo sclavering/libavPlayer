@@ -52,7 +52,7 @@
 // Normally 100.  This is an integer percentage (rather than a float fraction) to make accumulated rounding errors impossible.
 @property (assign) int volumePercent;
 
-- (id) initWithURL:(NSURL *)url error:(NSError **)errorPtr;
+- (instancetype) initWithURL:(NSURL *)url error:(NSError **)errorPtr NS_DESIGNATED_INITIALIZER;
 
 // Typically an LAVPLayer should be passed to this.  It's used to start/stop updating when paused/unpaused (so the layer doesn't waste tons of CPU), and also to explicitly update if seeking while paused.  The argument is held as a weak reference.
 - (void) setOutput:(id<LAVPMovieOutput>)output;

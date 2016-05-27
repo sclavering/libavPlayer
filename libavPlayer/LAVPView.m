@@ -5,7 +5,7 @@
 -(void) setMovie:(LAVPMovie *)movie {
     if(!_videoLayer) {
         [self setWantsLayer:YES];
-        CALayer *rootLayer = [self layer];
+        CALayer *rootLayer = self.layer;
         rootLayer.needsDisplayOnBoundsChange = YES;
         _videoLayer = [LAVPLayer layer];
         _videoLayer.stretchVideoToFitLayer = true;
@@ -14,7 +14,7 @@
         _videoLayer.backgroundColor = CGColorGetConstantColor(kCGColorBlack);
         [rootLayer addSublayer:_videoLayer];
     }
-    [_videoLayer setMovie:movie];
+    _videoLayer.movie = movie;
 }
 
 @end

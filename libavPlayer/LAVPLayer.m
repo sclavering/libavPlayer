@@ -69,7 +69,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [self invalidate:nil];
 }
 
-- (id) init
+- (instancetype) init
 {
     self = [super init];
 
@@ -140,7 +140,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
                 forLayerTime:(CFTimeInterval)timeInterval
                  displayTime:(const CVTimeStamp *)timeStamp
 {
-    return _movie && !NSEqualSizes([_movie frameSize], NSZeroSize);
+    return _movie && !NSEqualSizes(_movie.frameSize, NSZeroSize);
 }
 
 - (void) drawInCGLContext:(CGLContextObj)glContext
