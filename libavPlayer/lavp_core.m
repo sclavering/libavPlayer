@@ -168,14 +168,8 @@ int read_thread(VideoState* is)
 
                     ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
                     if (ret >= 0) {
-                        if (is->auddec->stream) {
-                            packet_queue_flush(&is->auddec->packetq);
-                            packet_queue_put(&is->auddec->packetq, &flush_pkt);
-                        }
-                        if (is->viddec->stream) {
-                            packet_queue_flush(&is->viddec->packetq);
-                            packet_queue_put(&is->viddec->packetq, &flush_pkt);
-                        }
+                        decoder_update_for_seek(is->auddec);
+                        decoder_update_for_seek(is->viddec);
                     }
                     is->seek_req = 0;
                     is->eof = 0;
@@ -207,8 +201,8 @@ int read_thread(VideoState* is)
                 ret = av_read_frame(is->ic, pkt);
                 if (ret < 0) {
                     if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
-                        if (is->viddec->stream) packet_queue_put_nullpacket(&is->viddec->packetq, is->viddec->stream->index);
-                        if (is->auddec->stream) packet_queue_put_nullpacket(&is->auddec->packetq, is->auddec->stream->index);
+                        decoder_update_for_eof(is->auddec);
+                        decoder_update_for_eof(is->viddec);
                         is->eof = 1;
                     }
                     if (is->ic->pb && is->ic->pb->error)
@@ -221,13 +215,8 @@ int read_thread(VideoState* is)
                     is->eof = 0;
                 }
 
-                if (pkt->stream_index == is->auddec->stream->index) {
-                    packet_queue_put(&is->auddec->packetq, pkt);
-                } else if (pkt->stream_index == is->viddec->stream->index) {
-                    packet_queue_put(&is->viddec->packetq, pkt);
-                } else {
+                if(!decoder_maybe_handle_packet(is->auddec, pkt) && !decoder_maybe_handle_packet(is->viddec, pkt))
                     av_packet_unref(pkt);
-                }
         }
 
         // finish thread

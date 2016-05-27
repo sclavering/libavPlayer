@@ -128,3 +128,22 @@ void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is)
         if(strongIs) fn(strongIs);
     });
 }
+
+bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt)
+{
+    if (pkt->stream_index != d->stream->index)
+        return false;
+    packet_queue_put(&d->packetq, pkt);
+    return true;
+}
+
+void decoder_update_for_seek(Decoder *d)
+{
+    packet_queue_flush(&d->packetq);
+    packet_queue_put(&d->packetq, &flush_pkt);
+}
+
+void decoder_update_for_eof(Decoder *d)
+{
+    packet_queue_put_nullpacket(&d->packetq, d->stream->index);
+}
