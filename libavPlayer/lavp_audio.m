@@ -26,7 +26,6 @@
 #import "lavp_audio.h"
 
 
-static int synchronize_audio(VideoState *is, int nb_samples);
 int audio_decode_frame(VideoState *is);
 
 BOOL audio_isPitchChanged(VideoState *is);
@@ -70,13 +69,6 @@ int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_chan
     return SDL_AUDIO_BUFFER_SIZE * audio_hw_params->channels * av_get_bytes_per_sample(audio_hw_params->fmt);
 }
 
-/* return the wanted number of samples to get better sync if sync_type is video */
-static int synchronize_audio(VideoState *is, int nb_samples)
-{
-    // xxx this is vestigial from ffplay allowing for using the video or external clocks as the master clock.
-    return nb_samples;
-}
-
 /**
  * Decode one audio frame and return its uncompressed size.
  *
@@ -109,7 +101,7 @@ int audio_decode_frame(VideoState *is)
             dec_channel_layout =
                 (af->frm_frame->channel_layout && av_frame_get_channels(af->frm_frame) == av_get_channel_layout_nb_channels(af->frm_frame->channel_layout)) ?
                 af->frm_frame->channel_layout : av_get_default_channel_layout(av_frame_get_channels(af->frm_frame));
-            wanted_nb_samples = synchronize_audio(is, af->frm_frame->nb_samples);
+            wanted_nb_samples = af->frm_frame->nb_samples;
 
             if (af->frm_frame->format        != is->audio_src.fmt            ||
                 dec_channel_layout       != is->audio_src.channel_layout ||
