@@ -40,7 +40,7 @@ NSString* formatTime(int64_t usec)
 - (void)updatePos:(NSTimer*)theTimer
 {
     if (viewwindow) {
-        double_t pos = viewmovie.position;
+        double_t pos = viewmovie.currentTimeAsFraction;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"viewPos"];
         NSString *timeStr = formatTime(viewmovie.currentTimeInMicroseconds);
         [self setValue:[NSString stringWithFormat:@"View Window : %@ (%.3f)", timeStr, pos]
@@ -103,7 +103,7 @@ NSString* formatTime(int64_t usec)
     if (!viewmovie.paused) {
         viewmovie.paused = true;
     } else {
-        if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) [viewmovie setPosition:0];
+        if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) viewmovie.currentTimeAsFraction = 0;
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
         viewmovie.playbackSpeedPercent = shiftKey ? 150 : 100;
         viewmovie.paused = false;
@@ -136,7 +136,7 @@ NSString* formatTime(int64_t usec)
 
 - (IBAction) rewindMovie:(id)sender
 {
-    [viewmovie setPosition:0];
+    viewmovie.currentTimeAsFraction = 0;
 }
 
 - (IBAction) updatePosition:(id)sender
@@ -146,7 +146,7 @@ NSString* formatTime(int64_t usec)
 
     if ([pos window] == viewwindow) {
         if (newPos != viewPrev) {
-            [viewmovie setPosition:newPos];
+            viewmovie.currentTimeAsFraction = newPos;
             viewPrev = newPos;
         }
     }

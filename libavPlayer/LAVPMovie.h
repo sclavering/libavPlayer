@@ -41,7 +41,7 @@
 @property (assign) int64_t currentTimeInMicroseconds;
 
 // How far along we are in playing the movie.  0.0 for the start, and 1.0 for the end.
-@property (assign) double position;
+@property (assign) double currentTimeAsFraction;
 
 // Movies start out paused.  Set this to start/stop playing.
 @property BOOL paused;

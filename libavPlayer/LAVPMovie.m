@@ -96,7 +96,7 @@
     return lastPosition;
 }
 
-- (double) position {
+- (double) currentTimeAsFraction {
     int64_t position = self.currentTimeInMicroseconds;
     int64_t duration = self.durationInMicroseconds;
     if(duration == 0) return 0;
@@ -105,8 +105,8 @@
     return (double)position/duration;
 }
 
-- (void) setPosition:(double)newPosition {
-    self.currentTimeInMicroseconds = newPosition * self.durationInMicroseconds;
+- (void) setCurrentTimeAsFraction:(double)pos {
+    self.currentTimeInMicroseconds = pos * self.durationInMicroseconds;
 }
 
 - (void) setCurrentTimeInMicroseconds:(int64_t)newTime {
