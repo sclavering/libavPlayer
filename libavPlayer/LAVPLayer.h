@@ -48,4 +48,6 @@
 @property bool stretchVideoToFitLayer;
 @property (retain) LAVPMovie *movie;
 
+- (void) invalidate;
+
 @end

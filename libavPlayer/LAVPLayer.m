@@ -42,8 +42,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
 }
 
-- (void)invalidate:(NSNotification*)inNotification
-{
+- (void) invalidateWithNotification:(NSNotification*)inNotification {
+    [self invalidate];
+}
+
+- (void) invalidate {
     self.asynchronous = NO;
     CGDisplayRemoveReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 
@@ -64,13 +67,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
 }
 
-- (void) dealloc
-{
-    [self invalidate:nil];
+- (void) dealloc {
+    [self invalidate];
 }
 
-- (instancetype) init
-{
+- (instancetype) init {
     self = [super init];
 
     if (self) {
@@ -112,7 +113,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         _lock = [[NSLock alloc] init];
 
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidate:) name:NSApplicationWillTerminateNotification object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidateWithNotification:) name:NSApplicationWillTerminateNotification object:nil];
 
         CGDisplayRegisterReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
     }
