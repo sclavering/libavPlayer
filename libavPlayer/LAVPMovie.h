@@ -36,7 +36,7 @@
 
 @property (retain, readonly) NSURL *url;
 
-@property (readonly) NSSize frameSize;
+@property (readonly) NSSize naturalSize;
 @property (readonly) int64_t durationInMicroseconds;
 @property (assign) int64_t currentTimeInMicroseconds;
 

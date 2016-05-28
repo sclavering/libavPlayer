@@ -63,7 +63,7 @@
     is->weakOutput = output;
 }
 
-- (NSSize) frameSize {
+- (NSSize) naturalSize {
     NSSize size = NSMakeSize(is->width, is->height);
     if (is->viddec->stream && is->viddec->stream->codecpar) {
         AVRational sRatio = is->viddec->stream->sample_aspect_ratio;
