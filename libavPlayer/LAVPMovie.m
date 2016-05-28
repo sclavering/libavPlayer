@@ -110,18 +110,15 @@
 }
 
 - (void) setCurrentTimeInMicroseconds:(int64_t)newTime {
-    // If you seek without pausing the seeking takes ages (several seconds).
-    bool wasPaused = self.paused;
-    self.paused = true;
+    if(!is) return;
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
-    if(is && is->ic) {
+    if(is->ic) {
         // This exists because get_clock() returns NAN after seeking while paused, and we need to mask that.
         lastPosition = newTime;
         if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
         stream_seek(is, newTime, 0);
     }
-    if(!wasPaused) self.paused = false;
 }
 
 - (BOOL) paused {
