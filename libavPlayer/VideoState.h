@@ -13,11 +13,9 @@
     int seek_flags;
     int64_t seek_pos;
     int64_t seek_rel;
-    int read_pause_return;
     AVFormatContext *ic;
 
     Clock audclk;
-    Clock vidclk;
 
     Decoder* auddec;
     Decoder* viddec;
@@ -61,14 +59,6 @@
     AudioQueueRef outAQ;
     AudioStreamBasicDescription asbd;
     dispatch_queue_t audioDispatchQueue;
-
-    /* =========================================================== */
-
-    // LAVPvideo
-
-    double frame_timer;
-    //
-    double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
 
     int eof;
 

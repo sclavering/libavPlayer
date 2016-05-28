@@ -150,7 +150,7 @@ int read_thread(VideoState* is)
                 if (is->paused != is->last_paused) {
                     is->last_paused = is->paused;
                     if (is->paused)
-                        is->read_pause_return = av_read_pause(is->ic);
+                        av_read_pause(is->ic);
                     else
                         av_read_play(is->ic);
 
@@ -242,12 +242,7 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
     if(pause == is->paused)
         return;
     is->is_temporarily_unpaused_to_handle_seeking = false;
-    if (is->paused && !pause) {
-        is->frame_timer += av_gettime_relative() / 1000000.0 - is->vidclk.last_updated;
-        if (is->read_pause_return != AVERROR(ENOSYS)) is->vidclk.paused = 0;
-        set_clock(&is->vidclk, get_clock(&is->vidclk), is->vidclk.serial);
-    }
-    is->paused = is->audclk.paused = is->vidclk.paused = pause;
+    is->paused = is->audclk.paused = pause;
     if (is->auddec->stream) {
         if (is->paused)
             LAVPAudioQueuePause(is);
@@ -369,8 +364,6 @@ VideoState* stream_open(NSURL *sourceURL)
     if (is->ic->pb)
         is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
-    is->max_frame_duration = (is->ic->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
-
     for (int i = 0; i < is->ic->nb_streams; i++)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
 
@@ -394,7 +387,6 @@ VideoState* stream_open(NSURL *sourceURL)
         if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
             goto fail;
 
-        init_clock(&is->vidclk, &is->viddec->packetq.serial);
         init_clock(&is->audclk, &is->auddec->packetq.serial);
 
         // LAVP: Use a dispatch queue instead of an SDL thread.
@@ -431,6 +423,5 @@ void lavp_set_playback_speed_percent(VideoState *is, int speed)
     if (is->playbackSpeedPercent == speed) return;
     is->playbackSpeedPercent = speed;
     is->playRate = (double)speed / 100.0;
-    set_clock_speed(&is->vidclk, is->playRate);
     set_clock_speed(&is->audclk, is->playRate);
 }

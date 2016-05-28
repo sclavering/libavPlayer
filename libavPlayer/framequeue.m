@@ -42,6 +42,11 @@ void frame_queue_signal(FrameQueue *f)
     pthread_mutex_unlock(f->mutex);
 }
 
+Frame *frame_queue_peek_next(FrameQueue *f)
+{
+    return frame_queue_nb_remaining(f) > 1 ? &f->queue[(f->rindex + f->rindex_shown + 1) % f->max_size] : NULL;
+}
+
 Frame *frame_queue_peek(FrameQueue *f)
 {
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
