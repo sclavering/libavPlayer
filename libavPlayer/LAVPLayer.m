@@ -81,7 +81,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         {
             kCGLPFAOpenGLProfile, kCGLOGLPVersion_GL3_Core,
             kCGLPFAAccelerated,
-            kCGLPFANoRecovery,
             kCGLPFADoubleBuffer,
             kCGLPFAColorSize, 24,
             kCGLPFAAlphaSize,  8,
