@@ -51,13 +51,13 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     CGDisplayRemoveReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [self _gl_cleanup];
     if (_movie) {
         [_movie invalidate];
         _movie = NULL;
     }
     if (_lock) _lock = NULL;
     if (_cglContext) {
+        // We rely on this cleaning up our textures and shaders.
         CGLReleaseContext(_cglContext);
         _cglContext = NULL;
     }
@@ -309,17 +309,6 @@ GLuint init_shader(GLenum kind, const char* code) {
         return 0;
     }
     return shader_id;
-}
-
-- (void) _gl_cleanup {
-    if(_textures[0]) glDeleteTextures(3, _textures);
-    for(int i = 0; i < 3; ++i) _textures[i] = 0;
-    if(_vertex_buffer) glDeleteBuffers(1, &_vertex_buffer);
-    _vertex_buffer = 0;
-    if(_texture_vertex_buffer) glDeleteBuffers(1, &_texture_vertex_buffer);
-    _texture_vertex_buffer = 0;
-    if(_program) glDeleteProgram(_program);
-    _program = 0;
 }
 
 - (void) _gl_draw {
