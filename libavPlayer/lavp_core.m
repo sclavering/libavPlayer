@@ -141,10 +141,8 @@ int read_thread(VideoState* is)
         // decode loop
         AVPacket pkt1, *pkt = &pkt1;
         for(;;) {
-                // Abort
-                if (is->abort_request) {
+                if (is->abort_request)
                     break;
-                }
 
                 // Pause
                 if (is->paused != is->last_paused) {
@@ -153,8 +151,6 @@ int read_thread(VideoState* is)
                         av_read_pause(is->ic);
                     else
                         av_read_play(is->ic);
-
-                    //NSLog(@"DEBUG: %@", is->paused ? @"paused:YES" : @"paused:NO");
                 }
 
                 // Seek
@@ -260,18 +256,13 @@ void lavp_set_paused(VideoState *is, bool pause)
 
 void stream_close(VideoState *is)
 {
-    /* original: stream_close() */
     if (is) {
-        /* XXX: use a special url_shutdown call to abort parse cleanly */
         is->abort_request = 1;
 
         dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
-        {
-            is->parse_group = NULL;
-            is->parse_queue = NULL;
-        }
+        is->parse_group = NULL;
+        is->parse_queue = NULL;
 
-        // LAVP: Stop Audio Queue
         LAVPAudioQueueStop(is);
         LAVPAudioQueueDealloc(is);
 
@@ -300,61 +291,33 @@ VideoState* stream_open(NSURL *sourceURL)
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *)&flush_pkt;
 
-    int err;
-
-    // Initialize VideoState struct
     VideoState *is = [[VideoState alloc] init];
 
-    /* ======================================== */
-
     is->volume_percent = 100;
-
     is->weakOutput = NULL;
     is->last_frame = NULL;
-
     is->paused = 0;
     is->playbackSpeedPercent = 100;
     is->playRate = 1.0;
     is->eof = 0;
 
-    /* ======================================== */
+    av_log_set_flags(AV_LOG_SKIP_REPEATED);
+    av_register_all();
+    avformat_network_init();
 
-    /* original: main() */
-    {
-        av_log_set_flags(AV_LOG_SKIP_REPEATED);
-
-        /* register all codecs, demux and protocols */
-        av_register_all();
-        avformat_network_init();
-    }
-
-    /* ======================================== */
-
-    /* original: opt_format() */
-    // TODO
     const char * extension = [sourceURL.pathExtension cStringUsingEncoding:NSASCIIStringEncoding];
-
-    // LAVP: Guess file format
     if (extension) {
         AVInputFormat *file_iformat = av_find_input_format(extension);
-        if (file_iformat) {
-            is->iformat = file_iformat;
-        }
+        if (file_iformat) is->iformat = file_iformat;
     }
 
-    /* ======================================== */
-
-    /* original: read_thread() */
-    // Open file
-    {
-        AVFormatContext *ic = avformat_alloc_context();
-        ic->interrupt_callback.callback = decode_interrupt_cb;
-        ic->interrupt_callback.opaque = (__bridge void *)(is);
-        err = avformat_open_input(&ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
-        if (err < 0)
-            return NULL;
-        is->ic = ic;
-    }
+    AVFormatContext *ic = avformat_alloc_context();
+    ic->interrupt_callback.callback = decode_interrupt_cb;
+    ic->interrupt_callback.opaque = (__bridge void *)(is);
+    int err = avformat_open_input(&ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
+    if (err < 0)
+        return NULL;
+    is->ic = ic;
 
     // Examine stream info
     err = avformat_find_stream_info(is->ic, NULL);
@@ -367,38 +330,31 @@ VideoState* stream_open(NSURL *sourceURL)
     for (int i = 0; i < is->ic->nb_streams; i++)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
 
-    // LAVP: av_find_best_stream is moved to read_thread()
+    is->continue_read_thread = lavp_pthread_cond_create();
+    is->audio_clock_serial = -1;
 
-    /* ======================================== */
+    int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (vid_index < 0)
+        goto fail;
+    int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
+    if (aud_index < 0)
+        goto fail;
+    if (stream_component_open(is, is->ic->streams[aud_index]) < 0)
+        goto fail;
+    if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
+        goto fail;
 
-    /* original: stream_open() */
+    init_clock(&is->audclk, &is->auddec->packetq.serial);
+
+    // LAVP: Use a dispatch queue instead of an SDL thread.
+    is->parse_queue = dispatch_queue_create("parse", NULL);
+    is->parse_group = dispatch_group_create();
     {
-        is->continue_read_thread = lavp_pthread_cond_create();
-        is->audio_clock_serial = -1;
-
-        int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-        if (vid_index < 0)
-            goto fail;
-        int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
-        if (aud_index < 0)
-            goto fail;
-        if (stream_component_open(is, is->ic->streams[aud_index]) < 0)
-            goto fail;
-        if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
-            goto fail;
-
-        init_clock(&is->audclk, &is->auddec->packetq.serial);
-
-        // LAVP: Use a dispatch queue instead of an SDL thread.
-        is->parse_queue = dispatch_queue_create("parse", NULL);
-        is->parse_group = dispatch_group_create();
-        {
-            __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-            dispatch_group_async(is->parse_group, is->parse_queue, ^(void) {
-                __strong VideoState* strongIs = weakIs;
-                if(strongIs) read_thread(strongIs);
-            });
-        }
+        __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
+        dispatch_group_async(is->parse_group, is->parse_queue, ^(void) {
+            __strong VideoState* strongIs = weakIs;
+            if(strongIs) read_thread(strongIs);
+        });
     }
 
     // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
