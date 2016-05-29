@@ -28,8 +28,7 @@
 
 @implementation LAVPMovie
 
-- (instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr
-{
+-(instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr {
     self = [super init];
     if (self) {
         is = stream_open(sourceURL);
@@ -40,11 +39,11 @@
     return self;
 }
 
-- (void) dealloc {
+-(void) dealloc {
     [self invalidate];
 }
 
-- (void) invalidate {
+-(void) invalidate {
     if(!is) return;
     self.paused = true;
     if(is->decoderThread) {
@@ -59,11 +58,11 @@
 
 #pragma mark -
 
-- (void) setOutput:(id<LAVPMovieOutput>)output {
+-(void) setOutput:(id<LAVPMovieOutput>)output {
     is->weakOutput = output;
 }
 
-- (NSSize) naturalSize {
+-(NSSize) naturalSize {
     NSSize size = NSMakeSize(is->width, is->height);
     if (is->viddec->stream && is->viddec->stream->codecpar) {
         AVRational sRatio = is->viddec->stream->sample_aspect_ratio;
@@ -80,15 +79,15 @@
 }
 
 // I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.
-- (NSSize) sizeForGLTextures {
+-(NSSize) sizeForGLTextures {
     return is ? NSMakeSize(is->width, is->height) : NSMakeSize(1, 1);
 }
 
-- (int64_t) durationInMicroseconds {
+-(int64_t) durationInMicroseconds {
     return is->ic ? is->ic->duration : 0;
 }
 
-- (int64_t) currentTimeInMicroseconds {
+-(int64_t) currentTimeInMicroseconds {
     if(!is || !is->ic) return 0;
     // Note: the audio clock is the master clock.
     double pos = get_clock(&is->audclk) * 1e6;
@@ -96,7 +95,7 @@
     return lastPosition;
 }
 
-- (double) currentTimeAsFraction {
+-(double) currentTimeAsFraction {
     int64_t position = self.currentTimeInMicroseconds;
     int64_t duration = self.durationInMicroseconds;
     if(duration == 0) return 0;
@@ -105,11 +104,11 @@
     return (double)position/duration;
 }
 
-- (void) setCurrentTimeAsFraction:(double)pos {
+-(void) setCurrentTimeAsFraction:(double)pos {
     self.currentTimeInMicroseconds = pos * self.durationInMicroseconds;
 }
 
-- (void) setCurrentTimeInMicroseconds:(int64_t)newTime {
+-(void) setCurrentTimeInMicroseconds:(int64_t)newTime {
     if(!is) return;
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
@@ -121,39 +120,38 @@
     }
 }
 
-- (BOOL) paused {
+-(BOOL) paused {
     return is->paused;
 }
 
-- (void) setPaused:(BOOL)shouldPause {
+-(void) setPaused:(BOOL)shouldPause {
     lavp_set_paused(is, shouldPause);
 }
 
-- (int) playbackSpeedPercent {
+-(int) playbackSpeedPercent {
     if (is->ic && is->ic->duration <= 0) return 0;
     return lavp_get_playback_speed_percent(is);
 }
 
-- (void) setPlaybackSpeedPercent:(int)speed {
+-(void) setPlaybackSpeedPercent:(int)speed {
     if(!is || speed <= 0) return;
     if(self.playbackSpeedPercent == speed) return;
     lavp_set_playback_speed_percent(is, speed);
 }
 
-- (int) volumePercent {
+-(int) volumePercent {
     return lavp_get_volume_percent(is);
 }
 
-- (void) setVolumePercent:(int)volume {
+-(void) setVolumePercent:(int)volume {
     lavp_set_volume_percent(is, volume);
 }
 
-- (Frame*) getCurrentFrame {
+-(Frame*) getCurrentFrame {
     return lavp_get_current_frame(is);
 }
 
-- (void) threadMain
-{
+-(void) threadMain {
     @autoreleasepool {
         // Prepare thread runloop
         NSRunLoop* runLoop = [NSRunLoop currentRunLoop];
@@ -179,8 +177,7 @@
     }
 }
 
-- (void) refreshPicture
-{
+-(void) refreshPicture {
     video_refresh(is);
 }
 

@@ -2,6 +2,6 @@
 #import "lavp_common.h"
 
 @interface LAVPMovie (Internal)
-- (NSSize) sizeForGLTextures;
-- (Frame*) getCurrentFrame;
+-(NSSize) sizeForGLTextures;
+-(Frame*) getCurrentFrame;
 @end

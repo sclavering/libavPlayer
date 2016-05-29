@@ -21,10 +21,10 @@
 @property (unsafe_unretained) IBOutlet NSWindow *viewwindow;
 @property (unsafe_unretained) IBOutlet LAVPView *view;
 
-- (void) loadMovieAtURL:(NSURL *)url;
+-(void) loadMovieAtURL:(NSURL *)url;
 
-- (IBAction) togglePlay:(id)sender;
-- (IBAction) rewindMovie:(id)sender;
-- (IBAction) updatePosition:(id)sender;
+-(IBAction) togglePlay:(id)sender;
+-(IBAction) rewindMovie:(id)sender;
+-(IBAction) updatePosition:(id)sender;
 
 @end

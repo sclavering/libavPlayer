@@ -42,11 +42,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
 }
 
-- (void) invalidateWithNotification:(NSNotification*)inNotification {
+-(void) invalidateWithNotification:(NSNotification*)inNotification {
     [self invalidate];
 }
 
-- (void) invalidate {
+-(void) invalidate {
     self.asynchronous = NO;
     CGDisplayRemoveReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
 
@@ -67,11 +67,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     }
 }
 
-- (void) dealloc {
+-(void) dealloc {
     [self invalidate];
 }
 
-- (instancetype) init {
+-(instancetype) init {
     self = [super init];
 
     if (self) {
@@ -123,19 +123,17 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 /* =============================================================================================== */
 #pragma mark -
 
-- (CGLPixelFormatObj) copyCGLPixelFormatForDisplayMask:(uint32_t)mask
-{
+-(CGLPixelFormatObj) copyCGLPixelFormatForDisplayMask:(uint32_t)mask {
     CGLRetainPixelFormat(_cglPixelFormat);
     return _cglPixelFormat;
 }
 
-- (CGLContextObj) copyCGLContextForPixelFormat:(CGLPixelFormatObj)pixelFormat
-{
+-(CGLContextObj) copyCGLContextForPixelFormat:(CGLPixelFormatObj)pixelFormat {
     CGLRetainContext(_cglContext);
     return _cglContext;
 }
 
-- (BOOL) canDrawInCGLContext:(CGLContextObj)glContext
+-(BOOL) canDrawInCGLContext:(CGLContextObj)glContext
                  pixelFormat:(CGLPixelFormatObj)pixelFormat
                 forLayerTime:(CFTimeInterval)timeInterval
                  displayTime:(const CVTimeStamp *)timeStamp
@@ -143,7 +141,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     return _movie && !NSEqualSizes(_movie.naturalSize, NSZeroSize);
 }
 
-- (void) drawInCGLContext:(CGLContextObj)glContext
+-(void) drawInCGLContext:(CGLContextObj)glContext
               pixelFormat:(CGLPixelFormatObj)pixelFormat
              forLayerTime:(CFTimeInterval)timeInterval
               displayTime:(const CVTimeStamp *)timeStamp
@@ -161,11 +159,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 #pragma mark -
 #pragma mark public
 
-- (LAVPMovie*) movie {
+-(LAVPMovie*) movie {
     return _movie;
 }
 
-- (void) setMovie:(LAVPMovie*)movie {
+-(void) setMovie:(LAVPMovie*)movie {
     self.asynchronous = NO;
     [_lock lock];
 
@@ -230,7 +228,7 @@ static const char *const fragment_shader_src = "                             \
     }                                                                        \
 ";
 
-- (void) _gl_init {
+-(void) _gl_init {
     _program = load_shaders(vertex_shader_src, fragment_shader_src) ;
     _location_y = glGetUniformLocation(_program, "video_data_y");
     _location_u = glGetUniformLocation(_program, "video_data_u");
@@ -310,7 +308,7 @@ GLuint init_shader(GLenum kind, const char* code) {
     return shader_id;
 }
 
-- (void) _gl_draw {
+-(void) _gl_draw {
     [_lock lock];
     Frame* frm = [_movie getCurrentFrame];
 

@@ -24,21 +24,18 @@ NSString* formatTime(int64_t usec)
 @synthesize viewwindow;
 @synthesize view;
 
-- (void)startTimer
-{
+-(void) startTimer {
     timer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(updatePos:) userInfo:nil repeats:YES];
 }
 
-- (void)stopTimer
-{
+-(void) stopTimer {
     if (timer) {
         [timer invalidate];
         timer = nil;
     }
 }
 
-- (void)updatePos:(NSTimer*)theTimer
-{
+-(void) updatePos:(NSTimer*)theTimer {
     if (viewwindow) {
         double_t pos = viewmovie.currentTimeAsFraction;
         [self setValue:[NSNumber numberWithDouble:pos] forKey:@"viewPos"];
@@ -48,7 +45,7 @@ NSString* formatTime(int64_t usec)
     }
 }
 
-- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+-(void) applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Restore prev movie (on start up)
     NSURL *url = [[NSUserDefaults standardUserDefaults] URLForKey:@"url"];
     NSURL *urlDefault = [[NSBundle mainBundle] URLForResource:@"ColorBars" withExtension:@"mov"];
@@ -70,8 +67,7 @@ NSString* formatTime(int64_t usec)
     viewPrev = -1;
 }
 
-- (void) loadMovieAtURL:(NSURL *)url
-{
+-(void) loadMovieAtURL:(NSURL *)url {
     if (viewmovie) [self stopTimer];
 
     if (viewwindow) {
@@ -82,13 +78,11 @@ NSString* formatTime(int64_t usec)
     if (viewmovie) [self startTimer];
 }
 
-- (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender
-{
+-(BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
     return NO;
 }
 
-- (void) windowWillClose:(NSNotification *)notification
-{
+-(void) windowWillClose:(NSNotification *)notification {
     NSWindow *obj = [notification object];
     if (obj == viewwindow) {
         NSLog(@"NOTE: viewwindow closing...");
@@ -98,8 +92,7 @@ NSString* formatTime(int64_t usec)
     }
 }
 
-- (IBAction) togglePlay:(id)sender
-{
+-(IBAction) togglePlay:(id)sender {
     if (!viewmovie.paused) {
         viewmovie.paused = true;
     } else {
@@ -110,8 +103,7 @@ NSString* formatTime(int64_t usec)
     }
 }
 
-- (IBAction) openDocument:(id)sender
-{
+-(IBAction) openDocument:(id)sender {
     // configure open sheet
     NSOpenPanel *openPanel = [NSOpenPanel openPanel];
 
@@ -134,13 +126,11 @@ NSString* formatTime(int64_t usec)
     [openPanel beginSheetModalForWindow:[NSApp mainWindow] completionHandler:movieOpenPanelHandler];
 }
 
-- (IBAction) rewindMovie:(id)sender
-{
+-(IBAction) rewindMovie:(id)sender {
     viewmovie.currentTimeAsFraction = 0;
 }
 
-- (IBAction) updatePosition:(id)sender
-{
+-(IBAction) updatePosition:(id)sender {
     NSSlider *pos = (NSSlider*) sender;
     double_t newPos = [pos doubleValue];
 
@@ -157,8 +147,7 @@ NSString* formatTime(int64_t usec)
     [self performSelector:trackingEndedSelector withObject:sender afterDelay:0.0];
 }
 
-- (void) finishUpdatePosition:(id)sender
-{
+-(void) finishUpdatePosition:(id)sender {
     viewPrev = -1;
 }
 
