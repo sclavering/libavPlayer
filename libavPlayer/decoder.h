@@ -8,7 +8,7 @@
     int pkt_serial;
     int finished;
     int packet_pending;
-    pthread_cond_t *empty_queue_cond;
+    pthread_cond_t *empty_queue_cond_ptr;
     int64_t start_pts;
     AVRational start_pts_tb;
     int64_t next_pts;

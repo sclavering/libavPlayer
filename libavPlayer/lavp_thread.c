@@ -52,36 +52,3 @@ void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *
     // Do a timed wait
     pthread_cond_timedwait( cond, mutex, &limit );
 }
-
-void lavp_pthread_cond_destroy(pthread_cond_t *cond)
-{
-	//assert(cond);
-	
-	pthread_cond_destroy(cond);
-	free(cond);
-}
-
-pthread_cond_t* lavp_pthread_cond_create()
-{
-	pthread_cond_t *cond = calloc(1, sizeof(pthread_cond_t));
-	int result = pthread_cond_init(cond, NULL);
-	assert(!result);
-	return cond;
-}
-
-void lavp_pthread_mutex_destroy(pthread_mutex_t *mutex)
-{
-	//assert(mutex);
-	
-	pthread_mutex_destroy(mutex);
-	free(mutex);
-}
-
-pthread_mutex_t* lavp_pthread_mutex_create()
-{
-	pthread_mutex_t *mutex = calloc(1, sizeof(pthread_mutex_t));
-	int result = pthread_mutex_init(mutex, NULL);
-	assert(!result);
-	return mutex;
-}
-

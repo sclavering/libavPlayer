@@ -5,10 +5,10 @@
 @implementation Decoder
 @end
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size, AVStream *stream) {
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
     d->stream = stream;
     d->avctx = avctx;
-    d->empty_queue_cond = empty_queue_cond;
+    d->empty_queue_cond_ptr = empty_queue_cond_ptr;
     d->start_pts = AV_NOPTS_VALUE;
     int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
     if(err < 0) return err;
@@ -29,7 +29,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
             AVPacket pkt;
             do {
                 if (d->packetq.nb_packets == 0)
-                    pthread_cond_signal(d->empty_queue_cond);
+                    pthread_cond_signal(d->empty_queue_cond_ptr);
                 if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
                 if (pkt.data == flush_pkt.data) {
@@ -172,8 +172,8 @@ bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration)
 
 Frame* decoder_get_current_frame_or_null(Decoder *d)
 {
-    pthread_mutex_lock(d->frameq.mutex);
+    pthread_mutex_lock(&d->frameq.mutex);
     Frame* rv = frame_queue_nb_remaining(&d->frameq) > 0 ? frame_queue_peek(&d->frameq) : NULL;
-    pthread_mutex_unlock(d->frameq.mutex);
+    pthread_mutex_unlock(&d->frameq.mutex);
     return rv;
 }

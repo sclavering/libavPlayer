@@ -40,8 +40,8 @@ typedef struct PacketQueue {
     int size;
     int abort_request;
     int serial;
-    pthread_mutex_t *mutex;
-    pthread_cond_t *cond;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
 } PacketQueue;
 
 void packet_queue_init(PacketQueue *q);

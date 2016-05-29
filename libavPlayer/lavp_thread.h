@@ -25,9 +25,4 @@
 
 #include <pthread.h>
 
-pthread_cond_t* lavp_pthread_cond_create(void);
-void lavp_pthread_cond_destroy(pthread_cond_t *cond);
 void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms);
-
-pthread_mutex_t* lavp_pthread_mutex_create(void);
-void lavp_pthread_mutex_destroy(pthread_mutex_t *mutex);

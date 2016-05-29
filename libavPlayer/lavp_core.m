@@ -78,7 +78,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             is->auddec = [[Decoder alloc] init];
-            if(decoder_init(is->auddec, avctx, is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
+            if(decoder_init(is->auddec, avctx, &is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
                 goto fail;
 
             if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
@@ -108,7 +108,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->height = stream->codecpar->height;
 
             is->viddec = [[Decoder alloc] init];
-            if(decoder_init(is->viddec, avctx, is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE, stream) < 0)
+            if(decoder_init(is->viddec, avctx, &is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE, stream) < 0)
                 goto fail;
             decoder_start(is->viddec, video_thread, is);
 
@@ -135,7 +135,8 @@ static int decode_interrupt_cb(void *ctx)
 /* this thread gets the stream from the disk or the network */
 int read_thread(VideoState* is)
 {
-        pthread_mutex_t* wait_mutex = lavp_pthread_mutex_create();
+        pthread_mutex_t wait_mutex;
+        pthread_mutex_init(&wait_mutex, NULL);
         int ret = -1;
 
         // decode loop
@@ -180,9 +181,9 @@ int read_thread(VideoState* is)
                      || (!decoder_needs_more_packets(is->auddec) && !decoder_needs_more_packets(is->viddec)))
                 {
                     /* wait 10 ms */
-                    pthread_mutex_lock(wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
-                    pthread_mutex_unlock(wait_mutex);
+                    pthread_mutex_lock(&wait_mutex);
+                    lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
+                    pthread_mutex_unlock(&wait_mutex);
                     continue;
                 }
 
@@ -199,9 +200,9 @@ int read_thread(VideoState* is)
                     }
                     if (is->ic->pb && is->ic->pb->error)
                         break;
-                    pthread_mutex_lock(wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(is->continue_read_thread, wait_mutex, 10);
-                    pthread_mutex_unlock(wait_mutex);
+                    pthread_mutex_lock(&wait_mutex);
+                    lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
+                    pthread_mutex_unlock(&wait_mutex);
                     continue;
                 } else {
                     is->eof = 0;
@@ -214,7 +215,7 @@ int read_thread(VideoState* is)
         // finish thread
         ret = 0;
 
-        lavp_pthread_mutex_destroy(wait_mutex);
+        pthread_mutex_destroy(&wait_mutex);
 
         return ret;
 }
@@ -229,7 +230,7 @@ void stream_seek(VideoState *is, int64_t pos, int64_t rel)
         is->seek_rel = rel;
         is->seek_flags &= ~AVSEEK_FLAG_BYTE;
         is->seek_req = 1;
-        pthread_cond_signal(is->continue_read_thread);
+        pthread_cond_signal(&is->continue_read_thread);
     }
 }
 
@@ -276,7 +277,7 @@ void stream_close(VideoState *is)
 
         avformat_close_input(&is->ic);
 
-        lavp_pthread_cond_destroy(is->continue_read_thread);
+        pthread_cond_destroy(&is->continue_read_thread);
 
         is->weakOutput = NULL;
     }
@@ -330,7 +331,7 @@ VideoState* stream_open(NSURL *sourceURL)
     for (int i = 0; i < is->ic->nb_streams; i++)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
 
-    is->continue_read_thread = lavp_pthread_cond_create();
+    pthread_cond_init(&is->continue_read_thread, NULL);
     is->audio_clock_serial = -1;
 
     int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
