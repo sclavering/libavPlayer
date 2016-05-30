@@ -46,8 +46,6 @@
 		16A1911713AC9C47008825FF /* packetqueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A1911513AC9C47008825FF /* packetqueue.m */; };
 		16A1932D13ADB3E3008825FF /* lavp_video.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A1932B13ADB3E3008825FF /* lavp_video.m */; };
 		16A193E513ADC62A008825FF /* lavp_core.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A193E313ADC62A008825FF /* lavp_core.m */; };
-		16A1955913ADF584008825FF /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A1955813ADF584008825FF /* OpenGL.framework */; };
-		16A1955B13ADF58D008825FF /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A1955A13ADF58D008825FF /* QuartzCore.framework */; };
 		16A195AA13ADF5F1008825FF /* LAVPLayer.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A195A813ADF5F1008825FF /* LAVPLayer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16A195AB13ADF5F1008825FF /* LAVPLayer.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A195A913ADF5F1008825FF /* LAVPLayer.m */; };
 		16A195EC13ADF712008825FF /* LAVPView.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A195EA13ADF712008825FF /* LAVPView.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -59,14 +57,12 @@
 		16A196A013ADFA23008825FF /* lavp_audio.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A193C513ADC268008825FF /* lavp_audio.m */; };
 		16A1971613ADFE22008825FF /* libavPlayer.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A1971513ADFE22008825FF /* libavPlayer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16CFAA2B183CE911008DD4BF /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 16009698183C8E1E0026B528 /* libswresample.a */; };
-		16E3B23213BA752C000E6062 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A196F813ADFDC1008825FF /* Cocoa.framework */; };
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
 		AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12251CE3B2D400716F94 /* framequeue.m */; };
 		AA4F122A1CE5096C00716F94 /* decoder.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12281CE508FC00716F94 /* decoder.m */; };
 		AA4F122C1CE54F8100716F94 /* VideoState.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F122B1CE54F7A00716F94 /* VideoState.m */; };
 		AA6E9C581CF8E0A50082BDEC /* clock.m in Sources */ = {isa = PBXBuildFile; fileRef = AA6E9C561CF8E07C0082BDEC /* clock.m */; };
 		AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D61CC6876100827BED /* CoreMedia.framework */; };
-		AA81D9D91CC6879700827BED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D81CC6879700827BED /* Security.framework */; };
 		AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */; };
 		AA81D9DD1CC6882E00827BED /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */; };
 /* End PBXBuildFile section */
@@ -96,8 +92,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0867D69BFE84028FC02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
-		0867D6A5FE840307C02AAC07 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		089C1667FE841158C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		16009698183C8E1E0026B528 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../libav/libswresample.a; sourceTree = "<group>"; };
 		1600969A183C8E2E0026B528 /* swresample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swresample.h; path = ../libav/libswresample/swresample.h; sourceTree = "<group>"; };
@@ -105,7 +99,6 @@
 		1660410218292F2B00E78594 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		166F893613E0555A00B74CCA /* lavp_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lavp_thread.c; sourceTree = "<group>"; };
 		166F893713E0555A00B74CCA /* lavp_thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_thread.h; sourceTree = "<group>"; };
-		169D704213EE2A5700031A4A /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
 		16A18F4713AC466F008825FF /* LAVPMovie.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPMovie.h; sourceTree = "<group>"; };
 		16A18F4813AC466F008825FF /* LAVPMovie.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPMovie.m; sourceTree = "<group>"; };
 		16A18F8A13AC5536008825FF /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../libav/libavcodec.a; sourceTree = "<group>"; };
@@ -128,13 +121,10 @@
 		16A193C513ADC268008825FF /* lavp_audio.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = lavp_audio.m; sourceTree = "<group>"; };
 		16A193E213ADC62A008825FF /* lavp_core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_core.h; sourceTree = "<group>"; };
 		16A193E313ADC62A008825FF /* lavp_core.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = lavp_core.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
-		16A1955813ADF584008825FF /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		16A1955A13ADF58D008825FF /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		16A195A813ADF5F1008825FF /* LAVPLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPLayer.h; sourceTree = "<group>"; };
 		16A195A913ADF5F1008825FF /* LAVPLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPLayer.m; sourceTree = "<group>"; };
 		16A195EA13ADF712008825FF /* LAVPView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPView.h; sourceTree = "<group>"; };
 		16A195EB13ADF712008825FF /* LAVPView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPView.m; sourceTree = "<group>"; };
-		16A196F813ADFDC1008825FF /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		16A1971513ADFE22008825FF /* libavPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libavPlayer.h; sourceTree = "<group>"; };
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* libavPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = libavPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -147,11 +137,9 @@
 		AA6E9C561CF8E07C0082BDEC /* clock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = clock.m; sourceTree = "<group>"; };
 		AA6E9C571CF8E07C0082BDEC /* clock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clock.h; sourceTree = "<group>"; };
 		AA81D9D61CC6876100827BED /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
-		AA81D9D81CC6879700827BED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		AAD2C9061CEF106200414D92 /* LAVPMovie+Internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "LAVPMovie+Internal.h"; sourceTree = "<group>"; };
-		D2F7E79907B2D74100F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -161,12 +149,8 @@
 			files = (
 				AA81D9DD1CC6882E00827BED /* VideoToolbox.framework in Frameworks */,
 				AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */,
-				AA81D9D91CC6879700827BED /* Security.framework in Frameworks */,
 				AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */,
 				16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */,
-				16A1955913ADF584008825FF /* OpenGL.framework in Frameworks */,
-				16A1955B13ADF58D008825FF /* QuartzCore.framework in Frameworks */,
-				16E3B23213BA752C000E6062 /* Cocoa.framework in Frameworks */,
 				164826C013D399A2008E16A7 /* AudioToolbox.framework in Frameworks */,
 				1660410318292F2B00E78594 /* libiconv.dylib in Frameworks */,
 				16A18FF113AC57CC008825FF /* libz.dylib in Frameworks */,
@@ -209,17 +193,9 @@
 				16A18FF313AC57E2008825FF /* libbz2.dylib */,
 				1660410218292F2B00E78594 /* libiconv.dylib */,
 				16A18FF013AC57CC008825FF /* libz.dylib */,
-				0867D6A5FE840307C02AAC07 /* AppKit.framework */,
 				164826BB13D39785008E16A7 /* AudioToolbox.framework */,
-				16A196F813ADFDC1008825FF /* Cocoa.framework */,
-				D2F7E79907B2D74100F64583 /* CoreData.framework */,
 				AA81D9D61CC6876100827BED /* CoreMedia.framework */,
 				16A18FAB13AC567E008825FF /* CoreVideo.framework */,
-				0867D69BFE84028FC02AAC07 /* Foundation.framework */,
-				16A1955813ADF584008825FF /* OpenGL.framework */,
-				169D704213EE2A5700031A4A /* QTKit.framework */,
-				16A1955A13ADF58D008825FF /* QuartzCore.framework */,
-				AA81D9D81CC6879700827BED /* Security.framework */,
 				AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */,
 				AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */,
 			);
