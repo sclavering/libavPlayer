@@ -281,9 +281,6 @@ void stream_close(VideoState *is)
 
         is->weakOutput = NULL;
     }
-
-    avformat_network_deinit();
-    av_log(NULL, AV_LOG_QUIET, "%s", "");
 }
 
 VideoState* stream_open(NSURL *sourceURL)
@@ -304,7 +301,6 @@ VideoState* stream_open(NSURL *sourceURL)
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
-    avformat_network_init();
 
     const char * extension = [sourceURL.pathExtension cStringUsingEncoding:NSASCIIStringEncoding];
     if (extension) {
