@@ -17,7 +17,6 @@ cd ../libav
     --arch=$THEARC \
     --cpu=$THECPU \
     --cc=clang \
-    --enable-small \
     --target-os=darwin \
     --enable-decoders \
     --disable-encoders \
@@ -28,14 +27,13 @@ cd ../libav
     --disable-postproc \
     --disable-avfilter \
     --disable-filters \
-    --enable-protocols \
-    --enable-network \
+    --disable-network \
+    --disable-openssl \
     --enable-pthreads \
     --enable-gpl \
-    --disable-ffmpeg \
-    --disable-ffprobe \
-    --disable-ffserver \
-    --disable-ffplay \
+    --disable-programs \
+    --disable-doc \
+    --disable-sdl \
     --extra-ldflags=" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wl,-syslibroot,$THESDK " \
     --extra-cflags=" -arch $THEARC -isystem $THESDK -mmacosx-version-min=10.6 -Wno-deprecated-declarations $THEOPT " \
     --enable-protocol=file \
