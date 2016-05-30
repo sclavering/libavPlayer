@@ -264,12 +264,11 @@ void stream_close(VideoState *is)
         is->parse_group = NULL;
         is->parse_queue = NULL;
 
-        LAVPAudioQueueStop(is);
-        LAVPAudioQueueDealloc(is);
-
         decoder_destroy(is->auddec);
         decoder_destroy(is->viddec);
 
+        LAVPAudioQueueStop(is);
+        LAVPAudioQueueDealloc(is);
         swr_free(&is->swr_ctx);
         av_freep(&is->audio_buf1);
         is->audio_buf1_size = 0;
