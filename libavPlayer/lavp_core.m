@@ -345,7 +345,7 @@ VideoState* stream_open(NSURL *sourceURL)
     if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
         goto fail;
 
-    init_clock(&is->audclk, &is->auddec->packetq.serial);
+    clock_init(&is->audclk, &is->auddec->packetq.serial);
 
     // LAVP: Use a dispatch queue instead of an SDL thread.
     is->parse_queue = dispatch_queue_create("parse", NULL);
@@ -380,5 +380,5 @@ void lavp_set_playback_speed_percent(VideoState *is, int speed)
     if (is->playbackSpeedPercent == speed) return;
     is->playbackSpeedPercent = speed;
     is->playRate = (double)speed / 100.0;
-    set_clock_speed(&is->audclk, is->playRate);
+    clock_set_speed(&is->audclk, is->playRate);
 }

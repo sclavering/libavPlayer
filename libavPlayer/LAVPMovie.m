@@ -90,7 +90,7 @@
 -(int64_t) currentTimeInMicroseconds {
     if(!is || !is->ic) return 0;
     // Note: the audio clock is the master clock.
-    double pos = get_clock(&is->audclk) * 1e6;
+    double pos = clock_get(&is->audclk) * 1e6;
     if(!isnan(pos)) lastPosition = pos;
     return lastPosition;
 }
@@ -113,7 +113,7 @@
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
     if(is->ic) {
-        // This exists because get_clock() returns NAN after seeking while paused, and we need to mask that.
+        // This exists because clock_get() returns NAN after seeking while paused, and we need to mask that.
         lastPosition = newTime;
         if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
         stream_seek(is, newTime, 0);

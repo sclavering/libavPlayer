@@ -47,7 +47,7 @@ void video_refresh(VideoState *is)
         if (frame_queue_nb_remaining(&is->viddec->frameq) == 0) return;
         Frame *curr = frame_queue_peek(&is->viddec->frameq);
         Frame *next = frame_queue_peek_next(&is->viddec->frameq);
-        double now = get_clock(&is->audclk);
+        double now = clock_get(&is->audclk);
         // If the next frame is still in the future, stop here.
         if (next && !(curr->frm_pts < now && next->frm_pts < now)) break;
         // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.
@@ -76,7 +76,7 @@ int video_thread(VideoState *is)
 
         if (frame->pts != AV_NOPTS_VALUE) {
             double dpts = av_q2d(tb) * frame->pts;
-            double diff = dpts - get_clock(&is->audclk);
+            double diff = dpts - clock_get(&is->audclk);
             if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->audclk.serial && is->viddec->packetq.nb_packets) {
                 av_frame_unref(frame);
                 continue;
