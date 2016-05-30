@@ -177,3 +177,17 @@ Frame* decoder_get_current_frame_or_null(Decoder *d)
     pthread_mutex_unlock(&d->frameq.mutex);
     return rv;
 }
+
+bool decoder_drop_frames_with_expired_serial(Decoder *d)
+{
+    // Skips any frames left over from before seeking.
+    int i = 0;
+    for(;;) {
+        if (frame_queue_nb_remaining(&d->frameq) == 0) return true;
+        Frame *fr = frame_queue_peek(&d->frameq);
+        if (fr->frm_serial == d->packetq.serial) break;
+        frame_queue_next(&d->frameq);
+        ++i;
+    }
+    return false;
+}

@@ -239,7 +239,8 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
     if(pause == is->paused)
         return;
     is->is_temporarily_unpaused_to_handle_seeking = false;
-    is->paused = is->audclk.paused = pause;
+    is->paused = pause;
+    clock_set_paused(&is->audclk, pause);
     if (is->auddec->stream) {
         if (is->paused)
             LAVPAudioQueuePause(is);

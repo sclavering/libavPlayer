@@ -25,6 +25,12 @@ void set_clock(Clock *c, double pts, int serial)
     set_clock_at(c, pts, serial, time);
 }
 
+void clock_set_paused(Clock *c, bool paused) {
+    // We need to save on pause and restore on resume for the clock to be accurate.  (Otherwise it'd be ahead by however long the movie had been paused for, until it next got corrected based on actual audio playback.)
+    set_clock(c, get_clock(c), c->serial);
+    c->paused = paused;
+}
+
 void set_clock_speed(Clock *c, double speed)
 {
     set_clock(c, get_clock(c), c->serial);

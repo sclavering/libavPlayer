@@ -36,3 +36,5 @@ bool decoder_finished(Decoder *d);
 
 bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration);
 Frame* decoder_get_current_frame_or_null(Decoder *d);
+
+bool decoder_drop_frames_with_expired_serial(Decoder *d);
