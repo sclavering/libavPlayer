@@ -145,15 +145,6 @@ int read_thread(VideoState* is)
                 if (is->abort_request)
                     break;
 
-                // Pause
-                if (is->paused != is->last_paused) {
-                    is->last_paused = is->paused;
-                    if (is->paused)
-                        av_read_pause(is->ic);
-                    else
-                        av_read_play(is->ic);
-                }
-
                 // Seek
                 if (is->seek_req) {
                     is->last_frame = NULL;
