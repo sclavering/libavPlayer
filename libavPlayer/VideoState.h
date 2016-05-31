@@ -7,6 +7,7 @@
 
     AVInputFormat *iformat;
     int abort_request;
+    int eof;
     int paused;
     int seek_req;
     int seek_flags;
@@ -19,7 +20,6 @@
     Decoder* auddec;
     Decoder* viddec;
 
-    int width, height;
     bool is_temporarily_unpaused_to_handle_seeking;
     pthread_cond_t continue_read_thread;
 
@@ -29,20 +29,14 @@
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
 
-    /* Extension; Obj-C Instance */
     __weak id<LAVPMovieOutput> weakOutput;
     NSThread* decoderThread;
 
-    /* =========================================================== */
-
-    // LAVPaudio
+    // Audio
 
     int volume_percent;
-
-    /* same order as original struct */
     double audio_clock;
     int audio_clock_serial;
-    //
     int audio_hw_buf_size;
     uint8_t *audio_buf;
     uint8_t *audio_buf1;
@@ -53,15 +47,13 @@
     struct AudioParams audio_src;
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
-
-    /* LAVP: extension */
     AudioQueueRef outAQ;
     AudioStreamBasicDescription asbd;
     dispatch_queue_t audioDispatchQueue;
 
-    int eof;
+    // Video
 
-    // LAVP: extras
+    int width, height;
     Frame* last_frame;
 }
 @end;
