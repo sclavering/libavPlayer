@@ -39,13 +39,13 @@ void packet_queue_init(PacketQueue *q)
     memset(q, 0, sizeof(PacketQueue));
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->cond, NULL);
-    q->abort_request = 1;
+    q->pq_abort = 1;
 }
 
 void packet_queue_start(PacketQueue *q)
 {
     pthread_mutex_lock(&q->mutex);
-    q->abort_request = 0;
+    q->pq_abort = 0;
     packet_queue_put_private(q, &flush_pkt);
     pthread_mutex_unlock(&q->mutex);
 }
@@ -62,7 +62,7 @@ void packet_queue_flush(PacketQueue *q)
     }
     q->last_pkt = NULL;
     q->first_pkt = NULL;
-    q->nb_packets = 0;
+    q->pq_length = 0;
     pthread_mutex_unlock(&q->mutex);
 }
 
@@ -70,7 +70,7 @@ void packet_queue_abort(PacketQueue *q)
 {
     pthread_mutex_lock(&q->mutex);
 
-    q->abort_request = 1;
+    q->pq_abort = 1;
 
     pthread_cond_signal(&q->cond);
 
@@ -88,7 +88,7 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
 {
     MyAVPacketList *pkt1;
 
-    if (q->abort_request)
+    if (q->pq_abort)
         return -1;
 
     pkt1 = av_malloc(sizeof(MyAVPacketList));
@@ -97,15 +97,15 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     pkt1->pkt = *pkt;
     pkt1->next = NULL;
     if (pkt == &flush_pkt)
-        q->serial++;
-    pkt1->serial = q->serial;
+        q->pq_serial++;
+    pkt1->serial = q->pq_serial;
 
     if (!q->last_pkt)
         q->first_pkt = pkt1;
     else
         q->last_pkt->next = pkt1;
     q->last_pkt = pkt1;
-    q->nb_packets++;
+    q->pq_length++;
     /* XXX: should duplicate packet data in DV case */
     pthread_cond_signal(&q->cond);
     return 0;
@@ -144,7 +144,7 @@ int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
     pthread_mutex_lock(&q->mutex);
 
     for(;;) {
-        if (q->abort_request) {
+        if (q->pq_abort) {
             ret = -1;
             break;
         }
@@ -154,7 +154,7 @@ int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
             q->first_pkt = pkt1->next;
             if (!q->first_pkt)
                 q->last_pkt = NULL;
-            q->nb_packets--;
+            q->pq_length--;
             *pkt = pkt1->pkt;
             if (serial)
                 *serial = pkt1->serial;

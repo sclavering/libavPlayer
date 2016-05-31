@@ -36,9 +36,9 @@ typedef struct MyAVPacketList {
 
 typedef struct PacketQueue {
     MyAVPacketList *first_pkt, *last_pkt;
-    int nb_packets;
-    int abort_request;
-    int serial;
+    int pq_length;
+    int pq_abort;
+    int pq_serial;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 } PacketQueue;

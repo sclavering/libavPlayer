@@ -22,13 +22,13 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     do {
         int ret = -1;
 
-        if (d->packetq.abort_request)
+        if (d->packetq.pq_abort)
             return -1;
 
-        if (!d->packet_pending || d->packetq.serial != d->pkt_serial) {
+        if (!d->packet_pending || d->packetq.pq_serial != d->pkt_serial) {
             AVPacket pkt;
             do {
-                if (d->packetq.nb_packets == 0)
+                if (d->packetq.pq_length == 0)
                     pthread_cond_signal(d->empty_queue_cond_ptr);
                 if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
                     return -1;
@@ -38,7 +38,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
                     d->next_pts = d->start_pts;
                     d->next_pts_tb = d->start_pts_tb;
                 }
-            } while (pkt.data == flush_pkt.data || d->packetq.serial != d->pkt_serial);
+            } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
             av_packet_unref(&d->pkt);
             d->pkt_temp = d->pkt = pkt;
             d->packet_pending = 1;
@@ -150,12 +150,12 @@ void decoder_update_for_eof(Decoder *d)
 
 bool decoder_needs_more_packets(Decoder *d)
 {
-    return !d->packetq.abort_request && d->packetq.nb_packets < MIN_FRAMES;
+    return !d->packetq.pq_abort && d->packetq.pq_length < MIN_FRAMES;
 }
 
 bool decoder_finished(Decoder *d)
 {
-    return d->finished == d->packetq.serial && frame_queue_nb_remaining(&d->frameq) == 0;
+    return d->finished == d->packetq.pq_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
 bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts, double duration)
@@ -185,7 +185,7 @@ bool decoder_drop_frames_with_expired_serial(Decoder *d)
     for(;;) {
         if (frame_queue_nb_remaining(&d->frameq) == 0) return true;
         Frame *fr = frame_queue_peek(&d->frameq);
-        if (fr->frm_serial == d->packetq.serial) break;
+        if (fr->frm_serial == d->packetq.pq_serial) break;
         frame_queue_next(&d->frameq);
         ++i;
     }

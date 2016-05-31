@@ -61,12 +61,12 @@ Frame *frame_queue_peek_readable(FrameQueue *f)
 {
     /* wait until we have a readable a new frame */
     pthread_mutex_lock(&f->mutex);
-    while (f->size - f->rindex_shown <= 0 && !f->pktq->abort_request) {
+    while (f->size - f->rindex_shown <= 0 && !f->pktq->pq_abort) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
 
-    if (f->pktq->abort_request)
+    if (f->pktq->pq_abort)
         return NULL;
 
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
@@ -77,12 +77,12 @@ Frame *frame_queue_peek_writable(FrameQueue *f)
     /* wait until we have space to put a new frame */
     pthread_mutex_lock(&f->mutex);
     while (f->size >= f->max_size &&
-           !f->pktq->abort_request) {
+           !f->pktq->pq_abort) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
 
-    if (f->pktq->abort_request)
+    if (f->pktq->pq_abort)
         return NULL;
 
     return &f->queue[f->windex];

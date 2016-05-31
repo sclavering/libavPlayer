@@ -337,7 +337,7 @@ VideoState* stream_open(NSURL *sourceURL)
     if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
         goto fail;
 
-    clock_init(&is->audclk, &is->auddec->packetq.serial);
+    clock_init(&is->audclk, &is->auddec->packetq.pq_serial);
 
     // LAVP: Use a dispatch queue instead of an SDL thread.
     is->parse_queue = dispatch_queue_create("parse", NULL);

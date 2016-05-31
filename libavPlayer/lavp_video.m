@@ -73,7 +73,7 @@ int video_thread(VideoState *is)
         if (frame->pts != AV_NOPTS_VALUE) {
             double dpts = av_q2d(tb) * frame->pts;
             double diff = dpts - clock_get(&is->audclk);
-            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->audclk.serial && is->viddec->packetq.nb_packets) {
+            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->audclk.serial && is->viddec->packetq.pq_length) {
                 av_frame_unref(frame);
                 continue;
             }
