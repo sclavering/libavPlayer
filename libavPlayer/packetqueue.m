@@ -63,7 +63,6 @@ void packet_queue_flush(PacketQueue *q)
     q->last_pkt = NULL;
     q->first_pkt = NULL;
     q->nb_packets = 0;
-    q->size = 0;
     pthread_mutex_unlock(&q->mutex);
 }
 
@@ -107,7 +106,6 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
         q->last_pkt->next = pkt1;
     q->last_pkt = pkt1;
     q->nb_packets++;
-    q->size += pkt1->pkt.size + sizeof(*pkt1);
     /* XXX: should duplicate packet data in DV case */
     pthread_cond_signal(&q->cond);
     return 0;
@@ -157,7 +155,6 @@ int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
             if (!q->first_pkt)
                 q->last_pkt = NULL;
             q->nb_packets--;
-            q->size -= pkt1->pkt.size + sizeof(*pkt1);
             *pkt = pkt1->pkt;
             if (serial)
                 *serial = pkt1->serial;

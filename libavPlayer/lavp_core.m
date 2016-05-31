@@ -176,11 +176,7 @@ int read_thread(VideoState* is)
                     }
                 }
 
-                /* if the queue are full, no need to read more */
-                if (is->auddec->packetq.size + is->viddec->packetq.size > MAX_QUEUE_SIZE
-                     || (!decoder_needs_more_packets(is->auddec) && !decoder_needs_more_packets(is->viddec)))
-                {
-                    /* wait 10 ms */
+                if(!(decoder_needs_more_packets(is->auddec) || decoder_needs_more_packets(is->viddec))) {
                     pthread_mutex_lock(&wait_mutex);
                     lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
                     pthread_mutex_unlock(&wait_mutex);
