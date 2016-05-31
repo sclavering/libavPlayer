@@ -247,13 +247,13 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
         else
             LAVPAudioQueueStart(is);
     }
+    __strong id<LAVPMovieOutput> movieOutput = is ? is->weakOutput : NULL;
+    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }
 
 void lavp_set_paused(VideoState *is, bool pause)
 {
     lavp_set_paused_internal(is, pause);
-    __strong id<LAVPMovieOutput> movieOutput = is ? is->weakOutput : NULL;
-    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }
 
 void stream_close(VideoState *is)

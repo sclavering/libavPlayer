@@ -33,7 +33,6 @@
     if (self) {
         is = stream_open(sourceURL);
         if (!is) return nil;
-        [NSThread detachNewThreadSelector:@selector(threadMain) toTarget:self withObject:nil];
     }
 
     return self;
@@ -46,12 +45,6 @@
 -(void) invalidate {
     if(!is) return;
     self.paused = true;
-    if(is->decoderThread) {
-        NSThread *dt = is->decoderThread;
-        [dt cancel];
-        while (!dt.finished) usleep(10*1000);
-        is->decoderThread = nil;
-    }
     stream_close(is);
     is = NULL;
 }
@@ -149,36 +142,6 @@
 
 -(Frame*) getCurrentFrame {
     return lavp_get_current_frame(is);
-}
-
--(void) threadMain {
-    @autoreleasepool {
-        // Prepare thread runloop
-        NSRunLoop* runLoop = [NSRunLoop currentRunLoop];
-
-        is->decoderThread = [NSThread currentThread];
-
-        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:1.0/120
-                                                          target:self
-                                                        selector:@selector(refreshPicture)
-                                                        userInfo:nil
-                                                         repeats:YES];
-        [runLoop addTimer:timer forMode:NSRunLoopCommonModes];
-
-        //
-        NSThread *dt = [NSThread currentThread];
-        while ( !dt.cancelled ) {
-            @autoreleasepool {
-                [runLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
-            }
-        }
-
-        [timer invalidate];
-    }
-}
-
--(void) refreshPicture {
-    video_refresh(is);
 }
 
 @end

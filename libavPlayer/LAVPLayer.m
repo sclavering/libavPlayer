@@ -183,13 +183,16 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 #pragma mark -
 #pragma mark LAVPMovieOutput impl
 
-// Called e.g. after seeking while paused.
--(void) movieOutputNeedsSingleUpdate {
-    [self setNeedsDisplay];
-}
-
-// Called when playback starts or stops for any reason.
+// Called when playback starts or stops for any reason (including when seeking while paused, which temporarily enables playback).
+// Note: the internals rely on this triggering periodic calls to lavp_get_current_frame() and thus draining the video frame-queue.
 -(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating {
+    // Setting .asynchronous from non-main threads doesn't work (it modifies the value, but doesn't have the required side-effect of starting a 60fps timer calling canDrawInCGLContext:/drawInCGLContext:).  We get called from off the main when seeking while paused.
+    if(!NSThread.isMainThread) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self movieOutputNeedsContinuousUpdating:continuousUpdating];
+        });
+        return;
+    }
     self.asynchronous = continuousUpdating;
 }
 
