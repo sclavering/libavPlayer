@@ -148,13 +148,11 @@ int read_thread(VideoState* is)
                 // Seek
                 if (is->seek_req) {
                     is->last_frame = NULL;
-                    int64_t seek_target= is->seek_pos;
-                    int64_t seek_min= is->seek_rel > 0 ? seek_target - is->seek_rel + 2: INT64_MIN;
-                    int64_t seek_max= is->seek_rel < 0 ? seek_target - is->seek_rel - 2: INT64_MAX;
-                    //FIXME the +-2 is due to rounding being not done in the correct direction in generation
-                    //      of the seek_pos/seek_rel variables
-
-                    ret = avformat_seek_file(is->ic, -1, seek_min, seek_target, seek_max, is->seek_flags);
+                    int64_t seek_diff = is->seek_to - is->seek_from;
+                    // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fiarly arbitrary choice.
+                    // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
+                    int64_t seek_min = seek_diff > 0 ? is->seek_to - (seek_diff / 2) : INT64_MIN;
+                    ret = avformat_seek_file(is->ic, -1, seek_min, is->seek_to, INT64_MAX, 0);
                     if (ret >= 0) {
                         decoder_update_for_seek(is->auddec);
                         decoder_update_for_seek(is->viddec);
@@ -210,13 +208,12 @@ int read_thread(VideoState* is)
 #pragma mark -
 #pragma mark functions (main_thread)
 
-void stream_seek(VideoState *is, int64_t pos, int64_t rel)
+void lavp_seek(VideoState *is, int64_t pos, int64_t current_pos)
 {
     if (!is->seek_req) {
-        is->seek_pos = pos;
-        is->seek_rel = rel;
-        is->seek_flags &= ~AVSEEK_FLAG_BYTE;
-        is->seek_req = 1;
+        is->seek_from = current_pos;
+        is->seek_to = pos;
+        is->seek_req = true;
         pthread_cond_signal(&is->continue_read_thread);
     }
 }

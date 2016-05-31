@@ -106,10 +106,10 @@
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
     if(is->ic) {
+        if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
+        lavp_seek(is, newTime, self.currentTimeInMicroseconds);
         // This exists because clock_get() returns NAN after seeking while paused, and we need to mask that.
         lastPosition = newTime;
-        if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
-        stream_seek(is, newTime, 0);
     }
 }
 

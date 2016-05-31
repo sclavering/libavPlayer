@@ -26,10 +26,10 @@
 
 #import "lavp_common.h"
 
-void stream_seek(VideoState *is, int64_t pos, int64_t rel);
-
 void stream_close(VideoState *is);
 VideoState* stream_open(NSURL *sourceURL);
+
+void lavp_seek(VideoState *is, int64_t pos, int64_t current_pos);
 
 void lavp_set_paused_internal(VideoState *is, bool pause);
 void lavp_set_paused(VideoState *is, bool pause);

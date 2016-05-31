@@ -9,10 +9,10 @@
     int abort_request;
     int eof;
     int paused;
-    int seek_req;
-    int seek_flags;
-    int64_t seek_pos;
-    int64_t seek_rel;
+    bool seek_req;
+    // xxx eliminate seek_from!
+    int64_t seek_from;
+    int64_t seek_to;
     AVFormatContext *ic;
 
     Clock audclk;
