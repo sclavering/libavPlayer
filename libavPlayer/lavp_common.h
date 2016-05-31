@@ -34,11 +34,10 @@
 #include "libavutil/time.h"
 #include "libswresample/swresample.h"
 
-#import "lavp_thread.h"
-
 #import "LAVPMovie.h"
 
-/* =========================================================== */
+#include <pthread.h>
+
 
 #define MAX_QUEUE_SIZE (15 * 1024 * 1024)
 #define MIN_FRAMES 25

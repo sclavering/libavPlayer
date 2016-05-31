@@ -33,12 +33,12 @@
 #import "LAVPMovie+Internal.h"
 
 
-int read_thread(VideoState *is);
-
-/* =========================================================== */
-
-#pragma mark -
-#pragma mark functions (read_thread)
+void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms)
+{
+    struct timespec time_to_wait = { 0, 0 };
+    time_to_wait.tv_nsec = 1000000 * ms;
+    pthread_cond_timedwait_relative_np(cond, mutex, &time_to_wait);
+}
 
 /* open a given stream. Return 0 if OK */
 static int stream_component_open(VideoState *is, AVStream *stream)

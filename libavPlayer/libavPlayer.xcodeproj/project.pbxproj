@@ -36,8 +36,6 @@
 		1600FA3E141C8CE4006BC3FB /* libavPlayer.framework in Copy Files */ = {isa = PBXBuildFile; fileRef = 8DC2EF5B0486A6940098B216 /* libavPlayer.framework */; };
 		164826C013D399A2008E16A7 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 164826BB13D39785008E16A7 /* AudioToolbox.framework */; };
 		1660410318292F2B00E78594 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 1660410218292F2B00E78594 /* libiconv.dylib */; };
-		166F893813E0555A00B74CCA /* lavp_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 166F893613E0555A00B74CCA /* lavp_thread.c */; };
-		166F893913E0555A00B74CCA /* lavp_thread.h in Headers */ = {isa = PBXBuildFile; fileRef = 166F893713E0555A00B74CCA /* lavp_thread.h */; };
 		16A18F4913AC466F008825FF /* LAVPMovie.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A18F4713AC466F008825FF /* LAVPMovie.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */ = {isa = PBXBuildFile; fileRef = 16A18F4813AC466F008825FF /* LAVPMovie.m */; };
 		16A18FAC13AC567E008825FF /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16A18FAB13AC567E008825FF /* CoreVideo.framework */; };
@@ -97,8 +95,6 @@
 		1600969A183C8E2E0026B528 /* swresample.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = swresample.h; path = ../libav/libswresample/swresample.h; sourceTree = "<group>"; };
 		164826BB13D39785008E16A7 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		1660410218292F2B00E78594 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
-		166F893613E0555A00B74CCA /* lavp_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lavp_thread.c; sourceTree = "<group>"; };
-		166F893713E0555A00B74CCA /* lavp_thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_thread.h; sourceTree = "<group>"; };
 		16A18F4713AC466F008825FF /* LAVPMovie.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPMovie.h; sourceTree = "<group>"; };
 		16A18F4813AC466F008825FF /* LAVPMovie.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPMovie.m; sourceTree = "<group>"; };
 		16A18F8A13AC5536008825FF /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../libav/libavcodec.a; sourceTree = "<group>"; };
@@ -259,8 +255,6 @@
 				16A1933713ADB4F0008825FF /* lavp_common.h */,
 				16A193E213ADC62A008825FF /* lavp_core.h */,
 				16A193E313ADC62A008825FF /* lavp_core.m */,
-				166F893613E0555A00B74CCA /* lavp_thread.c */,
-				166F893713E0555A00B74CCA /* lavp_thread.h */,
 				16A1932A13ADB3E3008825FF /* lavp_video.h */,
 				16A1932B13ADB3E3008825FF /* lavp_video.m */,
 				16A1911413AC9C47008825FF /* packetqueue.h */,
@@ -280,7 +274,6 @@
 				16A195AA13ADF5F1008825FF /* LAVPLayer.h in Headers */,
 				16A195EC13ADF712008825FF /* LAVPView.h in Headers */,
 				16A1971613ADFE22008825FF /* libavPlayer.h in Headers */,
-				166F893913E0555A00B74CCA /* lavp_thread.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,7 +373,6 @@
 				16A195AB13ADF5F1008825FF /* LAVPLayer.m in Sources */,
 				16A195ED13ADF712008825FF /* LAVPView.m in Sources */,
 				16A196A013ADFA23008825FF /* lavp_audio.m in Sources */,
-				166F893813E0555A00B74CCA /* lavp_thread.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
