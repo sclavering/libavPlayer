@@ -30,7 +30,6 @@
     dispatch_group_t parse_group;
 
     __weak id<LAVPMovieOutput> weakOutput;
-    NSThread* decoderThread;
 
     // Audio
 
