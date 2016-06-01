@@ -73,7 +73,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
     if (avcodec_open2(avctx, codec, &opts) < 0)
         goto fail;
 
-    is->eof = 0;
+    is->eof = false;
     stream->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
@@ -158,7 +158,7 @@ int read_thread(VideoState* is)
                         decoder_update_for_seek(is->viddec);
                     }
                     is->seek_req = 0;
-                    is->eof = 0;
+                    is->eof = false;
                     if (is->paused) {
                         lavp_set_paused_internal(is, false);
                         is->is_temporarily_unpaused_to_handle_seeking = true;
@@ -181,7 +181,7 @@ int read_thread(VideoState* is)
                     if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
                         decoder_update_for_eof(is->auddec);
                         decoder_update_for_eof(is->viddec);
-                        is->eof = 1;
+                        is->eof = true;
                     }
                     if (is->ic->pb && is->ic->pb->error)
                         break;
@@ -189,9 +189,8 @@ int read_thread(VideoState* is)
                     lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
                     pthread_mutex_unlock(&wait_mutex);
                     continue;
-                } else {
-                    is->eof = 0;
                 }
+                is->eof = false;
 
                 if(!decoder_maybe_handle_packet(is->auddec, pkt) && !decoder_maybe_handle_packet(is->viddec, pkt))
                     av_packet_unref(pkt);
@@ -243,7 +242,7 @@ void lavp_set_paused(VideoState *is, bool pause)
 void stream_close(VideoState *is)
 {
     if (is) {
-        is->abort_request = 1;
+        is->abort_request = true;
 
         dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
         is->parse_group = NULL;
@@ -278,9 +277,10 @@ VideoState* stream_open(NSURL *sourceURL)
     is->volume_percent = 100;
     is->weak_output = NULL;
     is->last_frame = NULL;
-    is->paused = 0;
+    is->paused = false;
     is->playback_speed_percent = 100;
-    is->eof = 0;
+    is->eof = false;
+    is->abort_request = false;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();

@@ -3,13 +3,13 @@
 // LAVP: in ffplay.c, this is just a struct, but we want to have dispatch_queue_t members, and Xcode says ARC prohibits storing those in a struct.
 @interface VideoState : NSObject {
 @public
-    int paused;
+    bool paused;
     int playback_speed_percent;
     int volume_percent;
     __weak id<LAVPMovieOutput> weak_output;
 
-    int abort_request;
-    int eof;
+    bool abort_request;
+    bool eof;
     bool seek_req;
     // xxx eliminate seek_from!
     int64_t seek_from;
