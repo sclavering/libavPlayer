@@ -52,7 +52,7 @@
 #pragma mark -
 
 -(void) setOutput:(id<LAVPMovieOutput>)output {
-    is->weakOutput = output;
+    is->weak_output = output;
 }
 
 -(NSSize) naturalSize {

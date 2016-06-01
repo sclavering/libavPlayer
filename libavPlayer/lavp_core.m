@@ -231,7 +231,7 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
         else
             LAVPAudioQueueStart(is);
     }
-    __strong id<LAVPMovieOutput> movieOutput = is ? is->weakOutput : NULL;
+    __strong id<LAVPMovieOutput> movieOutput = is ? is->weak_output : NULL;
     if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }
 
@@ -263,7 +263,7 @@ void stream_close(VideoState *is)
 
         pthread_cond_destroy(&is->continue_read_thread);
 
-        is->weakOutput = NULL;
+        is->weak_output = NULL;
     }
 }
 
@@ -276,10 +276,10 @@ VideoState* stream_open(NSURL *sourceURL)
     VideoState *is = [[VideoState alloc] init];
 
     is->volume_percent = 100;
-    is->weakOutput = NULL;
+    is->weak_output = NULL;
     is->last_frame = NULL;
     is->paused = 0;
-    is->playbackSpeedPercent = 100;
+    is->playback_speed_percent = 100;
     is->eof = 0;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
@@ -350,13 +350,13 @@ fail:
 int lavp_get_playback_speed_percent(VideoState *is)
 {
     if (!is || !is->ic || is->ic->duration <= 0) return 0;
-    return is->playbackSpeedPercent;
+    return is->playback_speed_percent;
 }
 
 void lavp_set_playback_speed_percent(VideoState *is, int speed)
 {
     if (!is || speed < 0) return;
-    if (is->playbackSpeedPercent == speed) return;
-    is->playbackSpeedPercent = speed;
+    if (is->playback_speed_percent == speed) return;
+    is->playback_speed_percent = speed;
     clock_set_speed(&is->audclk, (double)speed / 100.0);
 }

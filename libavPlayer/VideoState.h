@@ -23,12 +23,12 @@
     bool is_temporarily_unpaused_to_handle_seeking;
     pthread_cond_t continue_read_thread;
 
-    int playbackSpeedPercent;
+    int playback_speed_percent;
 
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
 
-    __weak id<LAVPMovieOutput> weakOutput;
+    __weak id<LAVPMovieOutput> weak_output;
 
     // Audio
 
@@ -45,9 +45,9 @@
     struct AudioParams audio_src;
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
-    AudioQueueRef outAQ;
+    AudioQueueRef audio_queue;
     AudioStreamBasicDescription asbd;
-    dispatch_queue_t audioDispatchQueue;
+    dispatch_queue_t audio_dispatch_queue;
 
     // Video
 
