@@ -358,5 +358,6 @@ void lavp_set_playback_speed_percent(VideoState *is, int speed)
     if (!is || speed < 0) return;
     if (is->playback_speed_percent == speed) return;
     is->playback_speed_percent = speed;
+    lavp_audio_update_speed(is);
     clock_set_speed(&is->audclk, (double)speed / 100.0);
 }

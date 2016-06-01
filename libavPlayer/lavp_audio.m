@@ -28,8 +28,6 @@
 
 int audio_decode_frame(VideoState *is);
 
-void audio_updatePitch(VideoState *is);
-
 /* SDL audio buffer size, in samples. Should be small to have precise
  A/V sync as SDL does not have hardware buffer fullness info. */
 #define SDL_AUDIO_BUFFER_SIZE 1024
@@ -306,7 +304,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
 void LAVPAudioQueueStart(VideoState *is)
 {
     if (!is->audio_queue) return;
-    audio_updatePitch(is);
+    lavp_audio_update_speed(is);
     unsigned int inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60;    // Prepare for 1/60 sec
     OSStatus err = AudioQueuePrime(is->audio_queue, inNumberOfFramesToPrepare, 0);
     assert(err == 0);
@@ -364,7 +362,7 @@ void setVolume(VideoState *is, AudioQueueParameterValue volume)
     assert(!err);
 }
 
-void audio_updatePitch(VideoState *is)
+void lavp_audio_update_speed(VideoState *is)
 {
     if (!is->audio_queue) return;
     OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_PlayRate, (double)is->playback_speed_percent / 100.0);
