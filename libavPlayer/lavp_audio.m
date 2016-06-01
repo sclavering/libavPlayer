@@ -367,7 +367,7 @@ void setVolume(VideoState *is, AudioQueueParameterValue volume)
 void audio_updatePitch(VideoState *is)
 {
     if (!is->outAQ) return;
-    OSStatus err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_PlayRate, is->playRate);
+    OSStatus err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_PlayRate, (double)is->playbackSpeedPercent / 100.0);
     assert(err == 0);
     unsigned int propValue = (is->playbackSpeedPercent == 100);
     err = AudioQueueSetProperty(is->outAQ, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));

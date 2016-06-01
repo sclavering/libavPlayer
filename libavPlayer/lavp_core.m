@@ -280,7 +280,6 @@ VideoState* stream_open(NSURL *sourceURL)
     is->last_frame = NULL;
     is->paused = 0;
     is->playbackSpeedPercent = 100;
-    is->playRate = 1.0;
     is->eof = 0;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
@@ -359,6 +358,5 @@ void lavp_set_playback_speed_percent(VideoState *is, int speed)
     if (!is || speed < 0) return;
     if (is->playbackSpeedPercent == speed) return;
     is->playbackSpeedPercent = speed;
-    is->playRate = (double)speed / 100.0;
-    clock_set_speed(&is->audclk, is->playRate);
+    clock_set_speed(&is->audclk, (double)speed / 100.0);
 }

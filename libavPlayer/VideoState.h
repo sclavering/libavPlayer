@@ -24,7 +24,6 @@
     pthread_cond_t continue_read_thread;
 
     int playbackSpeedPercent;
-    double playRate; // derived from playbackSpeedPercent
 
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
