@@ -154,8 +154,6 @@ int audio_decode_frame(VideoState *is)
     return resampled_data_size;
 }
 
-/* prepare a new audio buffer */
-/* LAVP: original: sdl_audio_callback() */
 static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
 {
     @autoreleasepool {
@@ -195,7 +193,6 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
             clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, is->audio_callback_time / 1000000.0);
         }
 
-        /* LAVP: Enqueue LPCM result into Audio Queue */
         inBuffer->mAudioDataByteSize = stream - (UInt8 *)inBuffer->mAudioData;
         OSStatus err = AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
         if (err) {
@@ -217,9 +214,7 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
     }
 }
 
-#pragma mark -
-
-static void LAVPFillASBD(VideoState *is, AVCodecContext *avctx)
+static void audio_fill_asbd(VideoState *is, AVCodecContext *avctx)
 {
     double inSampleRate = avctx->sample_rate;
     unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
@@ -240,8 +235,7 @@ static void LAVPFillASBD(VideoState *is, AVCodecContext *avctx)
     is->asbd.mBitsPerChannel = inValidBitsPerChannel;
 }
 
-/* LAVP: original: audio_open() */
-void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
+void audio_queue_init(VideoState *is, AVCodecContext *avctx)
 {
     if (is->audio_queue) return;
 
@@ -253,7 +247,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     }
 
     // prepare Audio stream basic description
-    LAVPFillASBD(is, avctx);
+    audio_fill_asbd(is, avctx);
 
     // prepare AudioQueue for Output
     OSStatus err = 0;
@@ -301,7 +295,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
     }
 }
 
-void LAVPAudioQueueStart(VideoState *is)
+void audio_queue_start(VideoState *is)
 {
     if (!is->audio_queue) return;
     lavp_audio_update_speed(is);
@@ -312,7 +306,7 @@ void LAVPAudioQueueStart(VideoState *is)
     assert(err == 0);
 }
 
-void LAVPAudioQueuePause(VideoState *is)
+void audio_queue_pause(VideoState *is)
 {
     if (!is->audio_queue) return;
     OSStatus err = AudioQueueFlush(is->audio_queue);
@@ -321,7 +315,7 @@ void LAVPAudioQueuePause(VideoState *is)
     assert(err == 0);
 }
 
-void LAVPAudioQueueStop(VideoState *is)
+void audio_queue_stop(VideoState *is)
 {
     if (!is->audio_queue) return;
 
@@ -339,7 +333,7 @@ void LAVPAudioQueueStop(VideoState *is)
     }
 }
 
-void LAVPAudioQueueDealloc(VideoState *is)
+void audio_queue_destroy(VideoState *is)
 {
     if (!is->audio_queue) return;
 
@@ -355,7 +349,7 @@ void LAVPAudioQueueDealloc(VideoState *is)
     if (is->audio_dispatch_queue) is->audio_dispatch_queue = NULL;
 }
 
-void setVolume(VideoState *is, AudioQueueParameterValue volume)
+void audio_set_volume(VideoState *is, AudioQueueParameterValue volume)
 {
     if (!is->audio_queue) return;
     OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_Volume, volume);
@@ -392,14 +386,15 @@ int audio_thread(VideoState *is)
     return 0;
 }
 
-
-int lavp_get_volume_percent(VideoState *is) {
+int lavp_get_volume_percent(VideoState *is)
+{
     return is ? is->volume_percent : 100;
 }
 
-void lavp_set_volume_percent(VideoState *is, int volume) {
+void lavp_set_volume_percent(VideoState *is, int volume)
+{
     if (!is) return;
     is->volume_percent = volume;
     AudioQueueParameterValue newVolume = (AudioQueueParameterValue)volume / 100.0;
-    if (is->auddec->stream) setVolume(is, newVolume);
+    if (is->auddec->stream) audio_set_volume(is, newVolume);
 }

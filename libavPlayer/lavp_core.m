@@ -96,8 +96,8 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->audio_buf_index = 0;
 
             // LAVP: start AudioQueue
-            LAVPAudioQueueInit(is, avctx);
-            LAVPAudioQueueStart(is);
+            audio_queue_init(is, avctx);
+            audio_queue_start(is);
 
             break;
         case AVMEDIA_TYPE_VIDEO:
@@ -226,9 +226,9 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
     clock_set_paused(&is->audclk, pause);
     if (is->auddec->stream) {
         if (is->paused)
-            LAVPAudioQueuePause(is);
+            audio_queue_pause(is);
         else
-            LAVPAudioQueueStart(is);
+            audio_queue_start(is);
     }
     __strong id<LAVPMovieOutput> movieOutput = is ? is->weak_output : NULL;
     if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
@@ -251,8 +251,8 @@ void stream_close(VideoState *is)
         decoder_destroy(is->auddec);
         decoder_destroy(is->viddec);
 
-        LAVPAudioQueueStop(is);
-        LAVPAudioQueueDealloc(is);
+        audio_queue_stop(is);
+        audio_queue_destroy(is);
         swr_free(&is->swr_ctx);
         av_freep(&is->audio_buf1);
         is->audio_buf1_size = 0;

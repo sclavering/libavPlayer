@@ -28,11 +28,11 @@
 
 int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
 
-void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx);
-void LAVPAudioQueueStart(VideoState *is);
-void LAVPAudioQueuePause(VideoState *is);
-void LAVPAudioQueueStop(VideoState *is);
-void LAVPAudioQueueDealloc(VideoState *is);
+void audio_queue_init(VideoState *is, AVCodecContext *avctx);
+void audio_queue_start(VideoState *is);
+void audio_queue_pause(VideoState *is);
+void audio_queue_stop(VideoState *is);
+void audio_queue_destroy(VideoState *is);
 
 int audio_thread(VideoState *is);
 
