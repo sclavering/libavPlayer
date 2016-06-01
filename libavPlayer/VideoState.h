@@ -48,6 +48,6 @@
     // Video
 
     int width, height;
-    Frame* last_frame;
+    double last_shown_video_frame_pts;
 }
 @end;

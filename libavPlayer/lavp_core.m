@@ -147,7 +147,7 @@ int read_thread(VideoState* is)
 
                 // Seek
                 if (is->seek_req) {
-                    is->last_frame = NULL;
+                    is->last_shown_video_frame_pts = -1;
                     int64_t seek_diff = is->seek_to - is->seek_from;
                     // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fiarly arbitrary choice.
                     // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
@@ -276,7 +276,7 @@ VideoState* stream_open(NSURL *sourceURL)
 
     is->volume_percent = 100;
     is->weak_output = NULL;
-    is->last_frame = NULL;
+    is->last_shown_video_frame_pts = -1;
     is->paused = false;
     is->playback_speed_percent = 100;
     is->eof = false;

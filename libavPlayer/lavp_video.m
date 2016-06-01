@@ -100,7 +100,7 @@ Frame* lavp_get_current_frame(VideoState *is)
     video_refresh(is);
 
     Frame* fr = decoder_get_current_frame_or_null(is->viddec);
-    if(fr == is->last_frame) return NULL;
-    if(fr) is->last_frame = fr;
+    if (!fr || fr->frm_pts == is->last_shown_video_frame_pts) return NULL;
+    is->last_shown_video_frame_pts = fr->frm_pts;
     return fr;
 }
