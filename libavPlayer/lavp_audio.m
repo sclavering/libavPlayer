@@ -28,7 +28,6 @@
 
 int audio_decode_frame(VideoState *is);
 
-BOOL audio_isPitchChanged(VideoState *is);
 void audio_updatePitch(VideoState *is);
 
 /* SDL audio buffer size, in samples. Should be small to have precise
@@ -307,20 +306,7 @@ void LAVPAudioQueueInit(VideoState *is, AVCodecContext *avctx)
 void LAVPAudioQueueStart(VideoState *is)
 {
     if (!is->outAQ) return;
-
-    // Update playback rate
-    BOOL pitchDiff = audio_isPitchChanged(is);
-    if ( pitchDiff ) {
-        // NOTE: kAudioQueueParam_PlayRate and kAudioQueueProperty_TimePitchBypass
-        // can be modified without LAVPAudioQueueStop(is);
-        audio_updatePitch(is);
-    }
-    pitchDiff = audio_isPitchChanged(is);
-    if ( pitchDiff ) {
-        NSLog(@"ERROR: Failed to update pitch.");
-        assert(!pitchDiff);
-    }
-
+    audio_updatePitch(is);
     unsigned int inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60;    // Prepare for 1/60 sec
     OSStatus err = AudioQueuePrime(is->outAQ, inNumberOfFramesToPrepare, 0);
     assert(err == 0);
@@ -376,16 +362,6 @@ void setVolume(VideoState *is, AudioQueueParameterValue volume)
     if (!is->outAQ) return;
     OSStatus err = AudioQueueSetParameter(is->outAQ, kAudioQueueParam_Volume, volume);
     assert(!err);
-}
-
-BOOL audio_isPitchChanged(VideoState *is)
-{
-    if (!is->outAQ) return NO;
-    // Compare current playrate b/w AudioQueue and VideoState
-    float currentRate = 0;
-    OSStatus err = AudioQueueGetParameter(is->outAQ, kAudioQueueParam_PlayRate, &currentRate);    // acceleration
-    assert(err == 0);
-    return currentRate != is->playRate;
 }
 
 void audio_updatePitch(VideoState *is)
