@@ -366,23 +366,6 @@ void lavp_audio_update_speed(VideoState *is)
     assert(err == 0);
 }
 
-int audio_thread(VideoState *is)
-{
-    AVFrame *frame = av_frame_alloc();
-    if (!frame)
-        return AVERROR(ENOMEM);
-    for(;;) {
-        int err = decoder_decode_frame(is->auddec, frame);
-        if (err < 0) break;
-        if (err == 0) continue;
-        AVRational tb = (AVRational){1, frame->sample_rate};
-        if(!decoder_push_frame(is->auddec, frame, frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb)))
-            break;
-    }
-    av_frame_free(&frame);
-    return 0;
-}
-
 int lavp_get_volume_percent(VideoState *is)
 {
     return is ? is->volume_percent : 100;

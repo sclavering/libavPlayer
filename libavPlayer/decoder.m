@@ -2,8 +2,11 @@
 
 #import "packetqueue.h" // for packet_queue_get()
 
+
 @implementation Decoder
 @end
+
+void decoder_thread(Decoder *d);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
     d->stream = stream;
@@ -114,18 +117,13 @@ void decoder_destroy(Decoder *d)
     frame_queue_destory(&d->frameq);
 }
 
-// LAVP: in ffplay the signature is:
-// static void decoder_start(Decoder *d, int (*fn)(void *), void *arg)
-void decoder_start(Decoder *d, int (*fn)(VideoState *), VideoState *is)
+void decoder_start(Decoder *d, VideoState *is)
 {
     packet_queue_start(&d->packetq);
-    // LAVP: Use a dispatch queue instead of an SDL thread.
     d->dispatch_queue = dispatch_queue_create(NULL, NULL);
     d->dispatch_group = dispatch_group_create();
-    __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
     dispatch_group_async(d->dispatch_group, d->dispatch_queue, ^(void) {
-        __strong VideoState* strongIs = weakIs;
-        if(strongIs) fn(strongIs);
+        decoder_thread(d);
     });
 }
 
@@ -158,11 +156,14 @@ bool decoder_finished(Decoder *d)
     return d->finished == d->packetq.pq_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
-bool decoder_push_frame(Decoder *d, AVFrame *frame, double pts)
+static bool decoder_push_frame(Decoder *d, AVFrame *frame)
 {
     Frame* fr = frame_queue_peek_writable(&d->frameq);
     if(!fr) return false;
-    fr->frm_pts = pts;
+    AVRational tb = { 0, 0 };
+    if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
+    else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
+    fr->frm_pts = frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb);
     fr->frm_serial = d->pkt_serial;
     av_frame_move_ref(fr->frm_frame, frame);
     frame_queue_push(&d->frameq);
@@ -189,4 +190,16 @@ bool decoder_drop_frames_with_expired_serial(Decoder *d)
         ++i;
     }
     return false;
+}
+
+void decoder_thread(Decoder *d)
+{
+    AVFrame *frame = av_frame_alloc();
+    for(;;) {
+        int err = decoder_decode_frame(d, frame);
+        if (err < 0) break;
+        if (err == 0) continue;
+        if (!decoder_push_frame(d, frame)) break;
+    }
+    av_frame_free(&frame);
 }

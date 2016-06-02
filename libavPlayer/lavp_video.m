@@ -58,23 +58,6 @@ void video_refresh(VideoState *is)
     if (is->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused_internal(is, true);
 }
 
-int video_thread(VideoState *is)
-{
-    AVFrame *frame = av_frame_alloc();
-    AVRational tb = is->viddec->stream->time_base;
-    for(;;) {
-        int err = decoder_decode_frame(is->viddec, frame);
-        if (err < 0) break;
-        if (err == 0) continue;
-
-        if(!decoder_push_frame(is->viddec, frame, frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb)))
-            break;
-    }
-
-    av_frame_free(&frame);
-    return 0;
-}
-
 AVFrame* lavp_get_current_frame(VideoState *is)
 {
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
