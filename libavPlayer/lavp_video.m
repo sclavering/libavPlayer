@@ -66,10 +66,6 @@ int video_thread(VideoState *is)
         if (err < 0) break;
         if (err == 0) continue;
 
-        // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
-        if (frame->format != AV_PIX_FMT_YUV420P)
-            break;
-
         if(!decoder_push_frame(is->viddec, frame,
                 /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
                 /* duration */ duration
@@ -88,6 +84,11 @@ Frame* lavp_get_current_frame(VideoState *is)
 
     Frame* fr = decoder_get_current_frame_or_null(is->viddec);
     if (!fr || fr->frm_pts == is->last_shown_video_frame_pts) return NULL;
+
+    // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.
+    // If we ever do handle them, doing conversion via OpenGL would probably work fine here, but for CPU conversion we'd likely want to do it in advance.
+    if (fr->frm_frame->format != AV_PIX_FMT_YUV420P) return NULL;
+
     is->last_shown_video_frame_pts = fr->frm_pts;
     return fr;
 }
