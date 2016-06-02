@@ -28,10 +28,6 @@
 #import "LAVPMovie+Internal.h"
 
 
-/* no AV correction is done if too big error */
-#define AV_NOSYNC_THRESHOLD 10.0
-
-
 void video_refresh(VideoState *is)
 {
     if (is->paused)
@@ -69,15 +65,6 @@ int video_thread(VideoState *is)
         int err = decoder_decode_frame(is->viddec, frame);
         if (err < 0) break;
         if (err == 0) continue;
-
-        if (frame->pts != AV_NOPTS_VALUE) {
-            double dpts = av_q2d(tb) * frame->pts;
-            double diff = dpts - clock_get(&is->audclk);
-            if (!isnan(diff) && fabs(diff) < AV_NOSYNC_THRESHOLD && diff < 0 && is->viddec->pkt_serial == is->audclk.serial && is->viddec->packetq.pq_length) {
-                av_frame_unref(frame);
-                continue;
-            }
-        }
 
         // Other pixel formats are rare, and converting them would be hard (and probably end up happening in software, rather than on the GPU), so don't bother, at least for now.
         if (frame->format != AV_PIX_FMT_YUV420P)
