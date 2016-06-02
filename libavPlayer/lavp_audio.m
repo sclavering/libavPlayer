@@ -376,10 +376,7 @@ int audio_thread(VideoState *is)
         if (err < 0) break;
         if (err == 0) continue;
         AVRational tb = (AVRational){1, frame->sample_rate};
-        if(!decoder_push_frame(is->auddec, frame,
-                /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
-                /* duration */ av_q2d((AVRational){ frame->nb_samples, frame->sample_rate })
-                ))
+        if(!decoder_push_frame(is->auddec, frame, frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb)))
             break;
     }
     av_frame_free(&frame);

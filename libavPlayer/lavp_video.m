@@ -47,7 +47,11 @@ void video_refresh(VideoState *is)
         // If the next frame is still in the future, stop here.
         if (next && !(curr->frm_pts < now && next->frm_pts < now)) break;
         // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.
-        if (!next && now < curr->frm_pts + curr->frm_duration) break;
+        if (!next) {
+            AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
+            double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){ frame_rate.den, frame_rate.num }) : 0;
+            if (now < curr->frm_pts + duration) break;
+        }
         frame_queue_next(&is->viddec->frameq);
     }
 
@@ -58,18 +62,12 @@ int video_thread(VideoState *is)
 {
     AVFrame *frame = av_frame_alloc();
     AVRational tb = is->viddec->stream->time_base;
-    AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
-    double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){frame_rate.den, frame_rate.num}) : 0;
-
     for(;;) {
         int err = decoder_decode_frame(is->viddec, frame);
         if (err < 0) break;
         if (err == 0) continue;
 
-        if(!decoder_push_frame(is->viddec, frame,
-                /* pts */ frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb),
-                /* duration */ duration
-                ))
+        if(!decoder_push_frame(is->viddec, frame, frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb)))
             break;
     }
 

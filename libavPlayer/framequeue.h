@@ -5,7 +5,6 @@ typedef struct Frame {
     AVFrame *frm_frame;
     int frm_serial;
     double frm_pts;           /* presentation timestamp for the frame */
-    double frm_duration;      /* estimated duration of the frame */
 } Frame;
 
 typedef struct FrameQueue {
