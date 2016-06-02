@@ -77,7 +77,7 @@ int video_thread(VideoState *is)
     return 0;
 }
 
-Frame* lavp_get_current_frame(VideoState *is)
+AVFrame* lavp_get_current_frame(VideoState *is)
 {
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
     video_refresh(is);
@@ -90,5 +90,5 @@ Frame* lavp_get_current_frame(VideoState *is)
     if (fr->frm_frame->format != AV_PIX_FMT_YUV420P) return NULL;
 
     is->last_shown_video_frame_pts = fr->frm_pts;
-    return fr;
+    return fr->frm_frame;
 }

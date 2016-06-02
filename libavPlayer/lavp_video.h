@@ -29,4 +29,4 @@
 int video_thread(VideoState *is);
 void video_refresh(VideoState *is);
 
-Frame* lavp_get_current_frame(VideoState *is);
+AVFrame* lavp_get_current_frame(VideoState *is);

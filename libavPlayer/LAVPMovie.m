@@ -140,7 +140,7 @@
     lavp_set_volume_percent(is, volume);
 }
 
--(Frame*) getCurrentFrame {
+-(AVFrame*) getCurrentFrame {
     return lavp_get_current_frame(is);
 }
 

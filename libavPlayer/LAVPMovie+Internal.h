@@ -3,5 +3,5 @@
 
 @interface LAVPMovie (Internal)
 -(NSSize) sizeForGLTextures;
--(Frame*) getCurrentFrame;
+-(AVFrame*) getCurrentFrame;
 @end
