@@ -315,37 +315,12 @@ void audio_queue_pause(VideoState *is)
     assert(err == 0);
 }
 
-void audio_queue_stop(VideoState *is)
-{
-    if (!is->audio_queue) return;
-
-    OSStatus err = 0;
-    unsigned int currentRunning = 0;
-    unsigned int currentRunningSize = sizeof(currentRunning);
-    err = AudioQueueGetProperty(is->audio_queue, kAudioQueueProperty_IsRunning, &currentRunning, &currentRunningSize);
-    assert(err == 0);
-
-    // Stop AudioQueue
-    if (currentRunning) {
-        // Specifying YES with AudioQueueStop() to wait until done
-        err = AudioQueueStop(is->audio_queue, YES);
-        assert(err == 0);
-    }
-}
-
 void audio_queue_destroy(VideoState *is)
 {
     if (!is->audio_queue) return;
-
-    // stop AudioQueue
-    OSStatus err = 0;
-    err = AudioQueueReset(is->audio_queue);
-    assert(err == 0);
-    err = AudioQueueDispose(is->audio_queue, NO);
-    assert(err == 0);
+    AudioQueueStop(is->audio_queue, YES);
+    AudioQueueDispose(is->audio_queue, NO);
     is->audio_queue = NULL;
-
-    // stop dispatch queue
     if (is->audio_dispatch_queue) is->audio_dispatch_queue = NULL;
 }
 

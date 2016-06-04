@@ -251,7 +251,6 @@ void stream_close(VideoState *is)
         decoder_destroy(is->auddec);
         decoder_destroy(is->viddec);
 
-        audio_queue_stop(is);
         audio_queue_destroy(is);
         swr_free(&is->swr_ctx);
         av_freep(&is->audio_buf1);
