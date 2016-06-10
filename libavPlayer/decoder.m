@@ -22,21 +22,19 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
 }
 
 int decoder_decode_next_packet(Decoder *d) {
-    int got_frame = 0;
+    int ret = 0;
 
-    do {
-        int ret = -1;
+    AVPacket pkt;
+    AVPacket partial_pkt;
 
-        if (d->packetq.pq_abort)
-            return -1;
+    if (d->packetq.pq_abort)
+        goto fail;
 
-        if (!d->packet_pending || d->packetq.pq_serial != d->pkt_serial) {
-            AVPacket pkt;
             do {
                 if (d->packetq.pq_length == 0)
                     pthread_cond_signal(d->empty_queue_cond_ptr);
                 if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
-                    return -1;
+                    goto fail;
                 if (pkt.data == flush_pkt.data) {
                     avcodec_flush_buffers(d->avctx);
                     d->finished = 0;
@@ -44,39 +42,46 @@ int decoder_decode_next_packet(Decoder *d) {
                     d->next_pts_tb = d->start_pts_tb;
                 }
             } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
-            av_packet_unref(&d->pkt);
-            d->pkt_temp = d->pkt = pkt;
-            d->packet_pending = 1;
-        }
+            partial_pkt = pkt;
+
+    for (;;) {
+        if (d->packetq.pq_abort)
+            goto fail;
 
         Frame* fr = frame_queue_peek_writable(&d->frameq);
         // This only happens if we're closing the movie.
-        if (!fr) return -1;
+        if (!fr)
+            goto fail;
 
-        ret = decoder_decode_single_frame_from_packet_into(d, &d->pkt_temp, &got_frame, fr);
+        int got_frame = 0;
+        int bytes_consumed = decoder_decode_single_frame_from_packet_into(d, &partial_pkt, &got_frame, fr);
 
-        if (ret < 0) {
-            d->packet_pending = 0;
-        } else {
-            d->pkt_temp.dts =
-            d->pkt_temp.pts = AV_NOPTS_VALUE;
-            if (d->pkt_temp.data) {
+        if (bytes_consumed < 0)
+            break;
+
+            partial_pkt.dts =
+            partial_pkt.pts = AV_NOPTS_VALUE;
+            if (partial_pkt.data) {
                 if (d->avctx->codec_type != AVMEDIA_TYPE_AUDIO)
-                    ret = d->pkt_temp.size;
-                d->pkt_temp.data += ret;
-                d->pkt_temp.size -= ret;
-                if (d->pkt_temp.size <= 0)
-                    d->packet_pending = 0;
+                    bytes_consumed = partial_pkt.size;
+                partial_pkt.data += bytes_consumed;
+                partial_pkt.size -= bytes_consumed;
+                if (partial_pkt.size <= 0)
+                    break;
             } else {
                 if (!got_frame) {
-                    d->packet_pending = 0;
                     d->finished = d->pkt_serial;
+                    break;
                 }
             }
-        }
-    } while (!got_frame && !d->finished);
+    }
+    goto out;
 
-    return 0;
+fail:
+    ret = -1;
+out:
+    av_packet_unref(&pkt);
+    return ret;
 }
 
 static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pkt, int *got_frame, Frame *fr)
@@ -135,7 +140,6 @@ void decoder_destroy(Decoder *d)
     packet_queue_flush(&d->packetq);
     d->stream->discard = AVDISCARD_ALL;
     d->stream = NULL;
-    av_packet_unref(&d->pkt);
     avcodec_free_context(&d->avctx);
 
     packet_queue_destroy(&d->packetq);

@@ -3,12 +3,9 @@
 @interface Decoder : NSObject {
 @public
     AVFrame *tmp_frame;
-    AVPacket pkt;
-    AVPacket pkt_temp;
     AVCodecContext *avctx;
     int pkt_serial;
     int finished;
-    int packet_pending;
     pthread_cond_t *empty_queue_cond_ptr;
     int64_t start_pts;
     AVRational start_pts_tb;
@@ -17,7 +14,6 @@
     FrameQueue frameq;
     PacketQueue packetq;
     AVStream *stream;
-    // LAVP: in ffplay there's just a single SDL_Thread* decoder_tid instead of these.
     dispatch_queue_t dispatch_queue;
     dispatch_group_t dispatch_group;
 }
