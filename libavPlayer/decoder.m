@@ -30,19 +30,19 @@ int decoder_decode_next_packet(Decoder *d) {
     if (d->packetq.pq_abort)
         goto fail;
 
-            do {
-                if (d->packetq.pq_length == 0)
-                    pthread_cond_signal(d->empty_queue_cond_ptr);
-                if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
-                    goto fail;
-                if (pkt.data == flush_pkt.data) {
-                    avcodec_flush_buffers(d->avctx);
-                    d->finished = 0;
-                    d->next_pts = d->start_pts;
-                    d->next_pts_tb = d->start_pts_tb;
-                }
-            } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
-            partial_pkt = pkt;
+    do {
+        if (d->packetq.pq_length == 0)
+            pthread_cond_signal(d->empty_queue_cond_ptr);
+        if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
+            goto fail;
+        if (pkt.data == flush_pkt.data) {
+            avcodec_flush_buffers(d->avctx);
+            d->finished = 0;
+            d->next_pts = d->start_pts;
+            d->next_pts_tb = d->start_pts_tb;
+        }
+    } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
+    partial_pkt = pkt;
 
     for (;;) {
         if (d->packetq.pq_abort)
@@ -59,21 +59,21 @@ int decoder_decode_next_packet(Decoder *d) {
         if (bytes_consumed < 0)
             break;
 
-            partial_pkt.dts =
-            partial_pkt.pts = AV_NOPTS_VALUE;
-            if (partial_pkt.data) {
-                if (d->avctx->codec_type != AVMEDIA_TYPE_AUDIO)
-                    bytes_consumed = partial_pkt.size;
-                partial_pkt.data += bytes_consumed;
-                partial_pkt.size -= bytes_consumed;
-                if (partial_pkt.size <= 0)
-                    break;
-            } else {
-                if (!got_frame) {
-                    d->finished = d->pkt_serial;
-                    break;
-                }
+        partial_pkt.dts =
+        partial_pkt.pts = AV_NOPTS_VALUE;
+        if (partial_pkt.data) {
+            if (d->avctx->codec_type != AVMEDIA_TYPE_AUDIO)
+                bytes_consumed = partial_pkt.size;
+            partial_pkt.data += bytes_consumed;
+            partial_pkt.size -= bytes_consumed;
+            if (partial_pkt.size <= 0)
+                break;
+        } else {
+            if (!got_frame) {
+                d->finished = d->pkt_serial;
+                break;
             }
+        }
     }
     goto out;
 
