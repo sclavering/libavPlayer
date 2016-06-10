@@ -143,7 +143,7 @@ void decoder_destroy(Decoder *d)
     avcodec_free_context(&d->avctx);
 
     packet_queue_destroy(&d->packetq);
-    frame_queue_destory(&d->frameq);
+    frame_queue_destroy(&d->frameq);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
