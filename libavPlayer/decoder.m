@@ -6,6 +6,7 @@
 @implementation Decoder
 @end
 
+int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, AVFrame *frame, int *got_frame);
 void decoder_thread(Decoder *d);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
@@ -47,32 +48,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
             d->packet_pending = 1;
         }
 
-        switch (d->avctx->codec_type) {
-            case AVMEDIA_TYPE_VIDEO:
-                ret = avcodec_decode_video2(d->avctx, frame, &got_frame, &d->pkt_temp);
-                if (got_frame) {
-                    frame->pts = av_frame_get_best_effort_timestamp(frame);
-                }
-                break;
-            case AVMEDIA_TYPE_AUDIO:
-                ret = avcodec_decode_audio4(d->avctx, frame, &got_frame, &d->pkt_temp);
-                if (got_frame) {
-                    AVRational tb = (AVRational){1, frame->sample_rate};
-                    if (frame->pts != AV_NOPTS_VALUE)
-                        frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
-                    else if (frame->pkt_pts != AV_NOPTS_VALUE)
-                        frame->pts = av_rescale_q(frame->pkt_pts, av_codec_get_pkt_timebase(d->avctx), tb);
-                    else if (d->next_pts != AV_NOPTS_VALUE)
-                        frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
-                    if (frame->pts != AV_NOPTS_VALUE) {
-                        d->next_pts = frame->pts + frame->nb_samples;
-                        d->next_pts_tb = tb;
-                    }
-                }
-                break;
-            default:
-                break;
-        }
+        ret = decoder_process_single_frame_from_packet(d, &d->pkt_temp, frame, &got_frame);
 
         if (ret < 0) {
             d->packet_pending = 0;
@@ -96,6 +72,38 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     } while (!got_frame && !d->finished);
 
     return got_frame;
+}
+
+int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, AVFrame *frame, int *got_frame)
+{
+    int ret = -1;
+    switch (d->avctx->codec_type) {
+        case AVMEDIA_TYPE_VIDEO:
+            ret = avcodec_decode_video2(d->avctx, frame, got_frame, pkt);
+            if (*got_frame) {
+                frame->pts = av_frame_get_best_effort_timestamp(frame);
+            }
+            break;
+        case AVMEDIA_TYPE_AUDIO:
+            ret = avcodec_decode_audio4(d->avctx, frame, got_frame, pkt);
+            if (*got_frame) {
+                AVRational tb = (AVRational){1, frame->sample_rate};
+                if (frame->pts != AV_NOPTS_VALUE)
+                    frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
+                else if (frame->pkt_pts != AV_NOPTS_VALUE)
+                    frame->pts = av_rescale_q(frame->pkt_pts, av_codec_get_pkt_timebase(d->avctx), tb);
+                else if (d->next_pts != AV_NOPTS_VALUE)
+                    frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
+                if (frame->pts != AV_NOPTS_VALUE) {
+                    d->next_pts = frame->pts + frame->nb_samples;
+                    d->next_pts_tb = tb;
+                }
+            }
+            break;
+        default:
+            break;
+    }
+    return ret;
 }
 
 void decoder_destroy(Decoder *d)
