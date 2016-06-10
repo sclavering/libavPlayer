@@ -2,6 +2,7 @@
 
 @interface Decoder : NSObject {
 @public
+    AVFrame *tmp_frame;
     AVPacket pkt;
     AVPacket pkt_temp;
     AVCodecContext *avctx;

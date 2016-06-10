@@ -6,10 +6,11 @@
 @implementation Decoder
 @end
 
-int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, AVFrame *frame, int *got_frame);
+int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, int *got_frame);
 void decoder_thread(Decoder *d);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
+    d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
     d->empty_queue_cond_ptr = empty_queue_cond_ptr;
@@ -20,7 +21,7 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     return 0;
 }
 
-int decoder_decode_frame(Decoder *d, AVFrame *frame) {
+int decoder_decode_frame(Decoder *d) {
     int got_frame = 0;
 
     do {
@@ -48,7 +49,7 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
             d->packet_pending = 1;
         }
 
-        ret = decoder_process_single_frame_from_packet(d, &d->pkt_temp, frame, &got_frame);
+        ret = decoder_process_single_frame_from_packet(d, &d->pkt_temp, &got_frame);
 
         if (ret < 0) {
             d->packet_pending = 0;
@@ -74,8 +75,9 @@ int decoder_decode_frame(Decoder *d, AVFrame *frame) {
     return got_frame;
 }
 
-int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, AVFrame *frame, int *got_frame)
+int decoder_process_single_frame_from_packet(Decoder *d, AVPacket *pkt, int *got_frame)
 {
+    AVFrame *frame = d->tmp_frame;
     int ret = -1;
     switch (d->avctx->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
@@ -123,6 +125,9 @@ void decoder_destroy(Decoder *d)
 
     packet_queue_destroy(&d->packetq);
     frame_queue_destory(&d->frameq);
+
+    av_frame_free(&d->tmp_frame);
+    d->tmp_frame = NULL;
 }
 
 void decoder_start(Decoder *d, VideoState *is)
@@ -164,10 +169,11 @@ bool decoder_finished(Decoder *d)
     return d->finished == d->packetq.pq_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
-static bool decoder_push_frame(Decoder *d, AVFrame *frame)
+static bool decoder_push_frame(Decoder *d)
 {
     Frame* fr = frame_queue_peek_writable(&d->frameq);
-    if(!fr) return false;
+    if (!fr) return false;
+    AVFrame *frame = d->tmp_frame;
     AVRational tb = { 0, 0 };
     if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
     else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
@@ -202,12 +208,10 @@ bool decoder_drop_frames_with_expired_serial(Decoder *d)
 
 void decoder_thread(Decoder *d)
 {
-    AVFrame *frame = av_frame_alloc();
     for(;;) {
-        int err = decoder_decode_frame(d, frame);
+        int err = decoder_decode_frame(d);
         if (err < 0) break;
         if (err == 0) continue;
-        if (!decoder_push_frame(d, frame)) break;
+        if (!decoder_push_frame(d)) break;
     }
-    av_frame_free(&frame);
 }
