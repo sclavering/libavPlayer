@@ -76,7 +76,7 @@ int decoder_decode_next_packet(Decoder *d) {
         }
     } while (!got_frame && !d->finished);
 
-    return got_frame;
+    return 0;
 }
 
 static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pkt, int *got_frame, Frame *fr)
