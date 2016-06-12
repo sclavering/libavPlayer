@@ -45,8 +45,6 @@
 #define SAMPLE_QUEUE_SIZE 9
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, VIDEO_PICTURE_QUEUE_SIZE)
 
-/* =========================================================== */
-
 typedef struct AudioParams {
     int freq;
     int channels;

@@ -40,7 +40,6 @@ void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *
     pthread_cond_timedwait_relative_np(cond, mutex, &time_to_wait);
 }
 
-/* open a given stream. Return 0 if OK */
 static int stream_component_open(VideoState *is, AVStream *stream)
 {
     int ret;
@@ -87,7 +86,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             }
             decoder_start(is->auddec, is);
 
-            /* prepare audio output */
             if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
                 goto out;
             is->audio_hw_buf_size = ret;
@@ -95,7 +93,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->audio_buf_size  = 0;
             is->audio_buf_index = 0;
 
-            // LAVP: start AudioQueue
             audio_queue_init(is, avctx);
             audio_queue_start(is);
 
@@ -132,7 +129,6 @@ static int decode_interrupt_cb(void *ctx)
     return is->abort_request;
 }
 
-/* this thread gets the stream from the disk or the network */
 int read_thread(VideoState* is)
 {
         pthread_mutex_t wait_mutex;
@@ -196,16 +192,12 @@ int read_thread(VideoState* is)
                     av_packet_unref(pkt);
         }
 
-        // finish thread
         ret = 0;
 
         pthread_mutex_destroy(&wait_mutex);
 
         return ret;
 }
-
-#pragma mark -
-#pragma mark functions (main_thread)
 
 void lavp_seek(VideoState *is, int64_t pos, int64_t current_pos)
 {
@@ -267,7 +259,7 @@ void stream_close(VideoState *is)
 
 VideoState* stream_open(NSURL *sourceURL)
 {
-    // LAVP: in ffplay.c this is done only once, in main().  Re-doing it ought to be fine, as av_init_packet() is documented as not modifying .data
+    // Re-doing this each time we open a stream ought to be fine, as av_init_packet() is documented as not modifying .data
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *)&flush_pkt;
 
@@ -298,7 +290,6 @@ VideoState* stream_open(NSURL *sourceURL)
         return NULL;
     is->ic = ic;
 
-    // Examine stream info
     err = avformat_find_stream_info(is->ic, NULL);
     if (err < 0)
         return NULL;
@@ -325,7 +316,6 @@ VideoState* stream_open(NSURL *sourceURL)
 
     clock_init(&is->audclk, &is->auddec->packetq.pq_serial);
 
-    // LAVP: Use a dispatch queue instead of an SDL thread.
     is->parse_queue = dispatch_queue_create("parse", NULL);
     is->parse_group = dispatch_group_create();
     {

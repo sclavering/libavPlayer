@@ -96,8 +96,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         _cglContext = [super copyCGLContextForPixelFormat:_cglPixelFormat];
         assert(_cglContext);
 
-        /* ========================================================= */
-
         CGLSetCurrentContext(_cglContext);
         CGLLockContext(_cglContext);
 
@@ -108,8 +106,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         CGLUnlockContext(_cglContext);
 
-        /* ========================================================= */
-
         _lock = [[NSLock alloc] init];
 
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(invalidateWithNotification:) name:NSApplicationWillTerminateNotification object:nil];
@@ -119,9 +115,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
     return self;
 }
-
-/* =============================================================================================== */
-#pragma mark -
 
 -(CGLPixelFormatObj) copyCGLPixelFormatForDisplayMask:(uint32_t)mask {
     CGLRetainPixelFormat(_cglPixelFormat);
@@ -154,8 +147,8 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 }
 
 
-
 /* =============================================================================================== */
+
 #pragma mark -
 #pragma mark public
 
@@ -177,6 +170,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
     [_lock unlock];
     self.asynchronous = movie ? !movie.paused : false;
 }
+
 
 /* =============================================================================================== */
 

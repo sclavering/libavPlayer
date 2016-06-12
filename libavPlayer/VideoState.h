@@ -1,6 +1,6 @@
 @protocol LAVPMovieOutput;
 
-// LAVP: in ffplay.c, this is just a struct, but we want to have dispatch_queue_t members, and Xcode says ARC prohibits storing those in a struct.
+// This is an object rather than a struct because ObjC ARC requires that for having dispatch_queue_t members.
 @interface VideoState : NSObject {
 @public
     bool paused;

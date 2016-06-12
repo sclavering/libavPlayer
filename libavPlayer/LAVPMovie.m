@@ -49,8 +49,6 @@
     is = NULL;
 }
 
-#pragma mark -
-
 -(void) setOutput:(id<LAVPMovieOutput>)output {
     is->weak_output = output;
 }

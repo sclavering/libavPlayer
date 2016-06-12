@@ -33,10 +33,6 @@ int audio_decode_frame(VideoState *is);
 #define SDL_AUDIO_BUFFER_SIZE 1024
 
 
-/* =========================================================== */
-
-#pragma mark -
-
 int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params)
 {
     /* LAVP: TODO Simple 48KHz stereo output by default */

@@ -27,13 +27,9 @@
 
 AVPacket flush_pkt;
 
-/* =========================================================== */
-
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt);
 
-/* =========================================================== */
 
-/* packet queue handling */
 void packet_queue_init(PacketQueue *q)
 {
     memset(q, 0, sizeof(PacketQueue));
