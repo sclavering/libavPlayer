@@ -1,6 +1,6 @@
 #import "lavp_common.h"
 
-#import "packetqueue.h" // for packet_queue_get()
+#import "packetqueue.h"
 
 
 @implementation Decoder
@@ -33,7 +33,7 @@ int decoder_decode_next_packet(Decoder *d) {
     do {
         if (d->packetq.pq_length == 0)
             pthread_cond_signal(d->empty_queue_cond_ptr);
-        if (packet_queue_get(&d->packetq, &pkt, 1, &d->pkt_serial) < 0)
+        if (packet_queue_get(&d->packetq, &pkt, &d->pkt_serial) < 0)
             goto fail;
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);

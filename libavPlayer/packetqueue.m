@@ -131,20 +131,16 @@ int packet_queue_put_nullpacket(PacketQueue *q, int stream_index)
     return packet_queue_put(q, pkt);
 }
 
-/* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
-int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
+int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial)
 {
     MyAVPacketList *pkt1;
-    int ret;
-
+    int ret = 0;
     pthread_mutex_lock(&q->mutex);
-
     for(;;) {
         if (q->pq_abort) {
             ret = -1;
             break;
         }
-
         pkt1 = q->first_pkt;
         if (pkt1) {
             q->first_pkt = pkt1->next;
@@ -155,14 +151,9 @@ int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block, int *serial)
             if (serial)
                 *serial = pkt1->serial;
             av_free(pkt1);
-            ret = 1;
             break;
-        } else if (!block) {
-            ret = 0;
-            break;
-        } else {
-            pthread_cond_wait(&q->cond, &q->mutex);
         }
+        pthread_cond_wait(&q->cond, &q->mutex);
     }
     pthread_mutex_unlock(&q->mutex);
     return ret;
