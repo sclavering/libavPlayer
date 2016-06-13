@@ -181,21 +181,13 @@ bool decoder_finished(Decoder *d)
     return d->finished == d->packetq.pq_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
-Frame* decoder_get_current_frame_or_null(Decoder *d)
-{
-    pthread_mutex_lock(&d->frameq.mutex);
-    Frame* rv = frame_queue_nb_remaining(&d->frameq) > 0 ? frame_queue_peek(&d->frameq) : NULL;
-    pthread_mutex_unlock(&d->frameq.mutex);
-    return rv;
-}
-
 bool decoder_drop_frames_with_expired_serial(Decoder *d)
 {
     // Skips any frames left over from before seeking.
     int i = 0;
     for(;;) {
-        if (frame_queue_nb_remaining(&d->frameq) == 0) return true;
         Frame *fr = frame_queue_peek(&d->frameq);
+        if (!fr) return true;
         if (fr->frm_serial == d->packetq.pq_serial) break;
         frame_queue_next(&d->frameq);
         ++i;

@@ -27,5 +27,4 @@ void decoder_update_for_eof(Decoder *d);
 bool decoder_needs_more_packets(Decoder *d);
 bool decoder_finished(Decoder *d);
 
-Frame* decoder_get_current_frame_or_null(Decoder *d);
 bool decoder_drop_frames_with_expired_serial(Decoder *d);

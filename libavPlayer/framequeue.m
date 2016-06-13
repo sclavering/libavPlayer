@@ -49,6 +49,7 @@ Frame *frame_queue_peek_next(FrameQueue *f)
 
 Frame *frame_queue_peek(FrameQueue *f)
 {
+    if (!frame_queue_nb_remaining(f)) return NULL;
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
