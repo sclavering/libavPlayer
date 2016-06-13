@@ -6,7 +6,7 @@
 @implementation Decoder
 @end
 
-static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pkt, int *got_frame, Frame *fr);
+static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr);
 void decoder_thread(Decoder *d);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
@@ -31,8 +31,8 @@ int decoder_decode_next_packet(Decoder *d) {
     int ret = 0;
 
     AVPacket pkt;
-    AVPacket partial_pkt;
 
+try_again:
     if (d->abort)
         goto fail;
 
@@ -47,7 +47,16 @@ int decoder_decode_next_packet(Decoder *d) {
             d->next_pts = AV_NOPTS_VALUE;
         }
     } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
-    partial_pkt = pkt;
+
+    int err = avcodec_send_packet(d->avctx, &pkt);
+    // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Just letting this |goto fail| would mean the decoder_thread stopped running, thus the special case.
+    if (err == AVERROR_INVALIDDATA) {
+        av_packet_unref(&pkt);
+        goto try_again;
+    }
+    // Note: since we're looping over all frames from the packet, we should never see AVERROR(EAGAIN) returned.
+    if (err)
+        goto fail;
 
     for (;;) {
         if (d->abort)
@@ -58,26 +67,16 @@ int decoder_decode_next_packet(Decoder *d) {
         if (!fr)
             goto fail;
 
-        int got_frame = 0;
-        int bytes_consumed = decoder_decode_single_frame_from_packet_into(d, &partial_pkt, &got_frame, fr);
-
-        if (bytes_consumed < 0)
+        err = avcodec_receive_frame(d->avctx, d->tmp_frame);
+        if (!err) {
+            decoder_enqueue_frame_into(d, d->tmp_frame, fr);
+        }
+        // If we've consumed all frames from the current packet.
+        if (err == AVERROR(EAGAIN))
             break;
-
-        partial_pkt.dts =
-        partial_pkt.pts = AV_NOPTS_VALUE;
-        if (partial_pkt.data) {
-            if (d->avctx->codec_type != AVMEDIA_TYPE_AUDIO)
-                bytes_consumed = partial_pkt.size;
-            partial_pkt.data += bytes_consumed;
-            partial_pkt.size -= bytes_consumed;
-            if (partial_pkt.size <= 0)
-                break;
-        } else {
-            if (!got_frame) {
-                d->finished = d->pkt_serial;
-                break;
-            }
+        if (err == AVERROR_EOF) {
+            d->finished = d->pkt_serial;
+            break;
         }
     }
     goto out;
@@ -89,22 +88,15 @@ out:
     return ret;
 }
 
-static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pkt, int *got_frame, Frame *fr)
+static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
 {
-    AVFrame *frame = d->tmp_frame;
-    int ret = -1;
-    switch (d->avctx->codec_type) {
-        case AVMEDIA_TYPE_VIDEO:
-            ret = avcodec_decode_video2(d->avctx, frame, got_frame, pkt);
-            if (*got_frame) {
+        switch (d->avctx->codec_type) {
+            case AVMEDIA_TYPE_VIDEO:
                 frame->pts = av_frame_get_best_effort_timestamp(frame);
                 // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (->frm_pts and ->frm_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory theses could appear elsewhere, but we'd still not know what to do with frames with no pts.
-                if (frame->pts == AV_NOPTS_VALUE) *got_frame = 0;
-            }
-            break;
-        case AVMEDIA_TYPE_AUDIO:
-            ret = avcodec_decode_audio4(d->avctx, frame, got_frame, pkt);
-            if (*got_frame) {
+                if (frame->pts == AV_NOPTS_VALUE) return;
+                break;
+            case AVMEDIA_TYPE_AUDIO: {
                 AVRational tb = (AVRational){1, frame->sample_rate};
                 if (frame->pts != AV_NOPTS_VALUE)
                     frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
@@ -116,13 +108,12 @@ static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pk
                     d->next_pts = frame->pts + frame->nb_samples;
                     d->next_pts_tb = tb;
                 }
+                break;
             }
-            break;
-        default:
-            break;
-    }
+            default:
+                break;
+        }
 
-    if (*got_frame) {
         AVRational tb = { 0, 0 };
         if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
         else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
@@ -130,9 +121,6 @@ static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pk
         fr->frm_serial = d->pkt_serial;
         av_frame_move_ref(fr->frm_frame, frame);
         frame_queue_push(&d->frameq);
-    }
-
-    return ret;
 }
 
 void decoder_destroy(Decoder *d)
