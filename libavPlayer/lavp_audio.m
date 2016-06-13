@@ -76,7 +76,7 @@ int audio_decode_frame(VideoState *is)
 
     Frame *af;
     do {
-        if (!(af = frame_queue_peek_readable(&is->auddec->frameq)))
+        if (!(af = frame_queue_peek_blocking(&is->auddec->frameq)))
             return -1;
         frame_queue_next(&is->auddec->frameq);
     } while (af->frm_serial != is->auddec->packetq.pq_serial);

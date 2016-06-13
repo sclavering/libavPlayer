@@ -58,7 +58,7 @@ Frame *frame_queue_peek_last(FrameQueue *f)
     return &f->queue[f->rindex];
 }
 
-Frame *frame_queue_peek_readable(FrameQueue *f)
+Frame *frame_queue_peek_blocking(FrameQueue *f)
 {
     /* wait until we have a readable a new frame */
     pthread_mutex_lock(&f->mutex);
