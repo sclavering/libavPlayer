@@ -6,7 +6,7 @@ void frame_queue_unref_item(Frame *vp)
     av_frame_unref(vp->frm_frame);
 }
 
-int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int keep_last)
+int frame_queue_init(FrameQueue *f, int max_size, int keep_last)
 {
     int i;
     memset(f, 0, sizeof(FrameQueue));
@@ -14,7 +14,6 @@ int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size, int keep_la
     if (err) return AVERROR(ENOMEM);
     err = pthread_cond_init(&f->cond, NULL);
     if (err) return AVERROR(ENOMEM);
-    f->pktq = pktq;
     f->max_size = FFMIN(max_size, FRAME_QUEUE_SIZE);
     f->keep_last = !!keep_last;
     for (i = 0; i < f->max_size; i++)
@@ -53,34 +52,27 @@ Frame *frame_queue_peek(FrameQueue *f)
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
-Frame *frame_queue_peek_blocking(FrameQueue *f)
+Frame *frame_queue_peek_blocking(FrameQueue *f, Decoder *d)
 {
     /* wait until we have a readable a new frame */
     pthread_mutex_lock(&f->mutex);
-    while (f->size - f->rindex_shown <= 0 && !f->pktq->pq_abort) {
+    while (f->size - f->rindex_shown <= 0 && !d->abort) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
-
-    if (f->pktq->pq_abort)
-        return NULL;
-
+    if (d->abort) return NULL;
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
-Frame *frame_queue_peek_writable(FrameQueue *f)
+Frame *frame_queue_peek_writable(FrameQueue *f, Decoder *d)
 {
     /* wait until we have space to put a new frame */
     pthread_mutex_lock(&f->mutex);
-    while (f->size >= f->max_size &&
-           !f->pktq->pq_abort) {
+    while (f->size >= f->max_size && !d->abort) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
-
-    if (f->pktq->pq_abort)
-        return NULL;
-
+    if (d->abort) return NULL;
     return &f->queue[f->windex];
 }
 

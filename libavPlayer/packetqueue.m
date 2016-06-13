@@ -35,7 +35,6 @@ void packet_queue_init(PacketQueue *q)
     memset(q, 0, sizeof(PacketQueue));
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->cond, NULL);
-    q->pq_abort = 0;
 }
 
 void packet_queue_flush(PacketQueue *q)
@@ -57,11 +56,7 @@ void packet_queue_flush(PacketQueue *q)
 void packet_queue_abort(PacketQueue *q)
 {
     pthread_mutex_lock(&q->mutex);
-
-    q->pq_abort = 1;
-
     pthread_cond_signal(&q->cond);
-
     pthread_mutex_unlock(&q->mutex);
 }
 
@@ -75,10 +70,6 @@ void packet_queue_destroy(PacketQueue *q)
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
 {
     MyAVPacketList *pkt1;
-
-    if (q->pq_abort)
-        return -1;
-
     pkt1 = av_malloc(sizeof(MyAVPacketList));
     if (!pkt1)
         return -1;
@@ -87,7 +78,6 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     if (pkt == &flush_pkt)
         q->pq_serial++;
     pkt1->serial = q->pq_serial;
-
     if (!q->last_pkt)
         q->first_pkt = pkt1;
     else
@@ -99,37 +89,33 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     return 0;
 }
 
-int packet_queue_put(PacketQueue *q, AVPacket *pkt)
+int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d)
 {
-    int ret;
-
+    if (d->abort) return -1;
     pthread_mutex_lock(&q->mutex);
-    ret = packet_queue_put_private(q, pkt);
+    int ret = packet_queue_put_private(q, pkt);
     pthread_mutex_unlock(&q->mutex);
-
-    if (pkt != &flush_pkt && ret < 0)
-        av_packet_unref(pkt);
-
+    if (pkt != &flush_pkt && ret < 0) av_packet_unref(pkt);
     return ret;
 }
 
-int packet_queue_put_nullpacket(PacketQueue *q, int stream_index)
+int packet_queue_put_nullpacket(PacketQueue *q, int stream_index, Decoder *d)
 {
     AVPacket pkt1, *pkt = &pkt1;
     av_init_packet(pkt);
     pkt->data = NULL;
     pkt->size = 0;
     pkt->stream_index = stream_index;
-    return packet_queue_put(q, pkt);
+    return packet_queue_put(q, pkt, d);
 }
 
-int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial)
+int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial, Decoder *d)
 {
     MyAVPacketList *pkt1;
     int ret = 0;
     pthread_mutex_lock(&q->mutex);
     for(;;) {
-        if (q->pq_abort) {
+        if (d->abort) {
             ret = -1;
             break;
         }

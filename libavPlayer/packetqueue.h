@@ -26,6 +26,8 @@
 
 #import "lavp_common.h"
 
+@class Decoder;
+
 extern AVPacket flush_pkt;
 
 typedef struct MyAVPacketList {
@@ -37,7 +39,6 @@ typedef struct MyAVPacketList {
 typedef struct PacketQueue {
     MyAVPacketList *first_pkt, *last_pkt;
     int pq_length;
-    int pq_abort;
     int pq_serial;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
@@ -47,6 +48,6 @@ void packet_queue_init(PacketQueue *q);
 void packet_queue_flush(PacketQueue *q);
 void packet_queue_abort(PacketQueue *q);
 void packet_queue_destroy(PacketQueue *q);
-int packet_queue_put(PacketQueue *q, AVPacket *pkt);
-int packet_queue_put_nullpacket(PacketQueue *q, int stream_index);
-int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial);
+int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d);
+int packet_queue_put_nullpacket(PacketQueue *q, int stream_index, Decoder *d);
+int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial, Decoder *d);

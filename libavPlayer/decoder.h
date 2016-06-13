@@ -6,6 +6,7 @@
     AVCodecContext *avctx;
     int pkt_serial;
     int finished;
+    int abort;
     pthread_cond_t *empty_queue_cond_ptr;
     int64_t next_pts;
     AVRational next_pts_tb;

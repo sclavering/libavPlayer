@@ -15,8 +15,9 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     d->avctx = avctx;
     d->empty_queue_cond_ptr = empty_queue_cond_ptr;
     // Note: if we pass 0 for keep_last then audio is an unrecognisable mess (presumably we're relying on the frame-queue to keep the currentlly-being-played sample) alive, or somesuch.
-    int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
+    int err = frame_queue_init(&d->frameq, frame_queue_max_size, 1);
     if(err < 0) return err;
+    d->abort = 0;
     packet_queue_init(&d->packetq);
     d->dispatch_queue = dispatch_queue_create(NULL, NULL);
     d->dispatch_group = dispatch_group_create();
@@ -32,13 +33,13 @@ int decoder_decode_next_packet(Decoder *d) {
     AVPacket pkt;
     AVPacket partial_pkt;
 
-    if (d->packetq.pq_abort)
+    if (d->abort)
         goto fail;
 
     do {
         if (d->packetq.pq_length == 0)
             pthread_cond_signal(d->empty_queue_cond_ptr);
-        if (packet_queue_get(&d->packetq, &pkt, &d->pkt_serial) < 0)
+        if (packet_queue_get(&d->packetq, &pkt, &d->pkt_serial, d) < 0)
             goto fail;
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
@@ -49,10 +50,10 @@ int decoder_decode_next_packet(Decoder *d) {
     partial_pkt = pkt;
 
     for (;;) {
-        if (d->packetq.pq_abort)
+        if (d->abort)
             goto fail;
 
-        Frame* fr = frame_queue_peek_writable(&d->frameq);
+        Frame* fr = frame_queue_peek_writable(&d->frameq, d);
         // This only happens if we're closing the movie.
         if (!fr)
             goto fail;
@@ -134,6 +135,7 @@ static int decoder_decode_single_frame_from_packet_into(Decoder *d, AVPacket *pk
 
 void decoder_destroy(Decoder *d)
 {
+    d->abort = 1;
     packet_queue_abort(&d->packetq);
     frame_queue_signal(&d->frameq);
 
@@ -157,24 +159,24 @@ bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt)
 {
     if (pkt->stream_index != d->stream->index)
         return false;
-    packet_queue_put(&d->packetq, pkt);
+    packet_queue_put(&d->packetq, pkt, d);
     return true;
 }
 
 void decoder_update_for_seek(Decoder *d)
 {
     packet_queue_flush(&d->packetq);
-    packet_queue_put(&d->packetq, &flush_pkt);
+    packet_queue_put(&d->packetq, &flush_pkt, d);
 }
 
 void decoder_update_for_eof(Decoder *d)
 {
-    packet_queue_put_nullpacket(&d->packetq, d->stream->index);
+    packet_queue_put_nullpacket(&d->packetq, d->stream->index, d);
 }
 
 bool decoder_needs_more_packets(Decoder *d)
 {
-    return !d->packetq.pq_abort && d->packetq.pq_length < MIN_FRAMES;
+    return !d->abort && d->packetq.pq_length < MIN_FRAMES;
 }
 
 bool decoder_finished(Decoder *d)
@@ -221,5 +223,5 @@ Frame *decoder_peek_next_frame(Decoder *d)
 
 Frame *decoder_peek_current_frame_blocking(Decoder *d)
 {
-  return frame_queue_peek_blocking(&d->frameq);
+  return frame_queue_peek_blocking(&d->frameq, d);
 }
