@@ -26,7 +26,6 @@ void frame_queue_destroy(FrameQueue *f);
 void frame_queue_signal(FrameQueue *f);
 Frame *frame_queue_peek_next(FrameQueue *f);
 Frame *frame_queue_peek(FrameQueue *f);
-Frame *frame_queue_peek_last(FrameQueue *f);
 Frame *frame_queue_peek_blocking(FrameQueue *f);
 Frame *frame_queue_peek_writable(FrameQueue *f);
 void frame_queue_push(FrameQueue *f);

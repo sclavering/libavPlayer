@@ -53,11 +53,6 @@ Frame *frame_queue_peek(FrameQueue *f)
     return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
 }
 
-Frame *frame_queue_peek_last(FrameQueue *f)
-{
-    return &f->queue[f->rindex];
-}
-
 Frame *frame_queue_peek_blocking(FrameQueue *f)
 {
     /* wait until we have a readable a new frame */
