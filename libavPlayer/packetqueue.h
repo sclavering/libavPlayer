@@ -44,7 +44,6 @@ typedef struct PacketQueue {
 } PacketQueue;
 
 void packet_queue_init(PacketQueue *q);
-void packet_queue_start(PacketQueue *q);
 void packet_queue_flush(PacketQueue *q);
 void packet_queue_abort(PacketQueue *q);
 void packet_queue_destroy(PacketQueue *q);

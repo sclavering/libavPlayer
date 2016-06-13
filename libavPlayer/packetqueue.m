@@ -35,15 +35,7 @@ void packet_queue_init(PacketQueue *q)
     memset(q, 0, sizeof(PacketQueue));
     pthread_mutex_init(&q->mutex, NULL);
     pthread_cond_init(&q->cond, NULL);
-    q->pq_abort = 1;
-}
-
-void packet_queue_start(PacketQueue *q)
-{
-    pthread_mutex_lock(&q->mutex);
     q->pq_abort = 0;
-    packet_queue_put_private(q, &flush_pkt);
-    pthread_mutex_unlock(&q->mutex);
 }
 
 void packet_queue_flush(PacketQueue *q)

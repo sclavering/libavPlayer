@@ -17,7 +17,6 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
     if(err < 0) return err;
     packet_queue_init(&d->packetq);
-    packet_queue_start(&d->packetq);
     d->dispatch_queue = dispatch_queue_create(NULL, NULL);
     d->dispatch_group = dispatch_group_create();
     dispatch_group_async(d->dispatch_group, d->dispatch_queue, ^(void) {
