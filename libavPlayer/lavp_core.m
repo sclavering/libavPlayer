@@ -79,7 +79,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->auddec = [[Decoder alloc] init];
             if(decoder_init(is->auddec, avctx, &is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
                 goto fail;
-            decoder_start(is->auddec, is);
 
             if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
                 goto out;
@@ -102,7 +101,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->viddec = [[Decoder alloc] init];
             if(decoder_init(is->viddec, avctx, &is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE, stream) < 0)
                 goto fail;
-            decoder_start(is->viddec, is);
 
             break;
         default:
