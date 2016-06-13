@@ -14,7 +14,6 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     d->stream = stream;
     d->avctx = avctx;
     d->empty_queue_cond_ptr = empty_queue_cond_ptr;
-    d->start_pts = AV_NOPTS_VALUE;
     int err = frame_queue_init(&d->frameq, &d->packetq, frame_queue_max_size, 1);
     if(err < 0) return err;
     packet_queue_init(&d->packetq);
@@ -38,8 +37,7 @@ int decoder_decode_next_packet(Decoder *d) {
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
             d->finished = 0;
-            d->next_pts = d->start_pts;
-            d->next_pts_tb = d->start_pts_tb;
+            d->next_pts = AV_NOPTS_VALUE;
         }
     } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
     partial_pkt = pkt;

@@ -79,11 +79,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->auddec = [[Decoder alloc] init];
             if(decoder_init(is->auddec, avctx, &is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
                 goto fail;
-
-            if ((is->ic->iformat->flags & (AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH | AVFMT_NO_BYTE_SEEK)) && !is->ic->iformat->read_seek) {
-                is->auddec->start_pts = is->auddec->stream->start_time;
-                is->auddec->start_pts_tb = is->auddec->stream->time_base;
-            }
             decoder_start(is->auddec, is);
 
             if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
