@@ -40,9 +40,9 @@ void video_refresh(VideoState *is)
 
     // Skip any frames that are in the past (except the current frame).
     for(;;) {
-        Frame *curr = frame_queue_peek(&is->viddec->frameq);
+        Frame *curr = decoder_peek_current_frame(is->viddec);
         if (!curr) return;
-        Frame *next = frame_queue_peek_next(&is->viddec->frameq);
+        Frame *next = decoder_peek_next_frame(is->viddec);
         double now = clock_get(&is->audclk);
         // If the next frame is still in the future, stop here.
         if (next && !(curr->frm_pts < now && next->frm_pts < now)) break;
@@ -52,7 +52,7 @@ void video_refresh(VideoState *is)
             double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){ frame_rate.den, frame_rate.num }) : 0;
             if (now < curr->frm_pts + duration) break;
         }
-        frame_queue_next(&is->viddec->frameq);
+        decoder_advance_frame(is->viddec);
     }
 
     if (is->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused_internal(is, true);
@@ -63,7 +63,7 @@ AVFrame* lavp_get_current_frame(VideoState *is)
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
     video_refresh(is);
 
-    Frame* fr = frame_queue_peek(&is->viddec->frameq);
+    Frame* fr = decoder_peek_current_frame(is->viddec);
     if (!fr || fr->frm_pts == is->last_shown_video_frame_pts) return NULL;
 
     // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.

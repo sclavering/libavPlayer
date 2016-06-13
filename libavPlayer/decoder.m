@@ -187,10 +187,10 @@ bool decoder_drop_frames_with_expired_serial(Decoder *d)
     // Skips any frames left over from before seeking.
     int i = 0;
     for(;;) {
-        Frame *fr = frame_queue_peek(&d->frameq);
+        Frame *fr = decoder_peek_current_frame(d);
         if (!fr) return true;
         if (fr->frm_serial == d->packetq.pq_serial) break;
-        frame_queue_next(&d->frameq);
+        decoder_advance_frame(d);
         ++i;
     }
     return false;
@@ -202,4 +202,24 @@ void decoder_thread(Decoder *d)
         int err = decoder_decode_next_packet(d);
         if (err < 0) break;
     }
+}
+
+void decoder_advance_frame(Decoder *d)
+{
+  frame_queue_next(&d->frameq);
+}
+
+Frame *decoder_peek_current_frame(Decoder *d)
+{
+  return frame_queue_peek(&d->frameq);
+}
+
+Frame *decoder_peek_next_frame(Decoder *d)
+{
+  return frame_queue_peek_next(&d->frameq);
+}
+
+Frame *decoder_peek_current_frame_blocking(Decoder *d)
+{
+  return frame_queue_peek_blocking(&d->frameq);
 }
