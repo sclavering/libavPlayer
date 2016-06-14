@@ -267,7 +267,7 @@ void audio_queue_start(VideoState *is)
     if (!is->audio_queue) return;
     lavp_audio_update_speed(is);
     unsigned int inNumberOfFramesToPrepare = is->asbd.mSampleRate / 60; // Prepare for 1/60 sec
-    OSStatus err = AudioQueuePrime(is->audio_queue, inNumberOfFramesToPrepare, 0);
+    OSStatus err = AudioQueuePrime(is->audio_queue, inNumberOfFramesToPrepare, NULL);
     assert(err == 0);
     err = AudioQueueStart(is->audio_queue, NULL);
     assert(err == 0);
