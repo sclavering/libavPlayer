@@ -73,9 +73,8 @@ int audio_decode_frame(VideoState *is)
     int64_t dec_channel_layout =
         (af->frm_frame->channel_layout && av_frame_get_channels(af->frm_frame) == av_get_channel_layout_nb_channels(af->frm_frame->channel_layout)) ?
         af->frm_frame->channel_layout : av_get_default_channel_layout(av_frame_get_channels(af->frm_frame));
-    int wanted_nb_samples = af->frm_frame->nb_samples;
 
-    if (af->frm_frame->format != is->audio_src.fmt || dec_channel_layout != is->audio_src.channel_layout || af->frm_frame->sample_rate != is->audio_src.freq || (wanted_nb_samples != af->frm_frame->nb_samples && !is->swr_ctx))
+    if (af->frm_frame->format != is->audio_src.fmt || dec_channel_layout != is->audio_src.channel_layout || af->frm_frame->sample_rate != is->audio_src.freq)
     {
         swr_free(&is->swr_ctx);
         is->swr_ctx = swr_alloc_set_opts(NULL, is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq, dec_channel_layout, af->frm_frame->format, af->frm_frame->sample_rate, 0, NULL);
@@ -97,17 +96,11 @@ int audio_decode_frame(VideoState *is)
     if (is->swr_ctx) {
         const uint8_t **in = (const uint8_t **)af->frm_frame->extended_data;
         uint8_t **out = &is->audio_buf1;
-        int out_count = (int64_t)wanted_nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate + 256;
+        int out_count = (int64_t)af->frm_frame->nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate + 256;
         int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, out_count, is->audio_tgt.fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
             return -1;
-        }
-        if (wanted_nb_samples != af->frm_frame->nb_samples) {
-            if (swr_set_compensation(is->swr_ctx, (wanted_nb_samples - af->frm_frame->nb_samples) * is->audio_tgt.freq / af->frm_frame->sample_rate, wanted_nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate) < 0) {
-                av_log(NULL, AV_LOG_ERROR, "swr_set_compensation() failed\n");
-                return -1;
-            }
         }
         av_fast_malloc(&is->audio_buf1, &is->audio_buf1_size, out_size);
         if (!is->audio_buf1)
