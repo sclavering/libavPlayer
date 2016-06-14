@@ -28,7 +28,6 @@
 
     // Audio
 
-    int64_t audio_callback_time;
     double audio_clock;
     int audio_clock_serial;
     int audio_hw_buf_size;

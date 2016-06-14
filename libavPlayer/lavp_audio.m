@@ -143,7 +143,7 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
         uint8_t *stream = inBuffer->mAudioData;
         int len = inBuffer->mAudioDataBytesCapacity;
 
-        is->audio_callback_time = av_gettime_relative();
+        int64_t audio_callback_time = av_gettime_relative();
 
         while (len > 0) {
             if (is->audio_buf_index >= is->audio_buf_size) {
@@ -170,7 +170,7 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
         /* Let's assume the audio driver that is used by SDL has two periods. */
         if (!isnan(is->audio_clock)) {
             unsigned int audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
-            clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, is->audio_callback_time / 1000000.0);
+            clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, audio_callback_time / 1000000.0);
         }
 
         inBuffer->mAudioDataByteSize = stream - (UInt8 *)inBuffer->mAudioData;
