@@ -28,19 +28,17 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
 }
 
 int decoder_decode_next_packet(Decoder *d) {
-    int ret = 0;
-
     AVPacket pkt;
 
 try_again:
     if (d->abort)
-        goto fail;
+        return -1;
 
     do {
         if (d->packetq.pq_length == 0)
             pthread_cond_signal(d->empty_queue_cond_ptr);
         if (packet_queue_get(&d->packetq, &pkt, &d->pkt_serial, d) < 0)
-            goto fail;
+            return -1;
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
             d->finished = 0;
@@ -49,23 +47,22 @@ try_again:
     } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
 
     int err = avcodec_send_packet(d->avctx, &pkt);
-    // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Just letting this |goto fail| would mean the decoder_thread stopped running, thus the special case.
-    if (err == AVERROR_INVALIDDATA) {
-        av_packet_unref(&pkt);
+    av_packet_unref(&pkt);
+    // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Absent this special case, the decoder_thread would get shut down.
+    if (err == AVERROR_INVALIDDATA)
         goto try_again;
-    }
-    // Note: since we're looping over all frames from the packet, we should never see AVERROR(EAGAIN) returned.
+    // Note: since we're looping over all frames from the packet, we shouldn't need to check for AVERROR(EAGAIN).
     if (err)
-        goto fail;
+        return -1;
 
     for (;;) {
         if (d->abort)
-            goto fail;
+            return -1;
 
         Frame* fr = frame_queue_peek_writable(&d->frameq, d);
         // This only happens if we're closing the movie.
         if (!fr)
-            goto fail;
+            return -1;
 
         err = avcodec_receive_frame(d->avctx, d->tmp_frame);
         if (!err) {
@@ -79,13 +76,8 @@ try_again:
             break;
         }
     }
-    goto out;
 
-fail:
-    ret = -1;
-out:
-    av_packet_unref(&pkt);
-    return ret;
+    return 0;
 }
 
 static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
