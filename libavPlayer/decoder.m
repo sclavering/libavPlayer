@@ -36,17 +36,18 @@ int decoder_decode_next_packet(Decoder *d) {
     if (d->abort)
         return -1;
 
+    int pkt_serial;
     do {
         if (d->packetq.pq_length == 0)
             pthread_cond_signal(d->empty_queue_cond_ptr);
-        if (packet_queue_get(&d->packetq, &pkt, &d->pkt_serial, d) < 0)
+        if (packet_queue_get(&d->packetq, &pkt, &pkt_serial, d) < 0)
             return -1;
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
             d->finished = 0;
             d->next_pts = AV_NOPTS_VALUE;
         }
-    } while (pkt.data == flush_pkt.data || d->current_serial != d->pkt_serial);
+    } while (pkt.data == flush_pkt.data || d->current_serial != pkt_serial);
 
     int err = avcodec_send_packet(d->avctx, &pkt);
     av_packet_unref(&pkt);
@@ -68,13 +69,14 @@ int decoder_decode_next_packet(Decoder *d) {
 
         err = avcodec_receive_frame(d->avctx, d->tmp_frame);
         if (!err) {
+            fr->frm_serial = pkt_serial;
             decoder_enqueue_frame_into(d, d->tmp_frame, fr);
         }
         // If we've consumed all frames from the current packet.
         if (err == AVERROR(EAGAIN))
             break;
         if (err == AVERROR_EOF) {
-            d->finished = d->pkt_serial;
+            d->finished = pkt_serial;
             break;
         }
     }
@@ -112,7 +114,6 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
         if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
         else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
         fr->frm_pts = frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb);
-        fr->frm_serial = d->pkt_serial;
         av_frame_move_ref(fr->frm_frame, frame);
         frame_queue_push(&d->frameq);
 }
