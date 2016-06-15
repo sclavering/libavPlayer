@@ -39,12 +39,6 @@
 #include <pthread.h>
 
 
-#define MIN_FRAMES 25
-
-#define VIDEO_PICTURE_QUEUE_SIZE 15
-#define SAMPLE_QUEUE_SIZE 9
-#define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, VIDEO_PICTURE_QUEUE_SIZE)
-
 typedef struct AudioParams {
     int freq;
     int channels;

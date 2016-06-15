@@ -21,14 +21,14 @@ extern AVPacket flush_pkt;
 }
 @end;
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, int frame_queue_max_size, AVStream *stream);
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond, AVStream *stream);
 void decoder_destroy(Decoder *d);
 
 bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt);
 void decoder_update_for_seek(Decoder *d);
 void decoder_update_for_eof(Decoder *d);
 
-bool decoder_needs_more_packets(Decoder *d);
+bool decoder_needs_more_packets(Decoder *d, int target_frame_queue_size);
 bool decoder_finished(Decoder *d);
 
 bool decoder_drop_frames_with_expired_serial(Decoder *d);

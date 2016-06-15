@@ -77,7 +77,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             is->auddec = [[Decoder alloc] init];
-            if(decoder_init(is->auddec, avctx, &is->continue_read_thread, SAMPLE_QUEUE_SIZE, stream) < 0)
+            if(decoder_init(is->auddec, avctx, &is->continue_read_thread, stream) < 0)
                 goto fail;
 
             if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
@@ -99,7 +99,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             is->height = stream->codecpar->height;
 
             is->viddec = [[Decoder alloc] init];
-            if(decoder_init(is->viddec, avctx, &is->continue_read_thread, VIDEO_PICTURE_QUEUE_SIZE, stream) < 0)
+            if(decoder_init(is->viddec, avctx, &is->continue_read_thread, stream) < 0)
                 goto fail;
 
             break;
@@ -154,7 +154,9 @@ int read_thread(VideoState* is)
                     }
                 }
 
-                if(!(decoder_needs_more_packets(is->auddec) || decoder_needs_more_packets(is->viddec))) {
+                if(!decoder_needs_more_packets(is->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
+                        && !decoder_needs_more_packets(is->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
+                {
                     pthread_mutex_lock(&wait_mutex);
                     lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
                     pthread_mutex_unlock(&wait_mutex);

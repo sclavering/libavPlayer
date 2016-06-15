@@ -6,17 +6,15 @@ void frame_queue_unref_item(Frame *vp)
     av_frame_unref(vp->frm_frame);
 }
 
-int frame_queue_init(FrameQueue *f, int max_size, int keep_last)
+int frame_queue_init(FrameQueue *f, int keep_last)
 {
-    int i;
     memset(f, 0, sizeof(FrameQueue));
     int err = pthread_mutex_init(&f->mutex, NULL);
     if (err) return AVERROR(ENOMEM);
     err = pthread_cond_init(&f->cond, NULL);
     if (err) return AVERROR(ENOMEM);
-    f->max_size = FFMIN(max_size, FRAME_QUEUE_SIZE);
     f->keep_last = !!keep_last;
-    for (i = 0; i < f->max_size; i++)
+    for (int i = 0; i < FRAME_QUEUE_SIZE; ++i)
         if (!(f->queue[i].frm_frame = av_frame_alloc()))
             return AVERROR(ENOMEM);
     return 0;
@@ -24,8 +22,7 @@ int frame_queue_init(FrameQueue *f, int max_size, int keep_last)
 
 void frame_queue_destroy(FrameQueue *f)
 {
-    int i;
-    for (i = 0; i < f->max_size; i++) {
+    for (int i = 0; i < FRAME_QUEUE_SIZE; ++i) {
         Frame *vp = &f->queue[i];
         frame_queue_unref_item(vp);
         av_frame_free(&vp->frm_frame);
@@ -43,13 +40,13 @@ void frame_queue_signal(FrameQueue *f)
 
 Frame *frame_queue_peek_next(FrameQueue *f)
 {
-    return frame_queue_nb_remaining(f) > 1 ? &f->queue[(f->rindex + f->rindex_shown + 1) % f->max_size] : NULL;
+    return frame_queue_nb_remaining(f) > 1 ? &f->queue[(f->rindex + f->rindex_shown + 1) % FRAME_QUEUE_SIZE] : NULL;
 }
 
 Frame *frame_queue_peek(FrameQueue *f)
 {
     if (!frame_queue_nb_remaining(f)) return NULL;
-    return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
+    return &f->queue[(f->rindex + f->rindex_shown) % FRAME_QUEUE_SIZE];
 }
 
 Frame *frame_queue_peek_blocking(FrameQueue *f, Decoder *d)
@@ -61,14 +58,14 @@ Frame *frame_queue_peek_blocking(FrameQueue *f, Decoder *d)
     }
     pthread_mutex_unlock(&f->mutex);
     if (d->abort) return NULL;
-    return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
+    return &f->queue[(f->rindex + f->rindex_shown) % FRAME_QUEUE_SIZE];
 }
 
 Frame *frame_queue_peek_writable(FrameQueue *f, Decoder *d)
 {
     /* wait until we have space to put a new frame */
     pthread_mutex_lock(&f->mutex);
-    while (f->size >= f->max_size && !d->abort) {
+    while (f->size >= FRAME_QUEUE_SIZE && !d->abort) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
@@ -78,7 +75,7 @@ Frame *frame_queue_peek_writable(FrameQueue *f, Decoder *d)
 
 void frame_queue_push(FrameQueue *f)
 {
-    if (++f->windex == f->max_size)
+    if (++f->windex == FRAME_QUEUE_SIZE)
         f->windex = 0;
     pthread_mutex_lock(&f->mutex);
     f->size++;
@@ -93,7 +90,7 @@ void frame_queue_next(FrameQueue *f)
         return;
     }
     frame_queue_unref_item(&f->queue[f->rindex]);
-    if (++f->rindex == f->max_size)
+    if (++f->rindex == FRAME_QUEUE_SIZE)
         f->rindex = 0;
     pthread_mutex_lock(&f->mutex);
     f->size--;

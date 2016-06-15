@@ -12,13 +12,13 @@ AVPacket flush_pkt;
 static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr);
 void decoder_thread(Decoder *d);
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, int frame_queue_max_size, AVStream *stream) {
+int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, AVStream *stream) {
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
     d->empty_queue_cond_ptr = empty_queue_cond_ptr;
     // Note: if we pass 0 for keep_last then audio is an unrecognisable mess (presumably we're relying on the frame-queue to keep the currentlly-being-played sample) alive, or somesuch.
-    int err = frame_queue_init(&d->frameq, frame_queue_max_size, 1);
+    int err = frame_queue_init(&d->frameq, 1);
     if(err < 0) return err;
     d->abort = 0;
     packet_queue_init(&d->packetq);
@@ -161,9 +161,10 @@ void decoder_update_for_eof(Decoder *d)
     packet_queue_put_nullpacket(&d->packetq, d->stream->index, d);
 }
 
-bool decoder_needs_more_packets(Decoder *d)
+bool decoder_needs_more_packets(Decoder *d, int target_frame_queue_size)
 {
-    return !d->abort && d->packetq.pq_length < MIN_FRAMES;
+    // Packets can result in more than one frame, but the basic idea is to just not grow the packetq needlessly.
+    return !d->abort && frame_queue_nb_remaining(&d->frameq) + d->packetq.pq_length < target_frame_queue_size;
 }
 
 bool decoder_finished(Decoder *d)
