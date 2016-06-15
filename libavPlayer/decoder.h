@@ -1,9 +1,13 @@
 @class VideoState;
 
+extern AVPacket flush_pkt;
+
 @interface Decoder : NSObject {
 @public
     AVFrame *tmp_frame;
     AVCodecContext *avctx;
+    // Serial numbers are use to flush out obsolete packets/frames after seeking.  We increment ->current_serial each time we seek.
+    int current_serial;
     int pkt_serial;
     int finished;
     int abort;

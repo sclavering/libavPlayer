@@ -3,6 +3,9 @@
 #import "packetqueue.h"
 
 
+AVPacket flush_pkt;
+
+
 @implementation Decoder
 @end
 
@@ -43,7 +46,7 @@ int decoder_decode_next_packet(Decoder *d) {
             d->finished = 0;
             d->next_pts = AV_NOPTS_VALUE;
         }
-    } while (pkt.data == flush_pkt.data || d->packetq.pq_serial != d->pkt_serial);
+    } while (pkt.data == flush_pkt.data || d->current_serial != d->pkt_serial);
 
     int err = avcodec_send_packet(d->avctx, &pkt);
     av_packet_unref(&pkt);
@@ -147,6 +150,8 @@ bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt)
 void decoder_update_for_seek(Decoder *d)
 {
     packet_queue_flush(&d->packetq);
+    // Not sure if this strictly needs to be atomic
+    OSAtomicIncrement32Barrier(&d->current_serial);
     packet_queue_put(&d->packetq, &flush_pkt, d);
 }
 
@@ -162,7 +167,7 @@ bool decoder_needs_more_packets(Decoder *d)
 
 bool decoder_finished(Decoder *d)
 {
-    return d->finished == d->packetq.pq_serial && frame_queue_nb_remaining(&d->frameq) == 0;
+    return d->finished == d->current_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
 bool decoder_drop_frames_with_expired_serial(Decoder *d)
@@ -172,7 +177,7 @@ bool decoder_drop_frames_with_expired_serial(Decoder *d)
     for(;;) {
         Frame *fr = decoder_peek_current_frame(d);
         if (!fr) return true;
-        if (fr->frm_serial == d->packetq.pq_serial) break;
+        if (fr->frm_serial == d->current_serial) break;
         decoder_advance_frame(d);
         ++i;
     }

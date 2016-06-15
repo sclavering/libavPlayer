@@ -28,8 +28,6 @@
 
 @class Decoder;
 
-extern AVPacket flush_pkt;
-
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList *next;
@@ -39,7 +37,6 @@ typedef struct MyAVPacketList {
 typedef struct PacketQueue {
     MyAVPacketList *first_pkt, *last_pkt;
     int pq_length;
-    int pq_serial;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 } PacketQueue;

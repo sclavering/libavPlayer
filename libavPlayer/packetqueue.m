@@ -25,8 +25,6 @@
 #import "packetqueue.h"
 #import "lavp_audio.h"
 
-AVPacket flush_pkt;
-
 
 void packet_queue_init(PacketQueue *q)
 {
@@ -73,9 +71,7 @@ int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d)
     pthread_mutex_lock(&q->mutex);
     pkt1->pkt = *pkt;
     pkt1->next = NULL;
-    if (pkt == &flush_pkt)
-        q->pq_serial++;
-    pkt1->serial = q->pq_serial;
+    pkt1->serial = d->current_serial;
     if (!q->last_pkt)
         q->first_pkt = pkt1;
     else

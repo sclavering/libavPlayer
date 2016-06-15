@@ -66,7 +66,7 @@ int audio_decode_frame(VideoState *is)
         if (!(af = decoder_peek_current_frame_blocking(is->auddec)))
             return -1;
         decoder_advance_frame(is->auddec);
-    } while (af->frm_serial != is->auddec->packetq.pq_serial);
+    } while (af->frm_serial != is->auddec->current_serial);
 
     int data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
 

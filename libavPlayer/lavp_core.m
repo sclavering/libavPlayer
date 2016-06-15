@@ -307,7 +307,7 @@ VideoState* stream_open(NSURL *sourceURL)
     if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
         goto fail;
 
-    clock_init(&is->audclk, &is->auddec->packetq.pq_serial);
+    clock_init(&is->audclk, &is->auddec->current_serial);
 
     is->parse_queue = dispatch_queue_create("parse", NULL);
     is->parse_group = dispatch_group_create();
