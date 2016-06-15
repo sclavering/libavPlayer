@@ -30,7 +30,6 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
 int decoder_decode_next_packet(Decoder *d) {
     AVPacket pkt;
 
-try_again:
     if (d->abort)
         return -1;
 
@@ -50,7 +49,7 @@ try_again:
     av_packet_unref(&pkt);
     // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Absent this special case, the decoder_thread would get shut down.
     if (err == AVERROR_INVALIDDATA)
-        goto try_again;
+        return 0;
     // Note: since we're looping over all frames from the packet, we shouldn't need to check for AVERROR(EAGAIN).
     if (err)
         return -1;
