@@ -27,8 +27,6 @@
 
 AVPacket flush_pkt;
 
-static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt);
-
 
 void packet_queue_init(PacketQueue *q)
 {
@@ -67,12 +65,12 @@ void packet_queue_destroy(PacketQueue *q)
     pthread_cond_destroy(&q->cond);
 }
 
-static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
+int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d)
 {
-    MyAVPacketList *pkt1;
-    pkt1 = av_malloc(sizeof(MyAVPacketList));
-    if (!pkt1)
-        return -1;
+    if (d->abort) goto fail;
+    MyAVPacketList *pkt1 = av_malloc(sizeof(MyAVPacketList));
+    if (!pkt1) goto fail;
+    pthread_mutex_lock(&q->mutex);
     pkt1->pkt = *pkt;
     pkt1->next = NULL;
     if (pkt == &flush_pkt)
@@ -86,17 +84,11 @@ static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
     q->pq_length++;
     /* XXX: should duplicate packet data in DV case */
     pthread_cond_signal(&q->cond);
-    return 0;
-}
-
-int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d)
-{
-    if (d->abort) return -1;
-    pthread_mutex_lock(&q->mutex);
-    int ret = packet_queue_put_private(q, pkt);
     pthread_mutex_unlock(&q->mutex);
-    if (pkt != &flush_pkt && ret < 0) av_packet_unref(pkt);
-    return ret;
+    return 0;
+fail:
+    av_packet_unref(pkt);
+    return -1;
 }
 
 int packet_queue_put_nullpacket(PacketQueue *q, int stream_index, Decoder *d)
