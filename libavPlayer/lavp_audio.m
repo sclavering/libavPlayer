@@ -63,6 +63,29 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     is->audio_buf_index = 0;
 
     audio_queue_init(is, avctx);
+
+    int64_t dec_channel_layout =
+        (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ?
+        avctx->channel_layout : av_get_default_channel_layout(avctx->channels);
+
+    if (avctx->sample_fmt != is->audio_src.fmt || dec_channel_layout != is->audio_src.channel_layout || avctx->sample_rate != is->audio_src.freq)
+    {
+        swr_free(&is->swr_ctx);
+        is->swr_ctx = swr_alloc_set_opts(NULL, is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq, dec_channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
+        if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
+            av_log(NULL, AV_LOG_ERROR,
+                "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
+                avctx->sample_rate, av_get_sample_fmt_name(avctx->sample_fmt), avctx->channels,
+                is->audio_tgt.freq, av_get_sample_fmt_name(is->audio_tgt.fmt), is->audio_tgt.channels);
+            swr_free(&is->swr_ctx);
+            return -1;
+        }
+        is->audio_src.channel_layout = dec_channel_layout;
+        is->audio_src.channels = avctx->channels;
+        is->audio_src.freq = avctx->sample_rate;
+        is->audio_src.fmt = avctx->sample_fmt;
+    }
+
     return 0;
 }
 
@@ -80,28 +103,6 @@ int audio_decode_frame(VideoState *is)
     } while (af->frm_serial != is->auddec->current_serial);
 
     int data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
-
-    int64_t dec_channel_layout =
-        (af->frm_frame->channel_layout && av_frame_get_channels(af->frm_frame) == av_get_channel_layout_nb_channels(af->frm_frame->channel_layout)) ?
-        af->frm_frame->channel_layout : av_get_default_channel_layout(av_frame_get_channels(af->frm_frame));
-
-    if (af->frm_frame->format != is->audio_src.fmt || dec_channel_layout != is->audio_src.channel_layout || af->frm_frame->sample_rate != is->audio_src.freq)
-    {
-        swr_free(&is->swr_ctx);
-        is->swr_ctx = swr_alloc_set_opts(NULL, is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq, dec_channel_layout, af->frm_frame->format, af->frm_frame->sample_rate, 0, NULL);
-        if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
-            av_log(NULL, AV_LOG_ERROR,
-                "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
-                af->frm_frame->sample_rate, av_get_sample_fmt_name(af->frm_frame->format), av_frame_get_channels(af->frm_frame),
-                is->audio_tgt.freq, av_get_sample_fmt_name(is->audio_tgt.fmt), is->audio_tgt.channels);
-            swr_free(&is->swr_ctx);
-            return -1;
-        }
-        is->audio_src.channel_layout = dec_channel_layout;
-        is->audio_src.channels = av_frame_get_channels(af->frm_frame);
-        is->audio_src.freq = af->frm_frame->sample_rate;
-        is->audio_src.fmt = af->frm_frame->format;
-    }
 
     int resampled_data_size;
     if (is->swr_ctx) {
