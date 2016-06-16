@@ -39,7 +39,7 @@
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
     AudioQueueRef audio_queue;
-    AudioStreamBasicDescription asbd;
+    unsigned int audio_queue_num_frames_to_prepare;
     dispatch_queue_t audio_dispatch_queue;
 
     // Video
