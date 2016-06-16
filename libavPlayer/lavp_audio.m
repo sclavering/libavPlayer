@@ -151,7 +151,7 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
                 if (audio_size < 0) {
                     /* if error, just output silence */
                     is->audio_buf = NULL;
-                    is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE / is->audio_tgt.frame_size * is->audio_tgt.frame_size;
+                    is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE;
                 } else {
                     is->audio_buf_size = audio_size;
                 }
