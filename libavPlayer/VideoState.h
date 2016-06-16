@@ -36,7 +36,6 @@
     unsigned int audio_buf_size; /* in bytes */
     unsigned int audio_buf1_size;
     int audio_buf_index; /* in bytes */
-    struct AudioParams audio_src;
     struct AudioParams audio_tgt;
     struct SwrContext *swr_ctx;
     AudioQueueRef audio_queue;

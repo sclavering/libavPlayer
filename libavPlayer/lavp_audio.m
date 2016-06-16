@@ -58,7 +58,7 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     }
 
     is->audio_hw_buf_size = SDL_AUDIO_BUFFER_SIZE * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
-    is->audio_src = is->audio_tgt;
+    AudioParams audio_src = is->audio_tgt;
     is->audio_buf_size  = 0;
     is->audio_buf_index = 0;
 
@@ -68,9 +68,8 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
         (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ?
         avctx->channel_layout : av_get_default_channel_layout(avctx->channels);
 
-    if (avctx->sample_fmt != is->audio_src.fmt || dec_channel_layout != is->audio_src.channel_layout || avctx->sample_rate != is->audio_src.freq)
+    if (avctx->sample_fmt != audio_src.fmt || dec_channel_layout != audio_src.channel_layout || avctx->sample_rate != audio_src.freq)
     {
-        swr_free(&is->swr_ctx);
         is->swr_ctx = swr_alloc_set_opts(NULL, is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq, dec_channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
         if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
             av_log(NULL, AV_LOG_ERROR,
@@ -80,10 +79,6 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
             swr_free(&is->swr_ctx);
             return -1;
         }
-        is->audio_src.channel_layout = dec_channel_layout;
-        is->audio_src.channels = avctx->channels;
-        is->audio_src.freq = avctx->sample_rate;
-        is->audio_src.fmt = avctx->sample_fmt;
     }
 
     return 0;
