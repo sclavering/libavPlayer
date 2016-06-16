@@ -33,8 +33,12 @@ int audio_decode_frame(VideoState *is);
 #define SDL_AUDIO_BUFFER_SIZE 1024
 
 
-int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params)
+int audio_open(VideoState *is, AVCodecContext *avctx)
 {
+    int64_t wanted_channel_layout = avctx->channel_layout;
+    int wanted_nb_channels = avctx->channels;
+    int wanted_sample_rate = avctx->sample_rate;
+
     if (wanted_sample_rate <= 0) wanted_sample_rate = 48000;
     if (wanted_nb_channels <= 0) wanted_nb_channels = 2;
     if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
@@ -42,17 +46,17 @@ int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_chan
         wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
     }
 
-    audio_hw_params->fmt = AV_SAMPLE_FMT_S16;
-    audio_hw_params->freq = wanted_sample_rate;
-    audio_hw_params->channel_layout = wanted_channel_layout;
-    audio_hw_params->channels =  wanted_nb_channels;
-    audio_hw_params->frame_size = av_samples_get_buffer_size(NULL, audio_hw_params->channels, 1, audio_hw_params->fmt, 1);
-    audio_hw_params->bytes_per_sec = av_samples_get_buffer_size(NULL, audio_hw_params->channels, audio_hw_params->freq, audio_hw_params->fmt, 1);
-    if (audio_hw_params->bytes_per_sec <= 0 || audio_hw_params->frame_size <= 0) {
+    is->audio_tgt.fmt = AV_SAMPLE_FMT_S16;
+    is->audio_tgt.freq = wanted_sample_rate;
+    is->audio_tgt.channel_layout = wanted_channel_layout;
+    is->audio_tgt.channels = wanted_nb_channels;
+    is->audio_tgt.frame_size = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, 1, is->audio_tgt.fmt, 1);
+    is->audio_tgt.bytes_per_sec = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, is->audio_tgt.freq, is->audio_tgt.fmt, 1);
+    if (is->audio_tgt.bytes_per_sec <= 0 || is->audio_tgt.frame_size <= 0) {
         av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n");
         return -1;
     }
-    return SDL_AUDIO_BUFFER_SIZE * audio_hw_params->channels * av_get_bytes_per_sample(audio_hw_params->fmt);
+    return SDL_AUDIO_BUFFER_SIZE * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
 }
 
 // Decode one audio frame (converting if required), store it in is->audio_buf, and return its uncompressed size in bytes (or negative on error).

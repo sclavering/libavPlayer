@@ -26,7 +26,7 @@
 
 #import "lavp_common.h"
 
-int audio_open(VideoState *is, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct AudioParams *audio_hw_params);
+int audio_open(VideoState *is, AVCodecContext *avctx);
 
 void audio_queue_init(VideoState *is, AVCodecContext *avctx);
 void audio_queue_start(VideoState *is);

@@ -80,7 +80,7 @@ static int stream_component_open(VideoState *is, AVStream *stream)
             if(decoder_init(is->auddec, avctx, &is->continue_read_thread, stream) < 0)
                 goto fail;
 
-            if ((ret = audio_open(is, avctx->channel_layout, avctx->channels, avctx->sample_rate, &is->audio_tgt)) < 0)
+            if ((ret = audio_open(is, avctx)) < 0)
                 goto out;
             is->audio_hw_buf_size = ret;
             is->audio_src = is->audio_tgt;
