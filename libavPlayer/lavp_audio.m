@@ -140,7 +140,6 @@ int audio_decode_frame(VideoState *is)
 
 static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
 {
-    @autoreleasepool {
         uint8_t *stream = inBuffer->mAudioData;
         int len = inBuffer->mAudioDataBytesCapacity;
 
@@ -192,7 +191,6 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
             }
             NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d (%@)", err, errStr);
         }
-    }
 }
 
 static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
