@@ -56,7 +56,14 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
         av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n");
         return -1;
     }
-    return SDL_AUDIO_BUFFER_SIZE * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
+
+    is->audio_hw_buf_size = SDL_AUDIO_BUFFER_SIZE * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
+    is->audio_src = is->audio_tgt;
+    is->audio_buf_size  = 0;
+    is->audio_buf_index = 0;
+
+    audio_queue_init(is, avctx);
+    return 0;
 }
 
 // Decode one audio frame (converting if required), store it in is->audio_buf, and return its uncompressed size in bytes (or negative on error).

@@ -82,12 +82,6 @@ static int stream_component_open(VideoState *is, AVStream *stream)
 
             if ((ret = audio_open(is, avctx)) < 0)
                 goto out;
-            is->audio_hw_buf_size = ret;
-            is->audio_src = is->audio_tgt;
-            is->audio_buf_size  = 0;
-            is->audio_buf_index = 0;
-
-            audio_queue_init(is, avctx);
             audio_queue_start(is);
 
             break;
