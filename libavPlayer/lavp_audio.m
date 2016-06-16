@@ -26,7 +26,8 @@
 #import "lavp_audio.h"
 
 
-int audio_decode_frame(VideoState *is);
+static int audio_decode_frame(VideoState *is);
+static void audio_queue_init(VideoState *is, AVCodecContext *avctx);
 
 /* SDL audio buffer size, in samples. Should be small to have precise
  A/V sync as SDL does not have hardware buffer fullness info. */
@@ -194,17 +195,8 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
     }
 }
 
-void audio_queue_init(VideoState *is, AVCodecContext *avctx)
+static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
 {
-    if (is->audio_queue) return;
-
-    if (!avctx->sample_rate) {
-        // NOTE: is->audio_queue, is->audio_dispatch_queue are left uninitialized
-
-        // xxx abort here, in some fashion (since we need the sample_rate for the audio clock)
-        return;
-    }
-
     // prepare Audio stream basic description
     double inSampleRate = avctx->sample_rate;
     unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed

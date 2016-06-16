@@ -28,12 +28,9 @@
 
 int audio_open(VideoState *is, AVCodecContext *avctx);
 
-void audio_queue_init(VideoState *is, AVCodecContext *avctx);
 void audio_queue_start(VideoState *is);
 void audio_queue_pause(VideoState *is);
 void audio_queue_destroy(VideoState *is);
-
-int audio_thread(VideoState *is);
 
 void lavp_audio_update_speed(VideoState *is);
 int lavp_get_volume_percent(VideoState *is);
