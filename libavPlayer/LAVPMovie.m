@@ -19,6 +19,7 @@
  */
 
 #import "LAVPMovie.h"
+#import "LAVPMovie+Internal.h"
 
 #import "lavp_core.h"
 #import "lavp_common.h"
@@ -70,8 +71,8 @@
 }
 
 // I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.
--(NSSize) sizeForGLTextures {
-    return is ? NSMakeSize(is->width, is->height) : NSMakeSize(1, 1);
+-(IntSize) sizeForGLTextures {
+    return is ? (IntSize) { is->width, is->height } : (IntSize) { 1, 1 };
 }
 
 -(int64_t) durationInMicroseconds {

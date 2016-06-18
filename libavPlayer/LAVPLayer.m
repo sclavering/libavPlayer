@@ -311,7 +311,7 @@ GLuint init_shader(GLenum kind, const char* code) {
 
     // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
     if(fr) {
-        NSSize sz = [_movie sizeForGLTextures];
+        IntSize sz = [_movie sizeForGLTextures];
         glBindTexture(GL_TEXTURE_2D, _textures[0]);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, fr->linesize[0]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width, sz.height, 0, GL_RED, GL_UNSIGNED_BYTE, fr->data[0]);

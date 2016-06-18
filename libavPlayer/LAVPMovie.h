@@ -25,6 +25,7 @@
 
 #import <Cocoa/Cocoa.h>
 
+
 @class VideoState;
 @protocol LAVPMovieOutput;
 
