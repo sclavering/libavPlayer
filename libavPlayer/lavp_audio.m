@@ -170,7 +170,8 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
         /* Let's assume the audio driver that is used by SDL has two periods. */
         if (!isnan(is->audio_clock)) {
             unsigned int audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
-            clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, audio_callback_time / 1000000.0);
+            double clock_time = is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec;
+            clock_set_at(&is->audclk, (int64_t)(clock_time * 1000000), is->audio_clock_serial, audio_callback_time);
         }
 
         OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);

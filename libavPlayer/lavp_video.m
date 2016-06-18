@@ -43,7 +43,8 @@ void video_refresh(VideoState *is)
         Frame *curr = decoder_peek_current_frame(is->viddec);
         if (!curr) return;
         Frame *next = decoder_peek_next_frame(is->viddec);
-        double now = clock_get(&is->audclk);
+        int64_t now_usec = clock_get_usec(&is->audclk);
+        double now = now_usec < 0 ? NAN : now_usec / 1000000.0;
         // If the next frame is still in the future, stop here.
         if (next && !(curr->frm_pts < now && next->frm_pts < now)) break;
         // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.

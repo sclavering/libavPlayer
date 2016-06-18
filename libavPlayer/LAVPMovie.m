@@ -81,9 +81,8 @@
 
 -(int64_t) currentTimeInMicroseconds {
     if(!is || !is->ic) return 0;
-    // Note: the audio clock is the master clock.
-    double pos = clock_get(&is->audclk) * 1e6;
-    if(!isnan(pos)) lastPosition = (int64_t) pos;
+    int64_t pos = clock_get_usec(&is->audclk);
+    if(pos >= 0) lastPosition = pos;
     return lastPosition;
 }
 
@@ -107,7 +106,7 @@
     if(is->ic) {
         if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
         lavp_seek(is, newTime, self.currentTimeInMicroseconds);
-        // This exists because clock_get() returns NAN after seeking while paused, and we need to mask that.
+        // This exists because clock_get_usec() returns invalid values after seeking while paused, and we need to mask that.
         lastPosition = newTime;
     }
 }
