@@ -140,7 +140,7 @@ int audio_decode_frame(VideoState *is)
 
 static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-        uint8_t *stream = qbuf->mAudioData;
+        qbuf->mAudioDataByteSize = 0;
         int len = qbuf->mAudioDataBytesCapacity;
 
         int64_t audio_callback_time = av_gettime_relative();
@@ -161,9 +161,9 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
             if (len1 > len)
                 len1 = len;
             if (is->audio_buf)
-                memcpy(stream, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+                memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
             len -= len1;
-            stream += len1;
+            qbuf->mAudioDataByteSize += len1;
             is->audio_buf_index += len1;
         }
 
@@ -173,7 +173,6 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
             clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, audio_callback_time / 1000000.0);
         }
 
-        qbuf->mAudioDataByteSize = stream - (UInt8 *)qbuf->mAudioData;
         OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
         if (err) {
             NSString *errStr = @"kAudioQueueErr_???";
