@@ -283,13 +283,6 @@ void audio_queue_destroy(VideoState *is)
     if (is->audio_dispatch_queue) is->audio_dispatch_queue = NULL;
 }
 
-void audio_set_volume(VideoState *is, AudioQueueParameterValue volume)
-{
-    if (!is->audio_queue) return;
-    OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_Volume, volume);
-    assert(!err);
-}
-
 void lavp_audio_update_speed(VideoState *is)
 {
     if (!is->audio_queue) return;
@@ -309,6 +302,5 @@ void lavp_set_volume_percent(VideoState *is, int volume)
 {
     if (!is) return;
     is->volume_percent = volume;
-    AudioQueueParameterValue newVolume = (AudioQueueParameterValue)volume / 100.0;
-    if (is->auddec->stream) audio_set_volume(is, newVolume);
+    if (is->audio_queue) AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_Volume, (AudioQueueParameterValue)volume / 100.0);
 }
