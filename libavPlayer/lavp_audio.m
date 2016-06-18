@@ -138,10 +138,10 @@ int audio_decode_frame(VideoState *is)
     return resampled_data_size;
 }
 
-static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferRef inBuffer)
+static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-        uint8_t *stream = inBuffer->mAudioData;
-        int len = inBuffer->mAudioDataBytesCapacity;
+        uint8_t *stream = qbuf->mAudioData;
+        int len = qbuf->mAudioDataBytesCapacity;
 
         int64_t audio_callback_time = av_gettime_relative();
 
@@ -173,8 +173,8 @@ static void audio_callback(VideoState *is, AudioQueueRef inAQ, AudioQueueBufferR
             clock_set_at(&is->audclk, is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec, is->audio_clock_serial, audio_callback_time / 1000000.0);
         }
 
-        inBuffer->mAudioDataByteSize = stream - (UInt8 *)inBuffer->mAudioData;
-        OSStatus err = AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
+        qbuf->mAudioDataByteSize = stream - (UInt8 *)qbuf->mAudioData;
+        OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
         if (err) {
             NSString *errStr = @"kAudioQueueErr_???";
             switch (err) {
@@ -221,11 +221,11 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
 
     if (!is->audio_dispatch_queue) {
         __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-        void (^audioCallbackBlock)() = ^(AudioQueueRef inAQ, AudioQueueBufferRef inBuffer) {
+        void (^audioCallbackBlock)() = ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
             __strong VideoState* strongIs = weakIs;
             /* AudioQueue Callback should be ignored when closing */
             if (!strongIs || strongIs->abort_request) return;
-            audio_callback(strongIs, inAQ, inBuffer);
+            audio_callback(strongIs, aq, qbuf);
         };
 
         is->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
@@ -235,23 +235,23 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
     assert(err == 0 && audio_queue != NULL);
     is->audio_queue = audio_queue;
 
-    unsigned int propValue = 1;
-    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_EnableTimePitch, &propValue, sizeof(propValue));
+    unsigned int prop_value = 1;
+    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value));
     assert(err == 0);
-    propValue = kAudioQueueTimePitchAlgorithm_Spectral;
-    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &propValue, sizeof(propValue));
+    prop_value = kAudioQueueTimePitchAlgorithm_Spectral;
+    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value));
     assert(err == 0);
 
     // prepare audio queue buffers for Output
-    unsigned int inBufferByteSize = (asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
+    unsigned int buf_size = (asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
     for (int i = 0; i < 3; i++) {
-        AudioQueueBufferRef outBuffer = NULL;
-        err = AudioQueueAllocateBuffer(is->audio_queue, inBufferByteSize, &outBuffer);
-        assert(err == 0 && outBuffer != NULL);
-        memset(outBuffer->mAudioData, 0, outBuffer->mAudioDataBytesCapacity);
+        AudioQueueBufferRef out_buf = NULL;
+        err = AudioQueueAllocateBuffer(is->audio_queue, buf_size, &out_buf);
+        assert(err == 0 && out_buf != NULL);
+        memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
         // Enqueue dummy data to start queuing
-        outBuffer->mAudioDataByteSize = 8; // dummy data
-        AudioQueueEnqueueBuffer(is->audio_queue, outBuffer, 0, 0);
+        out_buf->mAudioDataByteSize = 8; // dummy data
+        AudioQueueEnqueueBuffer(is->audio_queue, out_buf, 0, 0);
     }
 }
 
@@ -295,8 +295,8 @@ void lavp_audio_update_speed(VideoState *is)
     if (!is->audio_queue) return;
     OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_PlayRate, (double)is->playback_speed_percent / 100.0);
     assert(err == 0);
-    unsigned int propValue = (is->playback_speed_percent == 100);
-    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchBypass, &propValue, sizeof(propValue));
+    unsigned int prop_value = (is->playback_speed_percent == 100);
+    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchBypass, &prop_value, sizeof(prop_value));
     assert(err == 0);
 }
 
