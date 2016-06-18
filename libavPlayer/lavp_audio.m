@@ -211,7 +211,7 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
     asbd.mChannelsPerFrame = inChannelsPerFrame;
     asbd.mBitsPerChannel = inValidBitsPerChannel;
 
-    is->audio_queue_num_frames_to_prepare = asbd.mSampleRate / 60; // Prepare for 1/60 sec (assuming normal playback speed).
+    is->audio_queue_num_frames_to_prepare = (int) (asbd.mSampleRate / 60); // Prepare for 1/60 sec (assuming normal playback speed).
 
     // prepare AudioQueue for Output
     OSStatus err = 0;
@@ -241,7 +241,7 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
     assert(err == 0);
 
     // prepare audio queue buffers for Output
-    unsigned int buf_size = (asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
+    unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
     for (int i = 0; i < 3; i++) {
         AudioQueueBufferRef out_buf = NULL;
         err = AudioQueueAllocateBuffer(is->audio_queue, buf_size, &out_buf);
