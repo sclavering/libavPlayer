@@ -201,8 +201,7 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
     unsigned int inFramesPerPacket = 1;
     unsigned int inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
     unsigned int inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
-    AudioStreamBasicDescription asbd;
-    memset(&asbd, 0, sizeof(AudioStreamBasicDescription));
+    AudioStreamBasicDescription asbd = { 0 };
     asbd.mSampleRate = inSampleRate;
     asbd.mFormatID = kAudioFormatLinearPCM;
     asbd.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
