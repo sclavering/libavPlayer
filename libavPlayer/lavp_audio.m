@@ -285,7 +285,7 @@ void audio_queue_destroy(VideoState *is)
 void lavp_audio_update_speed(VideoState *is)
 {
     if (!is->audio_queue) return;
-    OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_PlayRate, (double)is->playback_speed_percent / 100.0);
+    OSStatus err = AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_PlayRate, is->playback_speed_percent / 100.0f);
     assert(err == 0);
     unsigned int prop_value = (is->playback_speed_percent == 100);
     err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchBypass, &prop_value, sizeof(prop_value));
@@ -301,5 +301,5 @@ void lavp_set_volume_percent(VideoState *is, int volume)
 {
     if (!is) return;
     is->volume_percent = volume;
-    if (is->audio_queue) AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_Volume, (AudioQueueParameterValue)volume / 100.0);
+    if (is->audio_queue) AudioQueueSetParameter(is->audio_queue, kAudioQueueParam_Volume, volume / 100.0f);
 }
