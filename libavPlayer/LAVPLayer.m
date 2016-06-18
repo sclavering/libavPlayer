@@ -79,7 +79,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         GLint numPixelFormats = 0;
         CGLPixelFormatAttribute attributes[] =
         {
-            kCGLPFAOpenGLProfile, kCGLOGLPVersion_GL3_Core,
+            kCGLPFAOpenGLProfile, (CGLPixelFormatAttribute) kCGLOGLPVersion_GL3_Core,
             kCGLPFAAccelerated,
             kCGLPFADoubleBuffer,
             kCGLPFAColorSize, 24,
