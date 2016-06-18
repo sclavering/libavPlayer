@@ -32,7 +32,7 @@
 @interface LAVPMovie : NSObject {
 @private
     VideoState *is;
-    double lastPosition;
+    int64_t lastPosition;
 }
 
 @property (retain, readonly) NSURL *url;

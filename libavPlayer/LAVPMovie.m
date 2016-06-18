@@ -83,7 +83,7 @@
     if(!is || !is->ic) return 0;
     // Note: the audio clock is the master clock.
     double pos = clock_get(&is->audclk) * 1e6;
-    if(!isnan(pos)) lastPosition = pos;
+    if(!isnan(pos)) lastPosition = (int64_t) pos;
     return lastPosition;
 }
 
@@ -97,7 +97,7 @@
 }
 
 -(void) setCurrentTimeAsFraction:(double)pos {
-    self.currentTimeInMicroseconds = pos * self.durationInMicroseconds;
+    self.currentTimeInMicroseconds = (int64_t) (pos * self.durationInMicroseconds);
 }
 
 -(void) setCurrentTimeInMicroseconds:(int64_t)newTime {
