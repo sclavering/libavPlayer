@@ -172,20 +172,6 @@ bool decoder_finished(Decoder *d)
     return d->finished == d->current_serial && frame_queue_nb_remaining(&d->frameq) == 0;
 }
 
-bool decoder_drop_frames_with_expired_serial(Decoder *d)
-{
-    // Skips any frames left over from before seeking.
-    int i = 0;
-    for(;;) {
-        Frame *fr = decoder_peek_current_frame(d);
-        if (!fr) return true;
-        if (fr->frm_serial == d->current_serial) break;
-        decoder_advance_frame(d);
-        ++i;
-    }
-    return false;
-}
-
 void decoder_thread(Decoder *d)
 {
     for(;;) {
@@ -201,7 +187,15 @@ void decoder_advance_frame(Decoder *d)
 
 Frame *decoder_peek_current_frame(Decoder *d)
 {
-    return frame_queue_peek(&d->frameq);
+    Frame *fr = NULL;
+    // Skip any frames left over from before seeking.
+    for(;;) {
+        fr = frame_queue_peek(&d->frameq);
+        if (!fr) break;
+        if (fr->frm_serial == d->current_serial) break;
+        decoder_advance_frame(d);
+    }
+    return fr;
 }
 
 Frame *decoder_peek_next_frame(Decoder *d)

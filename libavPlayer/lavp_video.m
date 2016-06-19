@@ -33,9 +33,6 @@ void video_refresh(VideoState *is)
     if (is->paused)
         return;
 
-    if(decoder_drop_frames_with_expired_serial(is->viddec))
-        return;
-
     // Skip any frames that are in the past (except the current frame).
     for(;;) {
         Frame *curr = decoder_peek_current_frame(is->viddec);

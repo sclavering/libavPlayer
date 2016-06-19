@@ -31,8 +31,6 @@ void decoder_update_for_eof(Decoder *d);
 bool decoder_needs_more_packets(Decoder *d, int target_frame_queue_size);
 bool decoder_finished(Decoder *d);
 
-bool decoder_drop_frames_with_expired_serial(Decoder *d);
-
 void decoder_advance_frame(Decoder *d);
 Frame *decoder_peek_current_frame(Decoder *d);
 Frame *decoder_peek_next_frame(Decoder *d);
