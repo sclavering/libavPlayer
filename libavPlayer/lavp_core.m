@@ -205,12 +205,10 @@ void lavp_set_paused_internal(VideoState *is, bool pause)
     is->is_temporarily_unpaused_to_handle_seeking = false;
     is->paused = pause;
     clock_set_paused(&is->audclk, pause);
-    if (is->auddec->stream) {
-        if (is->paused)
-            audio_queue_pause(is);
-        else
-            audio_queue_start(is);
-    }
+    if (is->paused)
+        audio_queue_pause(is);
+    else
+        audio_queue_start(is);
     __strong id<LAVPMovieOutput> movieOutput = is ? is->weak_output : NULL;
     if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }

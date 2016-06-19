@@ -55,19 +55,14 @@
 }
 
 -(NSSize) naturalSize {
-    NSSize size = NSMakeSize(is->width, is->height);
-    if (is->viddec->stream && is->viddec->stream->codecpar) {
-        AVRational sRatio = is->viddec->stream->sample_aspect_ratio;
-        AVRational cRatio = is->viddec->stream->codecpar->sample_aspect_ratio;
-        if (sRatio.num * sRatio.den) {
-            // Use stream aspect ratio
-            size = NSMakeSize(is->width * sRatio.num / sRatio.den, is->height);
-        } else if (cRatio.num * cRatio.den) {
-            // Use codec aspect ratio
-            size = NSMakeSize(is->width * cRatio.num / cRatio.den, is->height);
-        }
-    }
-    return size;
+    if(!is) return NSMakeSize(1, 1);
+    // Use the stream aspect ratio
+    AVRational sRatio = is->viddec->stream->sample_aspect_ratio;
+    if(sRatio.num && sRatio.den) return NSMakeSize(is->width * sRatio.num / sRatio.den, is->height);
+    // Or use the codec aspect ratio
+    AVRational cRatio = is->viddec->stream->codecpar->sample_aspect_ratio;
+    if(cRatio.num && cRatio.den) return NSMakeSize(is->width * cRatio.num / cRatio.den, is->height);
+    return NSMakeSize(is->width, is->height);
 }
 
 // I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.

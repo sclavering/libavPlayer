@@ -33,8 +33,6 @@ void video_refresh(VideoState *is)
     if (is->paused)
         return;
 
-    if (!is->viddec->stream) return;
-
     if(decoder_drop_frames_with_expired_serial(is->viddec))
         return;
 
