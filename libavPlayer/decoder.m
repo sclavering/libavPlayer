@@ -196,20 +196,20 @@ void decoder_thread(Decoder *d)
 
 void decoder_advance_frame(Decoder *d)
 {
-  frame_queue_next(&d->frameq);
+    frame_queue_next(&d->frameq);
 }
 
 Frame *decoder_peek_current_frame(Decoder *d)
 {
-  return frame_queue_peek(&d->frameq);
+    return frame_queue_peek(&d->frameq);
 }
 
 Frame *decoder_peek_next_frame(Decoder *d)
 {
-  return frame_queue_peek_next(&d->frameq);
+    return frame_queue_peek_next(&d->frameq);
 }
 
 Frame *decoder_peek_current_frame_blocking(Decoder *d)
 {
-  return frame_queue_peek_blocking(&d->frameq, d);
+    return frame_queue_peek_blocking(&d->frameq, d);
 }
