@@ -31,11 +31,10 @@
 
 -(instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr {
     self = [super init];
-    if (self) {
+    if(self) {
         is = stream_open(sourceURL);
-        if (!is) return nil;
+        if(!is) return nil;
     }
-
     return self;
 }
 
@@ -51,6 +50,7 @@
 }
 
 -(void) setOutput:(id<LAVPMovieOutput>)output {
+    if(!is) return;
     is->weak_output = output;
 }
 
@@ -67,15 +67,17 @@
 
 // I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.
 -(IntSize) sizeForGLTextures {
-    return is ? (IntSize) { is->width, is->height } : (IntSize) { 1, 1 };
+    if(!is) return (IntSize) { 1, 1 };
+    return (IntSize) { is->width, is->height };
 }
 
 -(int64_t) durationInMicroseconds {
-    return is->ic ? is->ic->duration : 0;
+    if(!is) return 0;
+    return is->ic->duration;
 }
 
 -(int64_t) currentTimeInMicroseconds {
-    if(!is || !is->ic) return 0;
+    if(!is) return 0;
     int64_t pos = clock_get_usec(&is->audclk);
     if(pos >= 0) lastPosition = pos;
     return lastPosition;
@@ -98,42 +100,44 @@
     if(!is) return;
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
-    if(is->ic) {
-        if (is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
-        lavp_seek(is, newTime, self.currentTimeInMicroseconds);
-        // This exists because clock_get_usec() returns invalid values after seeking while paused, and we need to mask that.
-        lastPosition = newTime;
-    }
+    if(is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
+    lavp_seek(is, newTime, self.currentTimeInMicroseconds);
+    // This exists because clock_get_usec() returns invalid values after seeking while paused, and we need to mask that.
+    lastPosition = newTime;
 }
 
 -(BOOL) paused {
+    if(!is) return true;
     return is->paused;
 }
 
 -(void) setPaused:(BOOL)shouldPause {
+    if(!is) return;
     lavp_set_paused(is, shouldPause);
 }
 
 -(int) playbackSpeedPercent {
-    if (is->ic && is->ic->duration <= 0) return 0;
-    return lavp_get_playback_speed_percent(is);
+    if(!is) return 100;
+    return is->playback_speed_percent;
 }
 
 -(void) setPlaybackSpeedPercent:(int)speed {
-    if(!is || speed <= 0) return;
-    if(self.playbackSpeedPercent == speed) return;
+    if(!is) return;
     lavp_set_playback_speed_percent(is, speed);
 }
 
 -(int) volumePercent {
+    if(!is) return 100;
     return lavp_get_volume_percent(is);
 }
 
 -(void) setVolumePercent:(int)volume {
+    if(!is) return;
     lavp_set_volume_percent(is, volume);
 }
 
 -(AVFrame*) getCurrentFrame {
+    if(!is) return NULL;
     return lavp_get_current_frame(is);
 }
 

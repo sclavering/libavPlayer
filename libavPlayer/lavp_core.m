@@ -269,13 +269,13 @@ VideoState* stream_open(NSURL *sourceURL)
         if (file_iformat) is->iformat = file_iformat;
     }
 
-    AVFormatContext *ic = avformat_alloc_context();
-    ic->interrupt_callback.callback = decode_interrupt_cb;
-    ic->interrupt_callback.opaque = (__bridge void *)(is);
-    int err = avformat_open_input(&ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
+    is->ic = avformat_alloc_context();
+    if (!is->ic) return NULL;
+    is->ic->interrupt_callback.callback = decode_interrupt_cb;
+    is->ic->interrupt_callback.opaque = (__bridge void *)(is);
+    int err = avformat_open_input(&is->ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
     if (err < 0)
         return NULL;
-    is->ic = ic;
 
     err = avformat_find_stream_info(is->ic, NULL);
     if (err < 0)
@@ -322,16 +322,9 @@ fail:
     return NULL;
 }
 
-
-int lavp_get_playback_speed_percent(VideoState *is)
-{
-    if (!is || !is->ic || is->ic->duration <= 0) return 0;
-    return is->playback_speed_percent;
-}
-
 void lavp_set_playback_speed_percent(VideoState *is, int speed)
 {
-    if (!is || speed < 0) return;
+    if (speed <= 0) return;
     if (is->playback_speed_percent == speed) return;
     is->playback_speed_percent = speed;
     lavp_audio_update_speed(is);
