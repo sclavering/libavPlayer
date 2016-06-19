@@ -86,36 +86,36 @@ int decoder_decode_next_packet(Decoder *d) {
 
 static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
 {
-        switch (d->avctx->codec_type) {
-            case AVMEDIA_TYPE_VIDEO:
-                frame->pts = av_frame_get_best_effort_timestamp(frame);
-                // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (->frm_pts and ->frm_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory theses could appear elsewhere, but we'd still not know what to do with frames with no pts.
-                if (frame->pts == AV_NOPTS_VALUE) return;
-                break;
-            case AVMEDIA_TYPE_AUDIO: {
-                AVRational tb = (AVRational){1, frame->sample_rate};
-                if (frame->pts != AV_NOPTS_VALUE)
-                    frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
-                else if (frame->pkt_pts != AV_NOPTS_VALUE)
-                    frame->pts = av_rescale_q(frame->pkt_pts, av_codec_get_pkt_timebase(d->avctx), tb);
-                else if (d->next_pts != AV_NOPTS_VALUE)
-                    frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
-                if (frame->pts != AV_NOPTS_VALUE) {
-                    d->next_pts = frame->pts + frame->nb_samples;
-                    d->next_pts_tb = tb;
-                }
-                break;
+    switch (d->avctx->codec_type) {
+        case AVMEDIA_TYPE_VIDEO:
+            frame->pts = av_frame_get_best_effort_timestamp(frame);
+            // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (->frm_pts and ->frm_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory theses could appear elsewhere, but we'd still not know what to do with frames with no pts.
+            if (frame->pts == AV_NOPTS_VALUE) return;
+            break;
+        case AVMEDIA_TYPE_AUDIO: {
+            AVRational tb = (AVRational){1, frame->sample_rate};
+            if (frame->pts != AV_NOPTS_VALUE)
+                frame->pts = av_rescale_q(frame->pts, d->avctx->time_base, tb);
+            else if (frame->pkt_pts != AV_NOPTS_VALUE)
+                frame->pts = av_rescale_q(frame->pkt_pts, av_codec_get_pkt_timebase(d->avctx), tb);
+            else if (d->next_pts != AV_NOPTS_VALUE)
+                frame->pts = av_rescale_q(d->next_pts, d->next_pts_tb, tb);
+            if (frame->pts != AV_NOPTS_VALUE) {
+                d->next_pts = frame->pts + frame->nb_samples;
+                d->next_pts_tb = tb;
             }
-            default:
-                break;
+            break;
         }
+        default:
+            break;
+    }
 
-        AVRational tb = { 0, 0 };
-        if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
-        else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
-        fr->frm_pts = frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb);
-        av_frame_move_ref(fr->frm_frame, frame);
-        frame_queue_push(&d->frameq);
+    AVRational tb = { 0, 0 };
+    if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
+    else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
+    fr->frm_pts = frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb);
+    av_frame_move_ref(fr->frm_frame, frame);
+    frame_queue_push(&d->frameq);
 }
 
 void decoder_destroy(Decoder *d)
