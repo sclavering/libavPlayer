@@ -39,12 +39,12 @@ void frame_queue_signal(FrameQueue *f)
 
 Frame *frame_queue_peek_next(FrameQueue *f)
 {
-    return frame_queue_nb_remaining(f) > 1 ? &f->queue[(f->rindex + 1) % FRAME_QUEUE_SIZE] : NULL;
+    return f->size > 1 ? &f->queue[(f->rindex + 1) % FRAME_QUEUE_SIZE] : NULL;
 }
 
 Frame *frame_queue_peek(FrameQueue *f)
 {
-    if (!frame_queue_nb_remaining(f)) return NULL;
+    if (!f->size) return NULL;
     return &f->queue[f->rindex % FRAME_QUEUE_SIZE];
 }
 
@@ -91,10 +91,4 @@ void frame_queue_next(FrameQueue *f)
     f->size--;
     pthread_cond_signal(&f->cond);
     pthread_mutex_unlock(&f->mutex);
-}
-
-/* return the number of undisplayed frames in the queue */
-int frame_queue_nb_remaining(FrameQueue *f)
-{
-    return f->size;
 }

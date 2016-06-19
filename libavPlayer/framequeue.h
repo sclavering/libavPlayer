@@ -30,5 +30,3 @@ Frame *frame_queue_peek_blocking(FrameQueue *f, Decoder *d);
 Frame *frame_queue_peek_writable(FrameQueue *f, Decoder *d);
 void frame_queue_push(FrameQueue *f);
 void frame_queue_next(FrameQueue *f);
-/* return the number of undisplayed frames in the queue */
-int frame_queue_nb_remaining(FrameQueue *f);

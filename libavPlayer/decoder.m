@@ -163,12 +163,12 @@ void decoder_update_for_eof(Decoder *d)
 bool decoder_needs_more_packets(Decoder *d, int target_frame_queue_size)
 {
     // Packets can result in more than one frame, but the basic idea is to just not grow the packetq needlessly.
-    return !d->abort && frame_queue_nb_remaining(&d->frameq) + d->packetq.pq_length < target_frame_queue_size;
+    return !d->abort && d->frameq.size + d->packetq.pq_length < target_frame_queue_size;
 }
 
 bool decoder_finished(Decoder *d)
 {
-    return d->finished == d->current_serial && frame_queue_nb_remaining(&d->frameq) == 0;
+    return d->finished == d->current_serial && !d->frameq.size;
 }
 
 void decoder_thread(Decoder *d)
