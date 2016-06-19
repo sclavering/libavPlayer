@@ -106,12 +106,12 @@
     lastPosition = newTime;
 }
 
--(BOOL) paused {
+-(bool) paused {
     if(!is) return true;
     return is->paused;
 }
 
--(void) setPaused:(BOOL)shouldPause {
+-(void) setPaused:(bool)shouldPause {
     if(!is) return;
     lavp_set_paused(is, shouldPause);
 }
