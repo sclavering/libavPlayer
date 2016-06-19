@@ -17,8 +17,7 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_
     d->stream = stream;
     d->avctx = avctx;
     d->empty_queue_cond_ptr = empty_queue_cond_ptr;
-    // Note: if we pass 0 for keep_last then audio is an unrecognisable mess (presumably we're relying on the frame-queue to keep the currentlly-being-played sample) alive, or somesuch.
-    int err = frame_queue_init(&d->frameq, 1);
+    int err = frame_queue_init(&d->frameq);
     if(err < 0) return err;
     d->abort = 0;
     packet_queue_init(&d->packetq);

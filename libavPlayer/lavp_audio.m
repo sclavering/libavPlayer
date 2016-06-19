@@ -92,11 +92,12 @@ int audio_decode_frame(VideoState *is)
         return -1;
 
     Frame *af;
-    do {
+    for (;;) {
         if (!(af = decoder_peek_current_frame_blocking(is->auddec)))
             return -1;
+        if (af->frm_serial == is->auddec->current_serial) break;
         decoder_advance_frame(is->auddec);
-    } while (af->frm_serial != is->auddec->current_serial);
+    }
 
     int data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
 
@@ -135,6 +136,9 @@ int audio_decode_frame(VideoState *is)
     else
         is->audio_clock = NAN;
     is->audio_clock_serial = af->frm_serial;
+
+    decoder_advance_frame(is->auddec);
+
     return resampled_data_size;
 }
 

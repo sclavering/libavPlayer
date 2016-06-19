@@ -16,14 +16,12 @@ typedef struct FrameQueue {
     int rindex;
     int windex;
     int size;
-    int keep_last;
-    int rindex_shown;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 } FrameQueue;
 
 void frame_queue_unref_item(Frame *vp);
-int frame_queue_init(FrameQueue *f, int keep_last);
+int frame_queue_init(FrameQueue *f);
 void frame_queue_destroy(FrameQueue *f);
 void frame_queue_signal(FrameQueue *f);
 Frame *frame_queue_peek_next(FrameQueue *f);
