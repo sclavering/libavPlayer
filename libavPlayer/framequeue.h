@@ -8,7 +8,7 @@
 typedef struct Frame {
     AVFrame *frm_frame;
     int frm_serial;
-    double frm_pts;           /* presentation timestamp for the frame */
+    int64_t frm_pts_usec;
 } Frame;
 
 typedef struct FrameQueue {

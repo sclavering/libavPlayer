@@ -113,7 +113,7 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
     AVRational tb = { 0, 0 };
     if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
     else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
-    fr->frm_pts = frame->pts == AV_NOPTS_VALUE ? NAN : frame->pts * av_q2d(tb);
+    fr->frm_pts_usec = frame->pts == AV_NOPTS_VALUE ? -1 : frame->pts * 1000000 * tb.num / tb.den;
     av_frame_move_ref(fr->frm_frame, frame);
     frame_queue_push(&d->frameq);
 }

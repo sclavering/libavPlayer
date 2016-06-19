@@ -38,15 +38,14 @@ void video_refresh(VideoState *is)
         Frame *curr = decoder_peek_current_frame(is->viddec);
         if (!curr) return;
         Frame *next = decoder_peek_next_frame(is->viddec);
-        int64_t now_usec = clock_get_usec(&is->audclk);
-        double now = now_usec < 0 ? NAN : now_usec / 1000000.0;
+        int64_t now = clock_get_usec(&is->audclk);
         // If the next frame is still in the future, stop here.
-        if (next && !(curr->frm_pts < now && next->frm_pts < now)) break;
+        if (next && !(curr->frm_pts_usec < now && next->frm_pts_usec < now)) break;
         // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.
         if (!next) {
             AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
-            double duration = frame_rate.num && frame_rate.den ? av_q2d((AVRational){ frame_rate.den, frame_rate.num }) : 0;
-            if (now < curr->frm_pts + duration) break;
+            int64_t duration = frame_rate.num && frame_rate.den ? (frame_rate.den * 1000000LL) / frame_rate.num : 0;
+            if (now < curr->frm_pts_usec + duration) break;
         }
         decoder_advance_frame(is->viddec);
     }
@@ -60,12 +59,12 @@ AVFrame* lavp_get_current_frame(VideoState *is)
     video_refresh(is);
 
     Frame* fr = decoder_peek_current_frame(is->viddec);
-    if (!fr || fr->frm_pts == is->last_shown_video_frame_pts) return NULL;
+    if (!fr || fr->frm_pts_usec == is->last_shown_video_frame_pts) return NULL;
 
     // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.
     // If we ever do handle them, doing conversion via OpenGL would probably work fine here, but for CPU conversion we'd likely want to do it in advance.
     if (fr->frm_frame->format != AV_PIX_FMT_YUV420P) return NULL;
 
-    is->last_shown_video_frame_pts = fr->frm_pts;
+    is->last_shown_video_frame_pts = fr->frm_pts_usec;
     return fr->frm_frame;
 }

@@ -130,8 +130,8 @@ int audio_decode_frame(VideoState *is)
     }
 
     /* update the audio clock with the pts */
-    if (!isnan(af->frm_pts))
-        is->audio_clock = af->frm_pts + (double) af->frm_frame->nb_samples / af->frm_frame->sample_rate;
+    if (af->frm_pts_usec > 0)
+        is->audio_clock = af->frm_pts_usec / 1000000.0 + (double) af->frm_frame->nb_samples / af->frm_frame->sample_rate;
     else
         is->audio_clock = NAN;
     is->audio_clock_serial = af->frm_serial;
