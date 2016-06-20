@@ -223,12 +223,12 @@ void stream_close(VideoState *is)
     if (is) {
         is->abort_request = true;
 
-        dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
+        if (is->parse_group) dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
         is->parse_group = NULL;
         is->parse_queue = NULL;
 
-        decoder_destroy(is->auddec);
-        decoder_destroy(is->viddec);
+        if (is->auddec) decoder_destroy(is->auddec);
+        if (is->viddec) decoder_destroy(is->viddec);
 
         audio_queue_destroy(is);
         swr_free(&is->swr_ctx);
