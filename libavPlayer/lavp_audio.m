@@ -27,7 +27,7 @@
 
 
 static int audio_decode_frame(VideoState *is);
-static void audio_queue_init(VideoState *is, AVCodecContext *avctx);
+static int audio_queue_init(VideoState *is, AVCodecContext *avctx);
 
 /* SDL audio buffer size, in samples. Should be small to have precise
  A/V sync as SDL does not have hardware buffer fullness info. */
@@ -63,7 +63,8 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     is->audio_buf_size  = 0;
     is->audio_buf_index = 0;
 
-    audio_queue_init(is, avctx);
+    if (audio_queue_init(is, avctx) < 0)
+        return -1;
 
     int64_t dec_channel_layout =
         (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ?
@@ -191,7 +192,7 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
         }
 }
 
-static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
+static int audio_queue_init(VideoState *is, AVCodecContext *avctx)
 {
     // prepare Audio stream basic description
     double inSampleRate = avctx->sample_rate;
@@ -212,44 +213,38 @@ static void audio_queue_init(VideoState *is, AVCodecContext *avctx)
 
     is->audio_queue_num_frames_to_prepare = (int) (asbd.mSampleRate / 60); // Prepare for 1/60 sec (assuming normal playback speed).
 
-    // prepare AudioQueue for Output
-    OSStatus err = 0;
-    AudioQueueRef audio_queue = NULL;
-
-    if (!is->audio_dispatch_queue) {
+    is->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
+    {
         __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-        void (^audioCallbackBlock)() = ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
+        OSStatus err = AudioQueueNewOutputWithDispatchQueue(&is->audio_queue, &asbd, 0, is->audio_dispatch_queue, ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
             __strong VideoState* strongIs = weakIs;
-            /* AudioQueue Callback should be ignored when closing */
             if (!strongIs || strongIs->abort_request) return;
             audio_callback(strongIs, aq, qbuf);
-        };
-
-        is->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
-        err = AudioQueueNewOutputWithDispatchQueue(&audio_queue, &asbd, 0, is->audio_dispatch_queue, audioCallbackBlock);
+        });
+        if (!is->audio_queue || err != 0)
+            return -1;
     }
 
-    assert(err == 0 && audio_queue != NULL);
-    is->audio_queue = audio_queue;
-
     unsigned int prop_value = 1;
-    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value));
-    assert(err == 0);
+    if (0 != AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value)))
+        return -1;
     prop_value = kAudioQueueTimePitchAlgorithm_Spectral;
-    err = AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value));
-    assert(err == 0);
+    if (0 != AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value)))
+        return -1;
 
     // prepare audio queue buffers for Output
     unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
     for (int i = 0; i < 3; i++) {
         AudioQueueBufferRef out_buf = NULL;
-        err = AudioQueueAllocateBuffer(is->audio_queue, buf_size, &out_buf);
+        OSStatus err = AudioQueueAllocateBuffer(is->audio_queue, buf_size, &out_buf);
         assert(err == 0 && out_buf != NULL);
         memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
         // Enqueue dummy data to start queuing
         out_buf->mAudioDataByteSize = 8; // dummy data
         AudioQueueEnqueueBuffer(is->audio_queue, out_buf, 0, 0);
     }
+
+    return 0;
 }
 
 void audio_queue_start(VideoState *is)
