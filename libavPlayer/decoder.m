@@ -204,5 +204,12 @@ Frame *decoder_peek_next_frame(Decoder *d)
 
 Frame *decoder_peek_current_frame_blocking(Decoder *d)
 {
-    return frame_queue_peek_blocking(&d->frameq, d);
+    Frame *fr = NULL;
+    for (;;) {
+        if (!(fr = frame_queue_peek_blocking(&d->frameq, d)))
+            return NULL;
+        if (fr->frm_serial == d->current_serial) break;
+        decoder_advance_frame(d);
+    }
+    return fr;
 }
