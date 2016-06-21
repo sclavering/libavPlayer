@@ -38,27 +38,17 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
 {
     int64_t wanted_channel_layout = avctx->channel_layout;
     int wanted_nb_channels = avctx->channels;
-    int wanted_sample_rate = avctx->sample_rate;
 
-    if (wanted_sample_rate <= 0) wanted_sample_rate = 48000;
     if (wanted_nb_channels <= 0) wanted_nb_channels = 2;
     if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
         wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
         wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
     }
 
-    is->audio_tgt.fmt = AV_SAMPLE_FMT_S16;
-    is->audio_tgt.freq = wanted_sample_rate;
-    is->audio_tgt.channel_layout = wanted_channel_layout;
-    is->audio_tgt.channels = wanted_nb_channels;
-    is->audio_tgt.frame_size = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, 1, is->audio_tgt.fmt, 1);
-    is->audio_tgt.bytes_per_sec = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, is->audio_tgt.freq, is->audio_tgt.fmt, 1);
-    if (is->audio_tgt.bytes_per_sec <= 0 || is->audio_tgt.frame_size <= 0) {
-        av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size failed\n");
-        return -1;
-    }
+    is->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
+    int64_t tgt_channel_layout = wanted_channel_layout;
+    is->audio_tgt_channels = wanted_nb_channels;
 
-    AudioParams audio_src = is->audio_tgt;
     is->audio_buf_size  = 0;
     is->audio_buf_index = 0;
 
@@ -69,14 +59,13 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
         (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ?
         avctx->channel_layout : av_get_default_channel_layout(avctx->channels);
 
-    if (avctx->sample_fmt != audio_src.fmt || dec_channel_layout != audio_src.channel_layout || avctx->sample_rate != audio_src.freq)
-    {
-        is->swr_ctx = swr_alloc_set_opts(NULL, is->audio_tgt.channel_layout, is->audio_tgt.fmt, is->audio_tgt.freq, dec_channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
+    if (avctx->sample_fmt != is->audio_tgt_fmt || dec_channel_layout != tgt_channel_layout) {
+        is->swr_ctx = swr_alloc_set_opts(NULL, tgt_channel_layout, is->audio_tgt_fmt, avctx->sample_rate, dec_channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
         if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
             av_log(NULL, AV_LOG_ERROR,
                 "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
                 avctx->sample_rate, av_get_sample_fmt_name(avctx->sample_fmt), avctx->channels,
-                is->audio_tgt.freq, av_get_sample_fmt_name(is->audio_tgt.fmt), is->audio_tgt.channels);
+                avctx->sample_rate, av_get_sample_fmt_name(is->audio_tgt_fmt), is->audio_tgt_channels);
             swr_free(&is->swr_ctx);
             return -1;
         }
@@ -99,8 +88,8 @@ int audio_decode_frame(VideoState *is)
     if (is->swr_ctx) {
         const uint8_t **in = (const uint8_t **)af->frm_frame->extended_data;
         uint8_t **out = &is->audio_buf1;
-        int out_count = (int64_t)af->frm_frame->nb_samples * is->audio_tgt.freq / af->frm_frame->sample_rate + 256;
-        int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt.channels, out_count, is->audio_tgt.fmt, 0);
+        int out_count = (int64_t)af->frm_frame->nb_samples + 256;
+        int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, out_count, is->audio_tgt_fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
             return -1;
@@ -118,7 +107,7 @@ int audio_decode_frame(VideoState *is)
             if (swr_init(is->swr_ctx) < 0) swr_free(&is->swr_ctx);
         }
         is->audio_buf = is->audio_buf1;
-        resampled_data_size = len2 * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
+        resampled_data_size = len2 * is->audio_tgt_channels * av_get_bytes_per_sample(is->audio_tgt_fmt);
     } else {
         is->audio_buf = af->frm_frame->data[0];
         resampled_data_size = data_size;

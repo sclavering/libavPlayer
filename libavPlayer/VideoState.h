@@ -33,7 +33,9 @@
     unsigned int audio_buf_size; /* in bytes */
     unsigned int audio_buf1_size;
     int audio_buf_index; /* in bytes */
-    struct AudioParams audio_tgt;
+
+    enum AVSampleFormat audio_tgt_fmt;
+    int audio_tgt_channels;
     struct SwrContext *swr_ctx;
     AudioQueueRef audio_queue;
     unsigned int audio_queue_num_frames_to_prepare;
