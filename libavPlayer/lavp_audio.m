@@ -156,10 +156,16 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
             int len1 = is->audio_buf_size - is->audio_buf_index;
             if (len1 > len)
                 len1 = len;
-            if (is->audio_buf)
+            if (is->audio_buf) {
                 memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
+                qbuf->mAudioDataByteSize += len1;
+            } else {
+                // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
+                // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
+                memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+                qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
+            }
             len -= len1;
-            qbuf->mAudioDataByteSize += len1;
             is->audio_buf_index += len1;
         }
 
