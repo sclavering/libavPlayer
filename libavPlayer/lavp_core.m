@@ -288,7 +288,6 @@ VideoState* stream_open(NSURL *sourceURL)
         is->ic->streams[i]->discard = AVDISCARD_ALL;
 
     pthread_cond_init(&is->continue_read_thread, NULL);
-    is->audio_clock_serial = -1;
 
     int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (vid_index < 0)

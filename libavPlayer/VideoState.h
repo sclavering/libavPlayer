@@ -28,9 +28,6 @@
 
     // Audio
 
-    double audio_clock;
-    int audio_clock_serial;
-    int audio_hw_buf_size;
     uint8_t *audio_buf;
     uint8_t *audio_buf1;
     unsigned int audio_buf_size; /* in bytes */

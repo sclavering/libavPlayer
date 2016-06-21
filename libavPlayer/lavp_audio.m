@@ -58,7 +58,6 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
         return -1;
     }
 
-    is->audio_hw_buf_size = SDL_AUDIO_BUFFER_SIZE * is->audio_tgt.channels * av_get_bytes_per_sample(is->audio_tgt.fmt);
     AudioParams audio_src = is->audio_tgt;
     is->audio_buf_size  = 0;
     is->audio_buf_index = 0;
@@ -125,13 +124,6 @@ int audio_decode_frame(VideoState *is)
         resampled_data_size = data_size;
     }
 
-    /* update the audio clock with the pts */
-    if (af->frm_pts_usec > 0)
-        is->audio_clock = af->frm_pts_usec / 1000000.0 + (double) af->frm_frame->nb_samples / af->frm_frame->sample_rate;
-    else
-        is->audio_clock = NAN;
-    is->audio_clock_serial = af->frm_serial;
-
     decoder_advance_frame(is->auddec);
 
     return resampled_data_size;
@@ -139,10 +131,15 @@ int audio_decode_frame(VideoState *is)
 
 static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
+        // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
+        // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
+        if (!is->paused) {
+            Frame *fr = decoder_peek_current_frame_blocking(is->auddec);
+            if (fr && fr->frm_pts_usec > 0) clock_set(&is->audclk, fr->frm_pts_usec, fr->frm_serial);
+        }
+
         qbuf->mAudioDataByteSize = 0;
         int len = qbuf->mAudioDataBytesCapacity;
-
-        int64_t audio_callback_time = av_gettime_relative();
 
         while (len > 0) {
             if (is->audio_buf_index >= is->audio_buf_size) {
@@ -164,13 +161,6 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
             len -= len1;
             qbuf->mAudioDataByteSize += len1;
             is->audio_buf_index += len1;
-        }
-
-        /* Let's assume the audio driver that is used by SDL has two periods. */
-        if (!isnan(is->audio_clock)) {
-            unsigned int audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
-            double clock_time = is->audio_clock - (double)(2 * is->audio_hw_buf_size + audio_write_buf_size) / is->audio_tgt.bytes_per_sec;
-            clock_set_at(&is->audclk, (int64_t)(clock_time * 1000000), is->audio_clock_serial, audio_callback_time);
         }
 
         OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
