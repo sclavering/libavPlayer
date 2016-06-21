@@ -32,7 +32,6 @@
     uint8_t *audio_buf1;
     unsigned int audio_buf_size; /* in bytes */
     unsigned int audio_buf1_size;
-    int audio_buf_index; /* in bytes */
 
     enum AVSampleFormat audio_tgt_fmt;
     int audio_tgt_channels;

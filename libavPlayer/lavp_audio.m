@@ -28,10 +28,6 @@
 
 static int audio_queue_init(VideoState *is, AVCodecContext *avctx);
 
-/* SDL audio buffer size, in samples. Should be small to have precise
- A/V sync as SDL does not have hardware buffer fullness info. */
-#define SDL_AUDIO_BUFFER_SIZE 1024
-
 
 int audio_open(VideoState *is, AVCodecContext *avctx)
 {
@@ -49,7 +45,6 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     is->audio_tgt_channels = wanted_nb_channels;
 
     is->audio_buf_size  = 0;
-    is->audio_buf_index = 0;
 
     if (audio_queue_init(is, avctx) < 0)
         return -1;
@@ -76,6 +71,7 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
 static void audio_decode_frame(VideoState *is)
 {
     is->audio_buf = NULL;
+    is->audio_buf_size = 0;
 
     if (is->paused)
         return;
@@ -115,32 +111,24 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
         }
 
         qbuf->mAudioDataByteSize = 0;
-        int len = qbuf->mAudioDataBytesCapacity;
-
-        while (len > 0) {
-            if (is->audio_buf_index >= is->audio_buf_size) {
+        while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
+            if (is->audio_buf_size <= 0) {
                 audio_decode_frame(is);
-                if (!is->audio_buf) {
-                    is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE;
-                } else {
-                    decoder_advance_frame(is->auddec);
-                }
-                is->audio_buf_index = 0;
+                if (!is->audio_buf) break;
+                decoder_advance_frame(is->auddec);
             }
-            int len1 = is->audio_buf_size - is->audio_buf_index;
-            if (len1 > len)
-                len1 = len;
-            if (is->audio_buf) {
-                memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, (uint8_t *)is->audio_buf + is->audio_buf_index, len1);
-                qbuf->mAudioDataByteSize += len1;
-            } else {
-                // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
-                // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
-                memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-                qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
-            }
-            len -= len1;
-            is->audio_buf_index += len1;
+            int len1 = MIN(is->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+            memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, is->audio_buf, len1);
+            qbuf->mAudioDataByteSize += len1;
+            is->audio_buf += len1;
+            is->audio_buf_size -= len1;
+        }
+
+        if (!is->audio_buf) {
+            // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
+            // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
+            memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+            qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
         }
 
         OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
