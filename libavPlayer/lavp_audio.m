@@ -88,8 +88,7 @@ int audio_decode_frame(VideoState *is)
     if (is->swr_ctx) {
         const uint8_t **in = (const uint8_t **)af->frm_frame->extended_data;
         uint8_t **out = &is->audio_buf1;
-        int out_count = (int64_t)af->frm_frame->nb_samples + 256;
-        int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, out_count, is->audio_tgt_fmt, 0);
+        int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, af->frm_frame->nb_samples, is->audio_tgt_fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
             return -1;
@@ -97,14 +96,10 @@ int audio_decode_frame(VideoState *is)
         av_fast_malloc(&is->audio_buf1, &is->audio_buf1_size, out_size);
         if (!is->audio_buf1)
             return AVERROR(ENOMEM);
-        int len2 = swr_convert(is->swr_ctx, out, out_count, in, af->frm_frame->nb_samples);
+        int len2 = swr_convert(is->swr_ctx, out, af->frm_frame->nb_samples, in, af->frm_frame->nb_samples);
         if (len2 < 0) {
             av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
             return -1;
-        }
-        if (len2 == out_count) {
-            av_log(NULL, AV_LOG_WARNING, "audio buffer is probably too small\n");
-            if (swr_init(is->swr_ctx) < 0) swr_free(&is->swr_ctx);
         }
         is->audio_buf = is->audio_buf1;
         resampled_data_size = len2 * is->audio_tgt_channels * av_get_bytes_per_sample(is->audio_tgt_fmt);
