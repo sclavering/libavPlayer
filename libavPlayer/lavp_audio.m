@@ -73,11 +73,12 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     return 0;
 }
 
-// Decode one audio frame (converting if required), store it in is->audio_buf, and return its uncompressed size in bytes (or negative on error).
-static int audio_decode_frame(VideoState *is)
+static void audio_decode_frame(VideoState *is)
 {
+    is->audio_buf = NULL;
+
     if (is->paused)
-        return -1;
+        return;
 
     Frame *af = decoder_peek_current_frame_blocking(is->auddec);
 
@@ -85,22 +86,23 @@ static int audio_decode_frame(VideoState *is)
         int out_size = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, af->frm_frame->nb_samples, is->audio_tgt_fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
-            return -1;
+            return;
         }
         av_fast_malloc(&is->audio_buf1, &is->audio_buf1_size, out_size);
         if (!is->audio_buf1)
-            return AVERROR(ENOMEM);
+            return;
         int len2 = swr_convert(is->swr_ctx, &is->audio_buf1, af->frm_frame->nb_samples, (const uint8_t **)af->frm_frame->extended_data, af->frm_frame->nb_samples);
         if (len2 < 0) {
             av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
-            return -1;
+            return;
         }
         is->audio_buf = is->audio_buf1;
-        return out_size;
+        is->audio_buf_size = out_size;
+        return;
     }
 
     is->audio_buf = af->frm_frame->data[0];
-    return av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
+    is->audio_buf_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
 }
 
 static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
@@ -117,13 +119,10 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
 
         while (len > 0) {
             if (is->audio_buf_index >= is->audio_buf_size) {
-                int audio_size = audio_decode_frame(is);
-                if (audio_size < 0) {
-                    /* if error, just output silence */
-                    is->audio_buf = NULL;
+                audio_decode_frame(is);
+                if (!is->audio_buf) {
                     is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE;
                 } else {
-                    is->audio_buf_size = audio_size;
                     decoder_advance_frame(is->auddec);
                 }
                 is->audio_buf_index = 0;
