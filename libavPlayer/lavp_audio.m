@@ -26,7 +26,6 @@
 #import "lavp_audio.h"
 
 
-static int audio_decode_frame(VideoState *is);
 static int audio_queue_init(VideoState *is, AVCodecContext *avctx);
 
 /* SDL audio buffer size, in samples. Should be small to have precise
@@ -75,20 +74,15 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
 }
 
 // Decode one audio frame (converting if required), store it in is->audio_buf, and return its uncompressed size in bytes (or negative on error).
-int audio_decode_frame(VideoState *is)
+static int audio_decode_frame(VideoState *is)
 {
     if (is->paused)
         return -1;
 
     Frame *af = decoder_peek_current_frame_blocking(is->auddec);
 
-    int data_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
-
-    int resampled_data_size;
     if (is->swr_ctx) {
-        const uint8_t **in = (const uint8_t **)af->frm_frame->extended_data;
-        uint8_t **out = &is->audio_buf1;
-        int out_size  = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, af->frm_frame->nb_samples, is->audio_tgt_fmt, 0);
+        int out_size = av_samples_get_buffer_size(NULL, is->audio_tgt_channels, af->frm_frame->nb_samples, is->audio_tgt_fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
             return -1;
@@ -96,21 +90,17 @@ int audio_decode_frame(VideoState *is)
         av_fast_malloc(&is->audio_buf1, &is->audio_buf1_size, out_size);
         if (!is->audio_buf1)
             return AVERROR(ENOMEM);
-        int len2 = swr_convert(is->swr_ctx, out, af->frm_frame->nb_samples, in, af->frm_frame->nb_samples);
+        int len2 = swr_convert(is->swr_ctx, &is->audio_buf1, af->frm_frame->nb_samples, (const uint8_t **)af->frm_frame->extended_data, af->frm_frame->nb_samples);
         if (len2 < 0) {
             av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
             return -1;
         }
         is->audio_buf = is->audio_buf1;
-        resampled_data_size = len2 * is->audio_tgt_channels * av_get_bytes_per_sample(is->audio_tgt_fmt);
-    } else {
-        is->audio_buf = af->frm_frame->data[0];
-        resampled_data_size = data_size;
+        return out_size;
     }
 
-    decoder_advance_frame(is->auddec);
-
-    return resampled_data_size;
+    is->audio_buf = af->frm_frame->data[0];
+    return av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
 }
 
 static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
@@ -134,6 +124,7 @@ static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef
                     is->audio_buf_size = SDL_AUDIO_BUFFER_SIZE;
                 } else {
                     is->audio_buf_size = audio_size;
+                    decoder_advance_frame(is->auddec);
                 }
                 is->audio_buf_index = 0;
             }
