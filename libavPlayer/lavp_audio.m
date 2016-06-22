@@ -31,30 +31,15 @@ static int audio_queue_init(VideoState *is, AVCodecContext *avctx);
 
 int audio_open(VideoState *is, AVCodecContext *avctx)
 {
-    int64_t wanted_channel_layout = avctx->channel_layout;
-    int wanted_nb_channels = avctx->channels;
-
-    if (wanted_nb_channels <= 0) wanted_nb_channels = 2;
-    if (!wanted_channel_layout || wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)) {
-        wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
-        wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
-    }
-
     is->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
-    int64_t tgt_channel_layout = wanted_channel_layout;
-    is->audio_tgt_channels = wanted_nb_channels;
-
-    is->audio_buf_size  = 0;
+    is->audio_tgt_channels = avctx->channels;
+    is->audio_buf_size = 0;
 
     if (audio_queue_init(is, avctx) < 0)
         return -1;
 
-    int64_t dec_channel_layout =
-        (avctx->channel_layout && avctx->channels == av_get_channel_layout_nb_channels(avctx->channel_layout)) ?
-        avctx->channel_layout : av_get_default_channel_layout(avctx->channels);
-
-    if (avctx->sample_fmt != is->audio_tgt_fmt || dec_channel_layout != tgt_channel_layout) {
-        is->swr_ctx = swr_alloc_set_opts(NULL, tgt_channel_layout, is->audio_tgt_fmt, avctx->sample_rate, dec_channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
+    if (avctx->sample_fmt != is->audio_tgt_fmt) {
+        is->swr_ctx = swr_alloc_set_opts(NULL, avctx->channel_layout, is->audio_tgt_fmt, avctx->sample_rate, avctx->channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
         if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
             av_log(NULL, AV_LOG_ERROR,
                 "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
