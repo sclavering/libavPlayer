@@ -36,6 +36,7 @@
     enum AVSampleFormat audio_tgt_fmt;
     int audio_tgt_channels;
     struct SwrContext *swr_ctx;
+    AudioChannelLayout *audio_channel_layout; // used if there's >2 channels
     AudioQueueRef audio_queue;
     unsigned int audio_queue_num_frames_to_prepare;
     dispatch_queue_t audio_dispatch_queue;

@@ -53,6 +53,43 @@ int audio_open(VideoState *is, AVCodecContext *avctx)
     return 0;
 }
 
+static AudioChannelLabel convert_channel_label(uint64_t av_ch)
+{
+    switch(av_ch) {
+        // Note: these mappings are mostly based on how GStreamer maps its own channel labels to/from AV_CH_* and kAudioChannelLabel_*, plus a little guesswork.
+        case AV_CH_FRONT_LEFT: return kAudioChannelLabel_Left;
+        case AV_CH_FRONT_RIGHT: return kAudioChannelLabel_Right;
+        case AV_CH_FRONT_CENTER: return kAudioChannelLabel_Center;
+        case AV_CH_LOW_FREQUENCY: return kAudioChannelLabel_LFEScreen;
+        case AV_CH_BACK_LEFT: return kAudioChannelLabel_RearSurroundLeft;
+        case AV_CH_BACK_RIGHT: return kAudioChannelLabel_RearSurroundRight;
+        case AV_CH_FRONT_LEFT_OF_CENTER: return kAudioChannelLabel_LeftCenter;
+        case AV_CH_FRONT_RIGHT_OF_CENTER: return kAudioChannelLabel_RightCenter;
+        case AV_CH_BACK_CENTER: return kAudioChannelLabel_CenterSurround;
+        case AV_CH_SIDE_LEFT: return kAudioChannelLabel_LeftSurround;
+        case AV_CH_SIDE_RIGHT: return kAudioChannelLabel_RightSurround;
+        case AV_CH_TOP_CENTER: return kAudioChannelLabel_TopCenterSurround;
+        case AV_CH_TOP_FRONT_LEFT: return kAudioChannelLabel_VerticalHeightLeft;
+        case AV_CH_TOP_FRONT_CENTER: return kAudioChannelLabel_VerticalHeightCenter;
+        case AV_CH_TOP_FRONT_RIGHT: return kAudioChannelLabel_VerticalHeightRight;
+        case AV_CH_TOP_BACK_LEFT: return kAudioChannelLabel_TopBackLeft;
+        case AV_CH_TOP_BACK_CENTER: return kAudioChannelLabel_TopBackCenter;
+        case AV_CH_TOP_BACK_RIGHT: return kAudioChannelLabel_TopBackRight;
+        case AV_CH_STEREO_LEFT: return kAudioChannelLabel_Left;
+        case AV_CH_STEREO_RIGHT: return kAudioChannelLabel_Right;
+        case AV_CH_WIDE_LEFT: return kAudioChannelLabel_LeftWide;
+        case AV_CH_WIDE_RIGHT: return kAudioChannelLabel_RightWide;
+        case AV_CH_SURROUND_DIRECT_LEFT: return kAudioChannelLabel_LeftSurroundDirect;
+        case AV_CH_SURROUND_DIRECT_RIGHT: return kAudioChannelLabel_RightSurroundDirect;
+        case AV_CH_LOW_FREQUENCY_2: return kAudioChannelLabel_LFE2;
+        // Surprisingly unused values:
+        // kAudioChannelLabel_LeftTotal
+        // kAudioChannelLabel_RightTotal
+        // kAudioChannelLabel_CenterSurroundDirect
+    }
+    return kAudioChannelLabel_Unused;
+}
+
 static void audio_decode_frame(VideoState *is)
 {
     is->audio_buf = NULL;
@@ -168,6 +205,22 @@ static int audio_queue_init(VideoState *is, AVCodecContext *avctx)
             return -1;
     }
 
+    // If we have more than two channels, we need to tell the AudioQueue what they are and what order they're in.
+    if (is->audio_tgt_channels > 2) {
+        size_t sz = sizeof(AudioChannelLayout) + sizeof(AudioChannelDescription) * (is->audio_tgt_channels - 1);
+        is->audio_channel_layout = malloc(sz);
+        is->audio_channel_layout->mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelDescriptions;
+        is->audio_channel_layout->mChannelBitmap = 0;
+        is->audio_channel_layout->mNumberChannelDescriptions = is->audio_tgt_channels;
+        for (int i = 0; i < is->audio_tgt_channels; ++i) {
+            // Note: ffmpeg's channel_layout is just a bitmap, because it apparently always stores channels in the same order.
+            uint64_t av_ch = av_channel_layout_extract_channel(avctx->channel_layout, i);
+            is->audio_channel_layout->mChannelDescriptions[i].mChannelLabel = convert_channel_label(av_ch);
+        }
+        if (0 != AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_ChannelLayout, is->audio_channel_layout, sz))
+            return -1;
+    }
+
     unsigned int prop_value = 1;
     if (0 != AudioQueueSetProperty(is->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value)))
         return -1;
@@ -215,7 +268,9 @@ void audio_queue_destroy(VideoState *is)
     AudioQueueStop(is->audio_queue, YES);
     AudioQueueDispose(is->audio_queue, NO);
     is->audio_queue = NULL;
-    if (is->audio_dispatch_queue) is->audio_dispatch_queue = NULL;
+    is->audio_dispatch_queue = NULL;
+    free(is->audio_channel_layout);
+    is->audio_channel_layout = NULL;
 }
 
 void lavp_audio_update_speed(VideoState *is)
