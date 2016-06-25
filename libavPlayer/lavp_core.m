@@ -200,7 +200,7 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
 
 void lavp_set_paused_internal(MovieState *mov, bool pause)
 {
-    if(pause == mov->paused)
+    if (pause == mov->paused)
         return;
     mov->is_temporarily_unpaused_to_handle_seeking = false;
     mov->paused = pause;
@@ -209,8 +209,8 @@ void lavp_set_paused_internal(MovieState *mov, bool pause)
         audio_queue_pause(mov);
     else
         audio_queue_start(mov);
-    __strong id<LAVPMovieOutput> movieOutput = mov ? mov->weak_output : NULL;
-    if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
+    __strong id<LAVPMovieOutput> output = mov->weak_output;
+    if (output) [output movieOutputNeedsContinuousUpdating:!pause];
 }
 
 void lavp_set_paused(MovieState *mov, bool pause)
