@@ -125,51 +125,51 @@ static void audio_decode_frame(VideoState *is)
 
 static void audio_callback(VideoState *is, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-        // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
-        // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-        if (!is->paused) {
-            Frame *fr = decoder_peek_current_frame_blocking(is->auddec);
-            if (fr && fr->frm_pts_usec > 0) clock_set(&is->audclk, fr->frm_pts_usec, fr->frm_serial);
-        }
+    // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
+    // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
+    if (!is->paused) {
+        Frame *fr = decoder_peek_current_frame_blocking(is->auddec);
+        if (fr && fr->frm_pts_usec > 0) clock_set(&is->audclk, fr->frm_pts_usec, fr->frm_serial);
+    }
 
-        qbuf->mAudioDataByteSize = 0;
-        while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
-            if (is->audio_buf_size <= 0) {
-                audio_decode_frame(is);
-                if (!is->audio_buf) break;
-                decoder_advance_frame(is->auddec);
-            }
-            int len1 = MIN(is->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-            memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, is->audio_buf, len1);
-            qbuf->mAudioDataByteSize += len1;
-            is->audio_buf += len1;
-            is->audio_buf_size -= len1;
+    qbuf->mAudioDataByteSize = 0;
+    while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
+        if (is->audio_buf_size <= 0) {
+            audio_decode_frame(is);
+            if (!is->audio_buf) break;
+            decoder_advance_frame(is->auddec);
         }
+        int len1 = MIN(is->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+        memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, is->audio_buf, len1);
+        qbuf->mAudioDataByteSize += len1;
+        is->audio_buf += len1;
+        is->audio_buf_size -= len1;
+    }
 
-        if (!is->audio_buf) {
-            // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
-            // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
-            memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-            qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
-        }
+    if (!is->audio_buf) {
+        // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
+        // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
+        memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+        qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
+    }
 
-        OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
-        if (err) {
-            NSString *errStr = @"kAudioQueueErr_???";
-            switch (err) {
-                case kAudioQueueErr_DisposalPending:
-                    errStr = @"kAudioQueueErr_DisposalPending"; break;
-                case kAudioQueueErr_InvalidDevice:
-                    errStr = @"kAudioQueueErr_InvalidDevice"; break;
-                case kAudioQueueErr_InvalidRunState:
-                    errStr = @"kAudioQueueErr_InvalidRunState"; break;
-                case kAudioQueueErr_QueueInvalidated:
-                    errStr = @"kAudioQueueErr_QueueInvalidated"; break;
-                case kAudioQueueErr_EnqueueDuringReset:
-                    errStr = @"kAudioQueueErr_EnqueueDuringReset"; break;
-            }
-            NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d (%@)", err, errStr);
+    OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
+    if (err) {
+        NSString *errStr = @"kAudioQueueErr_???";
+        switch (err) {
+            case kAudioQueueErr_DisposalPending:
+                errStr = @"kAudioQueueErr_DisposalPending"; break;
+            case kAudioQueueErr_InvalidDevice:
+                errStr = @"kAudioQueueErr_InvalidDevice"; break;
+            case kAudioQueueErr_InvalidRunState:
+                errStr = @"kAudioQueueErr_InvalidRunState"; break;
+            case kAudioQueueErr_QueueInvalidated:
+                errStr = @"kAudioQueueErr_QueueInvalidated"; break;
+            case kAudioQueueErr_EnqueueDuringReset:
+                errStr = @"kAudioQueueErr_EnqueueDuringReset"; break;
         }
+        NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d (%@)", err, errStr);
+    }
 }
 
 static int audio_queue_init(VideoState *is, AVCodecContext *avctx)
