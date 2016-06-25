@@ -283,11 +283,6 @@ void lavp_audio_update_speed(MovieState *mov)
     assert(err == 0);
 }
 
-int lavp_get_volume_percent(MovieState *mov)
-{
-    return mov ? mov->volume_percent : 100;
-}
-
 void lavp_set_volume_percent(MovieState *mov, int volume)
 {
     if (!mov) return;

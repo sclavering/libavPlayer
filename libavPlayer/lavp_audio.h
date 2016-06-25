@@ -33,5 +33,4 @@ void audio_queue_pause(MovieState *mov);
 void audio_queue_destroy(MovieState *mov);
 
 void lavp_audio_update_speed(MovieState *mov);
-int lavp_get_volume_percent(MovieState *mov);
 void lavp_set_volume_percent(MovieState *mov, int volume);

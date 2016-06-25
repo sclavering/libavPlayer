@@ -128,7 +128,7 @@
 
 -(int) volumePercent {
     if(!mov) return 100;
-    return lavp_get_volume_percent(mov);
+    return mov->volume_percent;
 }
 
 -(void) setVolumePercent:(int)volume {
