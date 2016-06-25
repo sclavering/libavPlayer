@@ -1,4 +1,4 @@
 #import "lavp_common.h"
 
-@implementation VideoState
+@implementation MovieState
 @end

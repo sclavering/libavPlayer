@@ -26,12 +26,12 @@
 
 #import "lavp_common.h"
 
-int audio_open(VideoState *is, AVCodecContext *avctx);
+int audio_open(MovieState *mov, AVCodecContext *avctx);
 
-void audio_queue_start(VideoState *is);
-void audio_queue_pause(VideoState *is);
-void audio_queue_destroy(VideoState *is);
+void audio_queue_start(MovieState *mov);
+void audio_queue_pause(MovieState *mov);
+void audio_queue_destroy(MovieState *mov);
 
-void lavp_audio_update_speed(VideoState *is);
-int lavp_get_volume_percent(VideoState *is);
-void lavp_set_volume_percent(VideoState *is, int volume);
+void lavp_audio_update_speed(MovieState *mov);
+int lavp_get_volume_percent(MovieState *mov);
+void lavp_set_volume_percent(MovieState *mov, int volume);

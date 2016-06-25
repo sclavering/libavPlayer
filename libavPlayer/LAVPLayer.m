@@ -101,7 +101,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         [self _gl_init];
 
-        // Update back buffer size as is
         self.needsDisplayOnBoundsChange = YES;
 
         CGLUnlockContext(_cglContext);

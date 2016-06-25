@@ -26,7 +26,7 @@
 
 #import "lavp_common.h"
 
-int video_thread(VideoState *is);
-void video_refresh(VideoState *is);
+int video_thread(MovieState *mov);
+void video_refresh(MovieState *mov);
 
-AVFrame* lavp_get_current_frame(VideoState *is);
+AVFrame* lavp_get_current_frame(MovieState *mov);

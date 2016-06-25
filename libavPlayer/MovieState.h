@@ -1,7 +1,7 @@
 @protocol LAVPMovieOutput;
 
 // This is an object rather than a struct because ObjC ARC requires that for having dispatch_queue_t members.
-@interface VideoState : NSObject {
+@interface MovieState : NSObject {
 @public
     bool paused;
     int playback_speed_percent;

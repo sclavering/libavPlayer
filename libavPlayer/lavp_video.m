@@ -28,43 +28,43 @@
 #import "LAVPMovie+Internal.h"
 
 
-void video_refresh(VideoState *is)
+void video_refresh(MovieState *mov)
 {
-    if (is->paused)
+    if (mov->paused)
         return;
 
     // Skip any frames that are in the past (except the current frame).
     for(;;) {
-        Frame *curr = decoder_peek_current_frame(is->viddec);
+        Frame *curr = decoder_peek_current_frame(mov->viddec);
         if (!curr) return;
-        Frame *next = decoder_peek_next_frame(is->viddec);
-        int64_t now = clock_get_usec(&is->audclk);
+        Frame *next = decoder_peek_next_frame(mov->viddec);
+        int64_t now = clock_get_usec(&mov->audclk);
         // If the next frame is still in the future, stop here.
         if (next && !(curr->frm_pts_usec < now && next->frm_pts_usec < now)) break;
         // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.
         if (!next) {
-            AVRational frame_rate = av_guess_frame_rate(is->ic, is->viddec->stream, NULL);
+            AVRational frame_rate = av_guess_frame_rate(mov->ic, mov->viddec->stream, NULL);
             int64_t duration = frame_rate.num && frame_rate.den ? (frame_rate.den * 1000000LL) / frame_rate.num : 0;
             if (now < curr->frm_pts_usec + duration) break;
         }
-        decoder_advance_frame(is->viddec);
+        decoder_advance_frame(mov->viddec);
     }
 
-    if (is->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused_internal(is, true);
+    if (mov->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused_internal(mov, true);
 }
 
-AVFrame* lavp_get_current_frame(VideoState *is)
+AVFrame* lavp_get_current_frame(MovieState *mov)
 {
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
-    video_refresh(is);
+    video_refresh(mov);
 
-    Frame* fr = decoder_peek_current_frame(is->viddec);
-    if (!fr || fr->frm_pts_usec == is->last_shown_video_frame_pts) return NULL;
+    Frame* fr = decoder_peek_current_frame(mov->viddec);
+    if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return NULL;
 
     // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.
     // If we ever do handle them, doing conversion via OpenGL would probably work fine here, but for CPU conversion we'd likely want to do it in advance.
     if (fr->frm_frame->format != AV_PIX_FMT_YUV420P) return NULL;
 
-    is->last_shown_video_frame_pts = fr->frm_pts_usec;
+    mov->last_shown_video_frame_pts = fr->frm_pts_usec;
     return fr->frm_frame;
 }

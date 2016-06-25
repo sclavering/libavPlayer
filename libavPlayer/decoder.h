@@ -1,4 +1,4 @@
-@class VideoState;
+@class MovieState;
 
 extern AVPacket flush_pkt;
 

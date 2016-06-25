@@ -40,7 +40,7 @@ void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *
     pthread_cond_timedwait_relative_np(cond, mutex, &time_to_wait);
 }
 
-static int stream_component_open(VideoState *is, AVStream *stream)
+static int stream_component_open(MovieState *mov, AVStream *stream)
 {
     int ret;
 
@@ -72,28 +72,28 @@ static int stream_component_open(VideoState *is, AVStream *stream)
     if (avcodec_open2(avctx, codec, &opts) < 0)
         goto fail;
 
-    is->eof = false;
+    mov->eof = false;
     stream->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-            is->auddec = [[Decoder alloc] init];
-            if(decoder_init(is->auddec, avctx, &is->continue_read_thread, stream) < 0)
+            mov->auddec = [[Decoder alloc] init];
+            if (decoder_init(mov->auddec, avctx, &mov->continue_read_thread, stream) < 0)
                 goto fail;
 
-            if ((ret = audio_open(is, avctx)) < 0)
+            if ((ret = audio_open(mov, avctx)) < 0)
                 goto out;
-            audio_queue_start(is);
+            audio_queue_start(mov);
 
             break;
         case AVMEDIA_TYPE_VIDEO:
             if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC)
                 goto fail;
 
-            is->width = stream->codecpar->width;
-            is->height = stream->codecpar->height;
+            mov->width = stream->codecpar->width;
+            mov->height = stream->codecpar->height;
 
-            is->viddec = [[Decoder alloc] init];
-            if(decoder_init(is->viddec, avctx, &is->continue_read_thread, stream) < 0)
+            mov->viddec = [[Decoder alloc] init];
+            if (decoder_init(mov->viddec, avctx, &mov->continue_read_thread, stream) < 0)
                 goto fail;
 
             break;
@@ -112,11 +112,11 @@ out:
 
 static int decode_interrupt_cb(void *ctx)
 {
-    VideoState *is = (__bridge VideoState *)(ctx);
-    return is->abort_request;
+    MovieState *mov = (__bridge MovieState *)(ctx);
+    return mov->abort_request;
 }
 
-int read_thread(VideoState* is)
+int read_thread(MovieState* mov)
 {
         pthread_mutex_t wait_mutex;
         pthread_mutex_init(&wait_mutex, NULL);
@@ -125,59 +125,59 @@ int read_thread(VideoState* is)
         // decode loop
         AVPacket pkt1, *pkt = &pkt1;
         for(;;) {
-                if (is->abort_request)
+                if (mov->abort_request)
                     break;
 
                 // Seek
-                if (is->seek_req) {
-                    is->last_shown_video_frame_pts = -1;
-                    int64_t seek_diff = is->seek_to - is->seek_from;
-                    // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fiarly arbitrary choice.
+                if (mov->seek_req) {
+                    mov->last_shown_video_frame_pts = -1;
+                    int64_t seek_diff = mov->seek_to - mov->seek_from;
+                    // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
                     // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
-                    int64_t seek_min = seek_diff > 0 ? is->seek_to - (seek_diff / 2) : INT64_MIN;
-                    ret = avformat_seek_file(is->ic, -1, seek_min, is->seek_to, INT64_MAX, 0);
+                    int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
+                    ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
                     if (ret >= 0) {
-                        decoder_update_for_seek(is->auddec);
-                        decoder_update_for_seek(is->viddec);
+                        decoder_update_for_seek(mov->auddec);
+                        decoder_update_for_seek(mov->viddec);
                     }
-                    is->seek_req = 0;
-                    is->eof = false;
-                    if (is->paused) {
-                        lavp_set_paused_internal(is, false);
-                        is->is_temporarily_unpaused_to_handle_seeking = true;
+                    mov->seek_req = 0;
+                    mov->eof = false;
+                    if (mov->paused) {
+                        lavp_set_paused_internal(mov, false);
+                        mov->is_temporarily_unpaused_to_handle_seeking = true;
                     }
                 }
 
-                if(!decoder_needs_more_packets(is->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
-                        && !decoder_needs_more_packets(is->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
+                if(!decoder_needs_more_packets(mov->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
+                        && !decoder_needs_more_packets(mov->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
                 {
                     pthread_mutex_lock(&wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
+                    lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
                     pthread_mutex_unlock(&wait_mutex);
                     continue;
                 }
 
-                if (!is->paused && decoder_finished(is->auddec) && decoder_finished(is->viddec)) {
-                    lavp_set_paused(is, true);
+                if (!mov->paused && decoder_finished(mov->auddec) && decoder_finished(mov->viddec)) {
+                    lavp_set_paused(mov, true);
                 }
 
-                ret = av_read_frame(is->ic, pkt);
+                ret = av_read_frame(mov->ic, pkt);
                 if (ret < 0) {
-                    if ((ret == AVERROR_EOF || avio_feof(is->ic->pb)) && !is->eof) {
-                        decoder_update_for_eof(is->auddec);
-                        decoder_update_for_eof(is->viddec);
-                        is->eof = true;
+                    if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !mov->eof) {
+                        decoder_update_for_eof(mov->auddec);
+                        decoder_update_for_eof(mov->viddec);
+                        mov->eof = true;
                     }
-                    if (is->ic->pb && is->ic->pb->error)
+                    if (mov->ic->pb && mov->ic->pb->error)
                         break;
                     pthread_mutex_lock(&wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(&is->continue_read_thread, &wait_mutex, 10);
+                    lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
                     pthread_mutex_unlock(&wait_mutex);
                     continue;
                 }
-                is->eof = false;
+                mov->eof = false;
 
-                if(!decoder_maybe_handle_packet(is->auddec, pkt) && !decoder_maybe_handle_packet(is->viddec, pkt))
+                if(!decoder_maybe_handle_packet(mov->auddec, pkt) && !decoder_maybe_handle_packet(mov->viddec, pkt))
                     av_packet_unref(pkt);
         }
 
@@ -188,77 +188,77 @@ int read_thread(VideoState* is)
         return ret;
 }
 
-void lavp_seek(VideoState *is, int64_t pos, int64_t current_pos)
+void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
 {
-    if (!is->seek_req) {
-        is->seek_from = current_pos;
-        is->seek_to = pos;
-        is->seek_req = true;
-        pthread_cond_signal(&is->continue_read_thread);
+    if (!mov->seek_req) {
+        mov->seek_from = current_pos;
+        mov->seek_to = pos;
+        mov->seek_req = true;
+        pthread_cond_signal(&mov->continue_read_thread);
     }
 }
 
-void lavp_set_paused_internal(VideoState *is, bool pause)
+void lavp_set_paused_internal(MovieState *mov, bool pause)
 {
-    if(pause == is->paused)
+    if(pause == mov->paused)
         return;
-    is->is_temporarily_unpaused_to_handle_seeking = false;
-    is->paused = pause;
-    clock_set_paused(&is->audclk, pause);
-    if (is->paused)
-        audio_queue_pause(is);
+    mov->is_temporarily_unpaused_to_handle_seeking = false;
+    mov->paused = pause;
+    clock_set_paused(&mov->audclk, pause);
+    if (mov->paused)
+        audio_queue_pause(mov);
     else
-        audio_queue_start(is);
-    __strong id<LAVPMovieOutput> movieOutput = is ? is->weak_output : NULL;
+        audio_queue_start(mov);
+    __strong id<LAVPMovieOutput> movieOutput = mov ? mov->weak_output : NULL;
     if(movieOutput) [movieOutput movieOutputNeedsContinuousUpdating:!pause];
 }
 
-void lavp_set_paused(VideoState *is, bool pause)
+void lavp_set_paused(MovieState *mov, bool pause)
 {
-    lavp_set_paused_internal(is, pause);
+    lavp_set_paused_internal(mov, pause);
 }
 
-void stream_close(VideoState *is)
+void stream_close(MovieState *mov)
 {
-    if (is) {
-        is->abort_request = true;
+    if (mov) {
+        mov->abort_request = true;
 
-        if (is->parse_group) dispatch_group_wait(is->parse_group, DISPATCH_TIME_FOREVER);
-        is->parse_group = NULL;
-        is->parse_queue = NULL;
+        if (mov->parse_group) dispatch_group_wait(mov->parse_group, DISPATCH_TIME_FOREVER);
+        mov->parse_group = NULL;
+        mov->parse_queue = NULL;
 
-        if (is->auddec) decoder_destroy(is->auddec);
-        if (is->viddec) decoder_destroy(is->viddec);
+        if (mov->auddec) decoder_destroy(mov->auddec);
+        if (mov->viddec) decoder_destroy(mov->viddec);
 
-        audio_queue_destroy(is);
-        swr_free(&is->swr_ctx);
-        av_freep(&is->audio_buf1);
-        is->audio_buf1_size = 0;
-        is->audio_buf = NULL;
+        audio_queue_destroy(mov);
+        swr_free(&mov->swr_ctx);
+        av_freep(&mov->audio_buf1);
+        mov->audio_buf1_size = 0;
+        mov->audio_buf = NULL;
 
-        avformat_close_input(&is->ic);
+        avformat_close_input(&mov->ic);
 
-        pthread_cond_destroy(&is->continue_read_thread);
+        pthread_cond_destroy(&mov->continue_read_thread);
 
-        is->weak_output = NULL;
+        mov->weak_output = NULL;
     }
 }
 
-VideoState* stream_open(NSURL *sourceURL)
+MovieState* stream_open(NSURL *sourceURL)
 {
     // Re-doing this each time we open a stream ought to be fine, as av_init_packet() is documented as not modifying .data
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *)&flush_pkt;
 
-    VideoState *is = [[VideoState alloc] init];
+    MovieState *mov = [[MovieState alloc] init];
 
-    is->volume_percent = 100;
-    is->weak_output = NULL;
-    is->last_shown_video_frame_pts = -1;
-    is->paused = false;
-    is->playback_speed_percent = 100;
-    is->eof = false;
-    is->abort_request = false;
+    mov->volume_percent = 100;
+    mov->weak_output = NULL;
+    mov->last_shown_video_frame_pts = -1;
+    mov->paused = false;
+    mov->playback_speed_percent = 100;
+    mov->eof = false;
+    mov->abort_request = false;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
@@ -266,66 +266,66 @@ VideoState* stream_open(NSURL *sourceURL)
     const char * extension = [sourceURL.pathExtension cStringUsingEncoding:NSASCIIStringEncoding];
     if (extension) {
         AVInputFormat *file_iformat = av_find_input_format(extension);
-        if (file_iformat) is->iformat = file_iformat;
+        if (file_iformat) mov->iformat = file_iformat;
     }
 
-    is->ic = avformat_alloc_context();
-    if (!is->ic) return NULL;
-    is->ic->interrupt_callback.callback = decode_interrupt_cb;
-    is->ic->interrupt_callback.opaque = (__bridge void *)(is);
-    int err = avformat_open_input(&is->ic, sourceURL.path.fileSystemRepresentation, is->iformat, NULL);
+    mov->ic = avformat_alloc_context();
+    if (!mov->ic) return NULL;
+    mov->ic->interrupt_callback.callback = decode_interrupt_cb;
+    mov->ic->interrupt_callback.opaque = (__bridge void *)(mov);
+    int err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, mov->iformat, NULL);
     if (err < 0)
         return NULL;
 
-    err = avformat_find_stream_info(is->ic, NULL);
+    err = avformat_find_stream_info(mov->ic, NULL);
     if (err < 0)
         return NULL;
 
-    if (is->ic->pb)
-        is->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+    if (mov->ic->pb)
+        mov->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
-    for (int i = 0; i < is->ic->nb_streams; i++)
-        is->ic->streams[i]->discard = AVDISCARD_ALL;
+    for (int i = 0; i < mov->ic->nb_streams; i++)
+        mov->ic->streams[i]->discard = AVDISCARD_ALL;
 
-    pthread_cond_init(&is->continue_read_thread, NULL);
+    pthread_cond_init(&mov->continue_read_thread, NULL);
 
-    int vid_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    int vid_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (vid_index < 0)
         goto fail;
-    int aud_index = av_find_best_stream(is->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
+    int aud_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
     if (aud_index < 0)
         goto fail;
-    if (stream_component_open(is, is->ic->streams[aud_index]) < 0)
+    if (stream_component_open(mov, mov->ic->streams[aud_index]) < 0)
         goto fail;
-    if (stream_component_open(is, is->ic->streams[vid_index]) < 0)
+    if (stream_component_open(mov, mov->ic->streams[vid_index]) < 0)
         goto fail;
 
-    clock_init(&is->audclk, &is->auddec->current_serial);
+    clock_init(&mov->audclk, &mov->auddec->current_serial);
 
-    is->parse_queue = dispatch_queue_create("parse", NULL);
-    is->parse_group = dispatch_group_create();
+    mov->parse_queue = dispatch_queue_create("parse", NULL);
+    mov->parse_group = dispatch_group_create();
     {
-        __weak VideoState* weakIs = is; // So the block doesn't keep |is| alive.
-        dispatch_group_async(is->parse_group, is->parse_queue, ^(void) {
-            __strong VideoState* strongIs = weakIs;
-            if(strongIs) read_thread(strongIs);
+        __weak MovieState* weak_mov = mov;
+        dispatch_group_async(mov->parse_group, mov->parse_queue, ^(void) {
+            __strong MovieState* strong_mov = weak_mov;
+            if (strong_mov) read_thread(strong_mov);
         });
     }
 
     // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
-    is->is_temporarily_unpaused_to_handle_seeking = true;
-    return is;
+    mov->is_temporarily_unpaused_to_handle_seeking = true;
+    return mov;
 
 fail:
-    stream_close(is);
+    stream_close(mov);
     return NULL;
 }
 
-void lavp_set_playback_speed_percent(VideoState *is, int speed)
+void lavp_set_playback_speed_percent(MovieState *mov, int speed)
 {
     if (speed <= 0) return;
-    if (is->playback_speed_percent == speed) return;
-    is->playback_speed_percent = speed;
-    lavp_audio_update_speed(is);
-    clock_set_speed(&is->audclk, speed);
+    if (mov->playback_speed_percent == speed) return;
+    mov->playback_speed_percent = speed;
+    lavp_audio_update_speed(mov);
+    clock_set_speed(&mov->audclk, speed);
 }

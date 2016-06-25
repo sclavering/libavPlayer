@@ -26,12 +26,12 @@
 #import <Cocoa/Cocoa.h>
 
 
-@class VideoState;
+@class MovieState;
 @protocol LAVPMovieOutput;
 
 @interface LAVPMovie : NSObject {
 @private
-    VideoState *is;
+    MovieState *mov;
     int64_t lastPosition;
 }
 

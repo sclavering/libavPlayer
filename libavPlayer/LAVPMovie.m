@@ -32,8 +32,8 @@
 -(instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr {
     self = [super init];
     if(self) {
-        is = stream_open(sourceURL);
-        if(!is) return nil;
+        mov = stream_open(sourceURL);
+        if(!mov) return nil;
     }
     return self;
 }
@@ -43,42 +43,42 @@
 }
 
 -(void) invalidate {
-    if(!is) return;
+    if(!mov) return;
     self.paused = true;
-    stream_close(is);
-    is = NULL;
+    stream_close(mov);
+    mov = NULL;
 }
 
 -(void) setOutput:(id<LAVPMovieOutput>)output {
-    if(!is) return;
-    is->weak_output = output;
+    if(!mov) return;
+    mov->weak_output = output;
 }
 
 -(NSSize) naturalSize {
-    if(!is) return NSMakeSize(1, 1);
+    if(!mov) return NSMakeSize(1, 1);
     // Use the stream aspect ratio
-    AVRational sRatio = is->viddec->stream->sample_aspect_ratio;
-    if(sRatio.num && sRatio.den) return NSMakeSize(is->width * sRatio.num / sRatio.den, is->height);
+    AVRational sRatio = mov->viddec->stream->sample_aspect_ratio;
+    if(sRatio.num && sRatio.den) return NSMakeSize(mov->width * sRatio.num / sRatio.den, mov->height);
     // Or use the codec aspect ratio
-    AVRational cRatio = is->viddec->stream->codecpar->sample_aspect_ratio;
-    if(cRatio.num && cRatio.den) return NSMakeSize(is->width * cRatio.num / cRatio.den, is->height);
-    return NSMakeSize(is->width, is->height);
+    AVRational cRatio = mov->viddec->stream->codecpar->sample_aspect_ratio;
+    if(cRatio.num && cRatio.den) return NSMakeSize(mov->width * cRatio.num / cRatio.den, mov->height);
+    return NSMakeSize(mov->width, mov->height);
 }
 
 // I *think* (but am not certain) that the difference from the above is that this ignores the possibility of rectangular pixels.
 -(IntSize) sizeForGLTextures {
-    if(!is) return (IntSize) { 1, 1 };
-    return (IntSize) { is->width, is->height };
+    if(!mov) return (IntSize) { 1, 1 };
+    return (IntSize) { mov->width, mov->height };
 }
 
 -(int64_t) durationInMicroseconds {
-    if(!is) return 0;
-    return is->ic->duration;
+    if(!mov) return 0;
+    return mov->ic->duration;
 }
 
 -(int64_t) currentTimeInMicroseconds {
-    if(!is) return 0;
-    int64_t pos = clock_get_usec(&is->audclk);
+    if(!mov) return 0;
+    int64_t pos = clock_get_usec(&mov->audclk);
     if(pos >= 0) lastPosition = pos;
     return lastPosition;
 }
@@ -97,48 +97,48 @@
 }
 
 -(void) setCurrentTimeInMicroseconds:(int64_t)newTime {
-    if(!is) return;
+    if(!mov) return;
     if(newTime < 0) newTime = 0;
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
-    if(is->ic->start_time != AV_NOPTS_VALUE) newTime += is->ic->start_time;
-    lavp_seek(is, newTime, self.currentTimeInMicroseconds);
+    if(mov->ic->start_time != AV_NOPTS_VALUE) newTime += mov->ic->start_time;
+    lavp_seek(mov, newTime, self.currentTimeInMicroseconds);
     // This exists because clock_get_usec() returns invalid values after seeking while paused, and we need to mask that.
     lastPosition = newTime;
 }
 
 -(bool) paused {
-    if(!is) return true;
-    return is->paused;
+    if(!mov) return true;
+    return mov->paused;
 }
 
 -(void) setPaused:(bool)shouldPause {
-    if(!is) return;
-    lavp_set_paused(is, shouldPause);
+    if(!mov) return;
+    lavp_set_paused(mov, shouldPause);
 }
 
 -(int) playbackSpeedPercent {
-    if(!is) return 100;
-    return is->playback_speed_percent;
+    if(!mov) return 100;
+    return mov->playback_speed_percent;
 }
 
 -(void) setPlaybackSpeedPercent:(int)speed {
-    if(!is) return;
-    lavp_set_playback_speed_percent(is, speed);
+    if(!mov) return;
+    lavp_set_playback_speed_percent(mov, speed);
 }
 
 -(int) volumePercent {
-    if(!is) return 100;
-    return lavp_get_volume_percent(is);
+    if(!mov) return 100;
+    return lavp_get_volume_percent(mov);
 }
 
 -(void) setVolumePercent:(int)volume {
-    if(!is) return;
-    lavp_set_volume_percent(is, volume);
+    if(!mov) return;
+    lavp_set_volume_percent(mov, volume);
 }
 
 -(AVFrame*) getCurrentFrame {
-    if(!is) return NULL;
-    return lavp_get_current_frame(is);
+    if(!mov) return NULL;
+    return lavp_get_current_frame(mov);
 }
 
 @end

@@ -26,13 +26,13 @@
 
 #import "lavp_common.h"
 
-void stream_close(VideoState *is);
-VideoState* stream_open(NSURL *sourceURL);
+void stream_close(MovieState *mov);
+MovieState* stream_open(NSURL *sourceURL);
 
-void lavp_seek(VideoState *is, int64_t pos, int64_t current_pos);
+void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
 
-void lavp_set_paused_internal(VideoState *is, bool pause);
-void lavp_set_paused(VideoState *is, bool pause);
+void lavp_set_paused_internal(MovieState *mov, bool pause);
+void lavp_set_paused(MovieState *mov, bool pause);
 
-int lavp_get_playback_speed_percent(VideoState *is);
-void lavp_set_playback_speed_percent(VideoState *is, int speed);
+int lavp_get_playback_speed_percent(MovieState *mov);
+void lavp_set_playback_speed_percent(MovieState *mov, int speed);

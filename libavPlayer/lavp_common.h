@@ -41,4 +41,4 @@
 #import "clock.h"
 #import "framequeue.h"
 #import "decoder.h"
-#import "VideoState.h"
+#import "MovieState.h"
