@@ -285,7 +285,6 @@ void lavp_audio_update_speed(MovieState *mov)
 
 void lavp_set_volume_percent(MovieState *mov, int volume)
 {
-    if (!mov) return;
     mov->volume_percent = volume;
     if (mov->audio_queue) AudioQueueSetParameter(mov->audio_queue, kAudioQueueParam_Volume, volume / 100.0f);
 }
