@@ -129,7 +129,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
     if (!mov->paused) {
         Frame *fr = decoder_peek_current_frame_blocking(mov->auddec);
-        if (fr && fr->frm_pts_usec > 0) clock_set(&mov->audclk, fr->frm_pts_usec, fr->frm_serial);
+        if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
     }
 
     qbuf->mAudioDataByteSize = 0;

@@ -19,12 +19,17 @@
     AVInputFormat *iformat;
     AVFormatContext *ic;
 
-    Clock audclk;
     Decoder* auddec;
     Decoder* viddec;
     pthread_cond_t continue_read_thread;
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
+
+    // Clock (i.e. the current time in a movie, in usec, based on audio playback time).
+
+    int64_t clock_pts; // The pts of a recently-played audio frame.
+    int64_t clock_last_updated; // The machine/wallclock time the clock was last set.
+    int clock_serial; // The serial of the frame for which clock_pts was set.
 
     // Audio
 

@@ -1,42 +1,33 @@
 #include "lavp_common.h"
 
-int64_t clock_get_usec(Clock *c)
+int64_t clock_get_usec(MovieState *mov)
 {
-    if (*c->queue_serial != c->serial)
+    if (mov->auddec->current_serial != mov->clock_serial)
         return -1;
-    if (c->paused)
-        return c->pts;
-    return c->pts + (av_gettime_relative() - c->last_updated) * c->speed_percent / 100;
+    if (mov->paused)
+        return mov->clock_pts;
+    return mov->clock_pts + (av_gettime_relative() - mov->clock_last_updated) * mov->playback_speed_percent / 100;
 }
 
-void clock_set_at(Clock *c, int64_t pts, int serial, int64_t time)
+void clock_set_at(MovieState *mov, int64_t pts, int serial, int64_t time)
 {
-    c->pts = pts;
-    c->last_updated = time;
-    c->serial = serial;
+    mov->clock_pts = pts;
+    mov->clock_last_updated = time;
+    mov->clock_serial = serial;
 }
 
-void clock_set(Clock *c, int64_t pts, int serial)
+void clock_set(MovieState *mov, int64_t pts, int serial)
 {
-    clock_set_at(c, pts, serial, av_gettime_relative());
+    clock_set_at(mov, pts, serial, av_gettime_relative());
 }
 
-void clock_set_paused(Clock *c, bool paused) {
-    // We need to save on pause and restore on resume for the clock to be accurate.  (Otherwise it'd be ahead by however long the movie had been paused for, until it next got corrected based on actual audio playback.)
-    clock_set(c, clock_get_usec(c), c->serial);
-    c->paused = paused;
-}
-
-void clock_set_speed(Clock *c, int speed_percent)
+void clock_preserve(MovieState *mov)
 {
-    clock_set(c, clock_get_usec(c), c->serial);
-    c->speed_percent = speed_percent;
+    // This ensures the clock is correct after pausing, unpausing, or changing speed change (all of which would invalidate the basic calculation done by clock_get_usec, for different reasons).
+    clock_set(mov, clock_get_usec(mov), mov->clock_serial);
 }
 
-void clock_init(Clock *c, int *queue_serial)
+void clock_init(MovieState *mov)
 {
-    c->speed_percent = 100;
-    c->paused = 0;
-    c->queue_serial = queue_serial;
-    clock_set(c, -1, -1);
+    clock_set(mov, -1, -1);
 }

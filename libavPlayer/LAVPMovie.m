@@ -78,7 +78,7 @@
 
 -(int64_t) currentTimeInMicroseconds {
     if(!mov) return 0;
-    int64_t pos = clock_get_usec(&mov->audclk);
+    int64_t pos = clock_get_usec(mov);
     if(pos >= 0) lastPosition = pos;
     return lastPosition;
 }

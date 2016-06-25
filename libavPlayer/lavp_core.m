@@ -203,8 +203,8 @@ void lavp_set_paused_internal(MovieState *mov, bool pause)
     if (pause == mov->paused)
         return;
     mov->is_temporarily_unpaused_to_handle_seeking = false;
+    clock_preserve(mov);
     mov->paused = pause;
-    clock_set_paused(&mov->audclk, pause);
     if (mov->paused)
         audio_queue_pause(mov);
     else
@@ -300,7 +300,7 @@ MovieState* stream_open(NSURL *sourceURL)
     if (stream_component_open(mov, mov->ic->streams[vid_index]) < 0)
         goto fail;
 
-    clock_init(&mov->audclk, &mov->auddec->current_serial);
+    clock_init(mov);
 
     mov->parse_queue = dispatch_queue_create("parse", NULL);
     mov->parse_group = dispatch_group_create();
@@ -326,6 +326,6 @@ void lavp_set_playback_speed_percent(MovieState *mov, int speed)
     if (speed <= 0) return;
     if (mov->playback_speed_percent == speed) return;
     mov->playback_speed_percent = speed;
+    clock_preserve(mov);
     lavp_audio_update_speed(mov);
-    clock_set_speed(&mov->audclk, speed);
 }
