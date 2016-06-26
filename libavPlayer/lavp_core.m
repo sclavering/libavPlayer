@@ -116,11 +116,10 @@ static int decode_interrupt_cb(void *ctx)
     return mov->abort_request;
 }
 
-int read_thread(MovieState* mov)
+void read_thread(MovieState* mov)
 {
     pthread_mutex_t wait_mutex;
     pthread_mutex_init(&wait_mutex, NULL);
-    int ret = -1;
 
     AVPacket pkt1, *pkt = &pkt1;
     for(;;) {
@@ -134,7 +133,7 @@ int read_thread(MovieState* mov)
             // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
             // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
             int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
-            ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
+            int ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
             if (ret >= 0) {
                 decoder_update_for_seek(mov->auddec);
                 decoder_update_for_seek(mov->viddec);
@@ -160,7 +159,7 @@ int read_thread(MovieState* mov)
             lavp_set_paused(mov, true);
         }
 
-        ret = av_read_frame(mov->ic, pkt);
+        int ret = av_read_frame(mov->ic, pkt);
         if (ret < 0) {
             if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !mov->eof) {
                 decoder_update_for_eof(mov->auddec);
@@ -180,11 +179,7 @@ int read_thread(MovieState* mov)
             av_packet_unref(pkt);
     }
 
-    ret = 0;
-
     pthread_mutex_destroy(&wait_mutex);
-
-    return ret;
 }
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
