@@ -26,7 +26,8 @@
 #import "lavp_audio.h"
 
 
-static int audio_queue_init(MovieState *mov, AVCodecContext *avctx);
+static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf);
+static AudioChannelLabel convert_channel_label(uint64_t av_ch);
 
 
 int audio_open(MovieState *mov, AVCodecContext *avctx)
@@ -34,9 +35,6 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     mov->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
     mov->audio_tgt_channels = avctx->channels;
     mov->audio_buf_size = 0;
-
-    if (audio_queue_init(mov, avctx) < 0)
-        return -1;
 
     if (avctx->sample_fmt != mov->audio_tgt_fmt) {
         mov->swr_ctx = swr_alloc_set_opts(NULL, avctx->channel_layout, mov->audio_tgt_fmt, avctx->sample_rate, avctx->channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
@@ -48,6 +46,71 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
             swr_free(&mov->swr_ctx);
             return -1;
         }
+    }
+
+    double inSampleRate = avctx->sample_rate;
+    unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
+    unsigned int inChannelsPerFrame = avctx->channels;
+    unsigned int inFramesPerPacket = 1;
+    unsigned int inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
+    unsigned int inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
+    AudioStreamBasicDescription asbd = { 0 };
+    asbd.mSampleRate = inSampleRate;
+    asbd.mFormatID = kAudioFormatLinearPCM;
+    asbd.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+    asbd.mBytesPerPacket = inBytesPerPacket;
+    asbd.mFramesPerPacket = inFramesPerPacket;
+    asbd.mBytesPerFrame = inBytesPerFrame;
+    asbd.mChannelsPerFrame = inChannelsPerFrame;
+    asbd.mBitsPerChannel = inValidBitsPerChannel;
+
+    mov->audio_queue_num_frames_to_prepare = (int) (asbd.mSampleRate / 60); // Prepare for 1/60 sec (assuming normal playback speed).
+
+    mov->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
+    {
+        __weak MovieState* weak_mov = mov;
+        OSStatus err = AudioQueueNewOutputWithDispatchQueue(&mov->audio_queue, &asbd, 0, mov->audio_dispatch_queue, ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
+            __strong MovieState* strong_mov = weak_mov;
+            if (!strong_mov || strong_mov->abort_request) return;
+            audio_callback(strong_mov, aq, qbuf);
+        });
+        if (!mov->audio_queue || err != 0)
+            return -1;
+    }
+
+    // If we have more than two channels, we need to tell the AudioQueue what they are and what order they're in.
+    if (mov->audio_tgt_channels > 2) {
+        size_t sz = sizeof(AudioChannelLayout) + sizeof(AudioChannelDescription) * (mov->audio_tgt_channels - 1);
+        mov->audio_channel_layout = malloc(sz);
+        mov->audio_channel_layout->mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelDescriptions;
+        mov->audio_channel_layout->mChannelBitmap = 0;
+        mov->audio_channel_layout->mNumberChannelDescriptions = mov->audio_tgt_channels;
+        for (int i = 0; i < mov->audio_tgt_channels; ++i) {
+            // Note: ffmpeg's channel_layout is just a bitmap, because it apparently always stores channels in the same order.
+            uint64_t av_ch = av_channel_layout_extract_channel(avctx->channel_layout, i);
+            mov->audio_channel_layout->mChannelDescriptions[i].mChannelLabel = convert_channel_label(av_ch);
+        }
+        if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_ChannelLayout, mov->audio_channel_layout, sz))
+            return -1;
+    }
+
+    unsigned int prop_value = 1;
+    if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value)))
+        return -1;
+    prop_value = kAudioQueueTimePitchAlgorithm_Spectral;
+    if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value)))
+        return -1;
+
+    // prepare audio queue buffers for Output
+    unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
+    for (int i = 0; i < 3; i++) {
+        AudioQueueBufferRef out_buf = NULL;
+        OSStatus err = AudioQueueAllocateBuffer(mov->audio_queue, buf_size, &out_buf);
+        assert(err == 0 && out_buf != NULL);
+        memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
+        // Enqueue dummy data to start queuing
+        out_buf->mAudioDataByteSize = 8; // dummy data
+        AudioQueueEnqueueBuffer(mov->audio_queue, out_buf, 0, 0);
     }
 
     return 0;
@@ -170,77 +233,6 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
         }
         NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d (%@)", err, errStr);
     }
-}
-
-static int audio_queue_init(MovieState *mov, AVCodecContext *avctx)
-{
-    // prepare Audio stream basic description
-    double inSampleRate = avctx->sample_rate;
-    unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
-    unsigned int inChannelsPerFrame = avctx->channels;
-    unsigned int inFramesPerPacket = 1;
-    unsigned int inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
-    unsigned int inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
-    AudioStreamBasicDescription asbd = { 0 };
-    asbd.mSampleRate = inSampleRate;
-    asbd.mFormatID = kAudioFormatLinearPCM;
-    asbd.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-    asbd.mBytesPerPacket = inBytesPerPacket;
-    asbd.mFramesPerPacket = inFramesPerPacket;
-    asbd.mBytesPerFrame = inBytesPerFrame;
-    asbd.mChannelsPerFrame = inChannelsPerFrame;
-    asbd.mBitsPerChannel = inValidBitsPerChannel;
-
-    mov->audio_queue_num_frames_to_prepare = (int) (asbd.mSampleRate / 60); // Prepare for 1/60 sec (assuming normal playback speed).
-
-    mov->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
-    {
-        __weak MovieState* weak_mov = mov;
-        OSStatus err = AudioQueueNewOutputWithDispatchQueue(&mov->audio_queue, &asbd, 0, mov->audio_dispatch_queue, ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
-            __strong MovieState* strong_mov = weak_mov;
-            if (!strong_mov || strong_mov->abort_request) return;
-            audio_callback(strong_mov, aq, qbuf);
-        });
-        if (!mov->audio_queue || err != 0)
-            return -1;
-    }
-
-    // If we have more than two channels, we need to tell the AudioQueue what they are and what order they're in.
-    if (mov->audio_tgt_channels > 2) {
-        size_t sz = sizeof(AudioChannelLayout) + sizeof(AudioChannelDescription) * (mov->audio_tgt_channels - 1);
-        mov->audio_channel_layout = malloc(sz);
-        mov->audio_channel_layout->mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelDescriptions;
-        mov->audio_channel_layout->mChannelBitmap = 0;
-        mov->audio_channel_layout->mNumberChannelDescriptions = mov->audio_tgt_channels;
-        for (int i = 0; i < mov->audio_tgt_channels; ++i) {
-            // Note: ffmpeg's channel_layout is just a bitmap, because it apparently always stores channels in the same order.
-            uint64_t av_ch = av_channel_layout_extract_channel(avctx->channel_layout, i);
-            mov->audio_channel_layout->mChannelDescriptions[i].mChannelLabel = convert_channel_label(av_ch);
-        }
-        if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_ChannelLayout, mov->audio_channel_layout, sz))
-            return -1;
-    }
-
-    unsigned int prop_value = 1;
-    if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_EnableTimePitch, &prop_value, sizeof(prop_value)))
-        return -1;
-    prop_value = kAudioQueueTimePitchAlgorithm_Spectral;
-    if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value)))
-        return -1;
-
-    // prepare audio queue buffers for Output
-    unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
-    for (int i = 0; i < 3; i++) {
-        AudioQueueBufferRef out_buf = NULL;
-        OSStatus err = AudioQueueAllocateBuffer(mov->audio_queue, buf_size, &out_buf);
-        assert(err == 0 && out_buf != NULL);
-        memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
-        // Enqueue dummy data to start queuing
-        out_buf->mAudioDataByteSize = 8; // dummy data
-        AudioQueueEnqueueBuffer(mov->audio_queue, out_buf, 0, 0);
-    }
-
-    return 0;
 }
 
 void audio_queue_start(MovieState *mov)
