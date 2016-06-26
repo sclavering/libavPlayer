@@ -158,9 +158,6 @@ static void audio_decode_frame(MovieState *mov)
     mov->audio_buf = NULL;
     mov->audio_buf_size = 0;
 
-    if (mov->paused)
-        return;
-
     Frame *af = decoder_peek_current_frame_blocking(mov->auddec);
 
     if (mov->swr_ctx) {
@@ -188,30 +185,33 @@ static void audio_decode_frame(MovieState *mov)
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-    // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
-    // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-    if (!mov->paused) {
+    bool paused_or_seeking = mov->paused || mov->is_temporarily_unpaused_to_handle_seeking;
+    if (paused_or_seeking) {
+        // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
+        decoder_peek_current_frame_blocking(mov->auddec);
+    } else {
+        // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
+        // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
         Frame *fr = decoder_peek_current_frame_blocking(mov->auddec);
         if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
-    }
 
-    qbuf->mAudioDataByteSize = 0;
-    while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
-        if (mov->audio_buf_size <= 0) {
-            audio_decode_frame(mov);
-            if (!mov->audio_buf) break;
-            decoder_advance_frame(mov->auddec);
+        qbuf->mAudioDataByteSize = 0;
+        while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
+            if (mov->audio_buf_size <= 0) {
+                audio_decode_frame(mov);
+                if (!mov->audio_buf) break;
+                decoder_advance_frame(mov->auddec);
+            }
+            int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+            memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);
+            qbuf->mAudioDataByteSize += len1;
+            mov->audio_buf += len1;
+            mov->audio_buf_size -= len1;
         }
-        int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-        memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);
-        qbuf->mAudioDataByteSize += len1;
-        mov->audio_buf += len1;
-        mov->audio_buf_size -= len1;
     }
 
-    if (!mov->audio_buf) {
-        // We need to output some silence because AudioQueueEnqueueBuffer() returns an error if you give it an empty buffer (and then the audio_callback isn't called again).
-        // xxx And we need to output a full buffer of silence (not just a minimal amount) because otherwise we end up swamping the CPU with audio_callbacks (which can end up using >100% CPU with several open paused movies).  Honestly that's probably a bug to fix elsewhere, but do this for now.
+    // We always need to call AudioQueueEnqueueBuffer(), because otherwise the queue just stops (you don't get futher callbacks).  And we always need to actually queue some (silent) data, since it returns an error if you don't.  And actually you always need to fill qbuf, since just queueing 8 bytes or whatever means the CPU gets flooded (rapidly going over 100%, if you open several movies at once) with calls to this callbacks (though that might be fixable elsewhere).
+    if (paused_or_seeking || !mov->audio_buf) {
         memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
         qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
     }
