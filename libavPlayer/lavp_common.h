@@ -29,8 +29,6 @@
 #include "avcodec.h"
 #include "avformat.h"
 #include "avutil.h"
-
-#include "libavutil/opt.h"
 #include "libavutil/time.h"
 #include "libswresample/swresample.h"
 
