@@ -211,7 +211,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     }
 
     // We always need to call AudioQueueEnqueueBuffer(), because otherwise the queue just stops (you don't get futher callbacks).  And we always need to actually queue some (silent) data, since it returns an error if you don't.  And actually you always need to fill qbuf, since just queueing 8 bytes or whatever means the CPU gets flooded (rapidly going over 100%, if you open several movies at once) with calls to this callbacks (though that might be fixable elsewhere).
-    if (paused_or_seeking || !mov->audio_buf) {
+    if (paused_or_seeking || !qbuf->mAudioDataByteSize) {
         memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
         qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
     }
