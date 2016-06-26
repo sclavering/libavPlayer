@@ -16,9 +16,7 @@
     int64_t seek_to;
     bool is_temporarily_unpaused_to_handle_seeking;
 
-    AVInputFormat *iformat;
     AVFormatContext *ic;
-
     Decoder* auddec;
     Decoder* viddec;
     pthread_cond_t continue_read_thread;

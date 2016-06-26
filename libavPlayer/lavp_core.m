@@ -257,17 +257,11 @@ MovieState* stream_open(NSURL *sourceURL)
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
 
-    const char * extension = [sourceURL.pathExtension cStringUsingEncoding:NSASCIIStringEncoding];
-    if (extension) {
-        AVInputFormat *file_iformat = av_find_input_format(extension);
-        if (file_iformat) mov->iformat = file_iformat;
-    }
-
     mov->ic = avformat_alloc_context();
     if (!mov->ic) return NULL;
     mov->ic->interrupt_callback.callback = decode_interrupt_cb;
     mov->ic->interrupt_callback.opaque = (__bridge void *)(mov);
-    int err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, mov->iformat, NULL);
+    int err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, NULL, NULL);
     if (err < 0)
         return NULL;
 
