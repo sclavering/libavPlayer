@@ -118,74 +118,73 @@ static int decode_interrupt_cb(void *ctx)
 
 int read_thread(MovieState* mov)
 {
-        pthread_mutex_t wait_mutex;
-        pthread_mutex_init(&wait_mutex, NULL);
-        int ret = -1;
+    pthread_mutex_t wait_mutex;
+    pthread_mutex_init(&wait_mutex, NULL);
+    int ret = -1;
 
-        // decode loop
-        AVPacket pkt1, *pkt = &pkt1;
-        for(;;) {
-                if (mov->abort_request)
-                    break;
+    AVPacket pkt1, *pkt = &pkt1;
+    for(;;) {
+        if (mov->abort_request)
+            break;
 
-                // Seek
-                if (mov->seek_req) {
-                    mov->last_shown_video_frame_pts = -1;
-                    int64_t seek_diff = mov->seek_to - mov->seek_from;
-                    // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
-                    // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
-                    int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
-                    ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
-                    if (ret >= 0) {
-                        decoder_update_for_seek(mov->auddec);
-                        decoder_update_for_seek(mov->viddec);
-                    }
-                    mov->seek_req = 0;
-                    mov->eof = false;
-                    if (mov->paused) {
-                        lavp_set_paused_internal(mov, false);
-                        mov->is_temporarily_unpaused_to_handle_seeking = true;
-                    }
-                }
-
-                if(!decoder_needs_more_packets(mov->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
-                        && !decoder_needs_more_packets(mov->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
-                {
-                    pthread_mutex_lock(&wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
-                    pthread_mutex_unlock(&wait_mutex);
-                    continue;
-                }
-
-                if (!mov->paused && decoder_finished(mov->auddec) && decoder_finished(mov->viddec)) {
-                    lavp_set_paused(mov, true);
-                }
-
-                ret = av_read_frame(mov->ic, pkt);
-                if (ret < 0) {
-                    if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !mov->eof) {
-                        decoder_update_for_eof(mov->auddec);
-                        decoder_update_for_eof(mov->viddec);
-                        mov->eof = true;
-                    }
-                    if (mov->ic->pb && mov->ic->pb->error)
-                        break;
-                    pthread_mutex_lock(&wait_mutex);
-                    lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
-                    pthread_mutex_unlock(&wait_mutex);
-                    continue;
-                }
-                mov->eof = false;
-
-                if(!decoder_maybe_handle_packet(mov->auddec, pkt) && !decoder_maybe_handle_packet(mov->viddec, pkt))
-                    av_packet_unref(pkt);
+        // Seek
+        if (mov->seek_req) {
+            mov->last_shown_video_frame_pts = -1;
+            int64_t seek_diff = mov->seek_to - mov->seek_from;
+            // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
+            // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
+            int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
+            ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
+            if (ret >= 0) {
+                decoder_update_for_seek(mov->auddec);
+                decoder_update_for_seek(mov->viddec);
+            }
+            mov->seek_req = 0;
+            mov->eof = false;
+            if (mov->paused) {
+                lavp_set_paused_internal(mov, false);
+                mov->is_temporarily_unpaused_to_handle_seeking = true;
+            }
         }
 
-        ret = 0;
+        if(!decoder_needs_more_packets(mov->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
+                && !decoder_needs_more_packets(mov->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
+        {
+            pthread_mutex_lock(&wait_mutex);
+            lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
+            pthread_mutex_unlock(&wait_mutex);
+            continue;
+        }
 
-        pthread_mutex_destroy(&wait_mutex);
+        if (!mov->paused && decoder_finished(mov->auddec) && decoder_finished(mov->viddec)) {
+            lavp_set_paused(mov, true);
+        }
 
-        return ret;
+        ret = av_read_frame(mov->ic, pkt);
+        if (ret < 0) {
+            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !mov->eof) {
+                decoder_update_for_eof(mov->auddec);
+                decoder_update_for_eof(mov->viddec);
+                mov->eof = true;
+            }
+            if (mov->ic->pb && mov->ic->pb->error)
+                break;
+            pthread_mutex_lock(&wait_mutex);
+            lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
+            pthread_mutex_unlock(&wait_mutex);
+            continue;
+        }
+        mov->eof = false;
+
+        if(!decoder_maybe_handle_packet(mov->auddec, pkt) && !decoder_maybe_handle_packet(mov->viddec, pkt))
+            av_packet_unref(pkt);
+    }
+
+    ret = 0;
+
+    pthread_mutex_destroy(&wait_mutex);
+
+    return ret;
 }
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
