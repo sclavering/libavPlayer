@@ -9,16 +9,11 @@ int64_t clock_get_usec(MovieState *mov)
     return mov->clock_pts + (av_gettime_relative() - mov->clock_last_updated) * mov->playback_speed_percent / 100;
 }
 
-void clock_set_at(MovieState *mov, int64_t pts, int serial, int64_t time)
-{
-    mov->clock_pts = pts;
-    mov->clock_last_updated = time;
-    mov->clock_serial = serial;
-}
-
 void clock_set(MovieState *mov, int64_t pts, int serial)
 {
-    clock_set_at(mov, pts, serial, av_gettime_relative());
+    mov->clock_pts = pts;
+    mov->clock_last_updated = av_gettime_relative();
+    mov->clock_serial = serial;
 }
 
 void clock_preserve(MovieState *mov)
