@@ -9,7 +9,6 @@
     __weak id<LAVPMovieOutput> weak_output;
 
     bool abort_request;
-    bool eof;
     bool seek_req;
     // xxx eliminate seek_from!
     int64_t seek_from;

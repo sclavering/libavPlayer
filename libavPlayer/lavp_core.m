@@ -72,7 +72,6 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
     if (avcodec_open2(avctx, codec, &opts) < 0)
         goto fail;
 
-    mov->eof = false;
     stream->discard = AVDISCARD_DEFAULT;
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
@@ -121,6 +120,7 @@ void read_thread(MovieState* mov)
     pthread_mutex_t wait_mutex;
     pthread_mutex_init(&wait_mutex, NULL);
 
+    bool reached_eof = false;
     AVPacket pkt1, *pkt = &pkt1;
     for(;;) {
         if (mov->abort_request)
@@ -139,7 +139,7 @@ void read_thread(MovieState* mov)
                 decoder_update_for_seek(mov->viddec);
             }
             mov->seek_req = 0;
-            mov->eof = false;
+            reached_eof = false;
             if (mov->paused) {
                 lavp_set_paused_internal(mov, false);
                 mov->is_temporarily_unpaused_to_handle_seeking = true;
@@ -161,10 +161,10 @@ void read_thread(MovieState* mov)
 
         int ret = av_read_frame(mov->ic, pkt);
         if (ret < 0) {
-            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !mov->eof) {
+            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !reached_eof) {
                 decoder_update_for_eof(mov->auddec);
                 decoder_update_for_eof(mov->viddec);
-                mov->eof = true;
+                reached_eof = true;
             }
             if (mov->ic->pb && mov->ic->pb->error)
                 break;
@@ -173,7 +173,7 @@ void read_thread(MovieState* mov)
             pthread_mutex_unlock(&wait_mutex);
             continue;
         }
-        mov->eof = false;
+        reached_eof = false;
 
         if(!decoder_maybe_handle_packet(mov->auddec, pkt) && !decoder_maybe_handle_packet(mov->viddec, pkt))
             av_packet_unref(pkt);
@@ -251,7 +251,6 @@ MovieState* stream_open(NSURL *sourceURL)
     mov->last_shown_video_frame_pts = -1;
     mov->paused = false;
     mov->playback_speed_percent = 100;
-    mov->eof = false;
     mov->abort_request = false;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
