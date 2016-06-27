@@ -206,6 +206,7 @@ void stream_close(MovieState *mov)
 {
     if (mov) {
         mov->abort_request = true;
+        pthread_cond_signal(&mov->continue_read_thread);
 
         if (mov->parse_group) dispatch_group_wait(mov->parse_group, DISPATCH_TIME_FOREVER);
         mov->parse_group = NULL;
