@@ -70,7 +70,6 @@ MovieState* stream_open(NSURL *sourceURL);
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
 
-void lavp_set_paused_internal(MovieState *mov, bool pause);
 void lavp_set_paused(MovieState *mov, bool pause);
 
 int lavp_get_playback_speed_percent(MovieState *mov);

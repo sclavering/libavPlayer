@@ -137,7 +137,7 @@ void read_thread(MovieState* mov)
             mov->seek_req = 0;
             reached_eof = false;
             if (mov->paused) {
-                lavp_set_paused_internal(mov, false);
+                lavp_set_paused(mov, false);
                 mov->is_temporarily_unpaused_to_handle_seeking = true;
             }
         }
@@ -188,7 +188,7 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
     }
 }
 
-void lavp_set_paused_internal(MovieState *mov, bool pause)
+void lavp_set_paused(MovieState *mov, bool pause)
 {
     if (pause == mov->paused)
         return;
@@ -201,11 +201,6 @@ void lavp_set_paused_internal(MovieState *mov, bool pause)
         audio_queue_start(mov);
     __strong id<LAVPMovieOutput> output = mov->weak_output;
     if (output) [output movieOutputNeedsContinuousUpdating:!pause];
-}
-
-void lavp_set_paused(MovieState *mov, bool pause)
-{
-    lavp_set_paused_internal(mov, pause);
 }
 
 void stream_close(MovieState *mov)
