@@ -36,7 +36,6 @@
 
 #include <pthread.h>
 
-#import "clock.h"
 #import "framequeue.h"
 #import "decoder.h"
 #import "MovieState.h"
