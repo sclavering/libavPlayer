@@ -11,6 +11,7 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr);
 void decoder_thread(Decoder *d);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, AVStream *stream) {
+    d->finished = -1;
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
@@ -41,7 +42,7 @@ int decoder_decode_next_packet(Decoder *d) {
             return -1;
         if (pkt.data == flush_pkt.data) {
             avcodec_flush_buffers(d->avctx);
-            d->finished = 0;
+            d->finished = -1;
             d->next_pts = AV_NOPTS_VALUE;
         }
     } while (pkt.data == flush_pkt.data || d->current_serial != pkt_serial);
