@@ -77,7 +77,6 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
 
             if ((ret = audio_open(mov, avctx)) < 0)
                 goto out;
-            audio_queue_start(mov);
 
             break;
         case AVMEDIA_TYPE_VIDEO:
@@ -240,7 +239,7 @@ MovieState* stream_open(NSURL *sourceURL)
     mov->volume_percent = 100;
     mov->weak_output = NULL;
     mov->last_shown_video_frame_pts = -1;
-    mov->paused = false;
+    mov->paused = true;
     mov->playback_speed_percent = 100;
     mov->abort_request = false;
 
@@ -291,7 +290,9 @@ MovieState* stream_open(NSURL *sourceURL)
     }
 
     // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
+    lavp_set_paused(mov, false);
     mov->is_temporarily_unpaused_to_handle_seeking = true;
+
     return mov;
 
 fail:
