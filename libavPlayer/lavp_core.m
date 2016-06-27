@@ -24,13 +24,9 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "lavp_common.h"
-#import "lavp_core.h"
-#import "lavp_video.h"
-#import "packetqueue.h"
-#import "lavp_audio.h"
-
+#import "MovieState.h"
 #import "LAVPMovie+Internal.h"
+#import "decoder.h"
 
 
 void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms)

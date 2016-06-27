@@ -1,5 +1,6 @@
-#import "lavp_common.h"
-#import "lavp_video.h"
+#import "framequeue.h"
+#import "decoder.h"
+
 
 void frame_queue_unref_item(Frame *vp)
 {

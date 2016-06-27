@@ -21,10 +21,8 @@
 #import "LAVPMovie.h"
 #import "LAVPMovie+Internal.h"
 
-#import "lavp_core.h"
-#import "lavp_common.h"
-#import "lavp_video.h"
-#import "lavp_audio.h"
+#import "MovieState.h"
+#import "decoder.h"
 
 
 @implementation LAVPMovie

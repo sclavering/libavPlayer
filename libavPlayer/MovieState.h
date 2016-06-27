@@ -1,3 +1,15 @@
+@import AudioToolbox;
+
+#include <pthread.h>
+
+#include "avcodec.h"
+#include "avformat.h"
+#include "avutil.h"
+#include "libavutil/time.h"
+#include "libswresample/swresample.h"
+
+
+@class Decoder;
 @protocol LAVPMovieOutput;
 
 // This is an object rather than a struct because ObjC ARC requires that for having dispatch_queue_t members.
@@ -50,6 +62,41 @@
 }
 @end;
 
+
+// core
+
+void stream_close(MovieState *mov);
+MovieState* stream_open(NSURL *sourceURL);
+
+void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
+
+void lavp_set_paused_internal(MovieState *mov, bool pause);
+void lavp_set_paused(MovieState *mov, bool pause);
+
+int lavp_get_playback_speed_percent(MovieState *mov);
+void lavp_set_playback_speed_percent(MovieState *mov, int speed);
+
+
+// video
+
+int video_thread(MovieState *mov);
+void video_refresh(MovieState *mov);
+AVFrame* lavp_get_current_frame(MovieState *mov);
+
+
+// audio
+
+int audio_open(MovieState *mov, AVCodecContext *avctx);
+
+void audio_queue_start(MovieState *mov);
+void audio_queue_pause(MovieState *mov);
+void audio_queue_destroy(MovieState *mov);
+
+void lavp_audio_update_speed(MovieState *mov);
+void lavp_set_volume_percent(MovieState *mov, int volume);
+
+
+// clock
 
 int64_t clock_get_usec(MovieState *mov);
 void clock_set(MovieState *mov, int64_t pts, int serial);

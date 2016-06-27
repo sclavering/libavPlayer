@@ -1,4 +1,6 @@
-#include "lavp_common.h"
+#include "MovieState.h"
+#include "decoder.h"
+
 
 int64_t clock_get_usec(MovieState *mov)
 {

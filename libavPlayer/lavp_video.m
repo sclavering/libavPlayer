@@ -20,12 +20,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "lavp_common.h"
-#import "lavp_core.h"
-#import "lavp_video.h"
-#import "packetqueue.h"
-#import "lavp_audio.h"
-#import "LAVPMovie+Internal.h"
+#import "MovieState.h"
+#import "decoder.h"
 
 
 void video_refresh(MovieState *mov)

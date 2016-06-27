@@ -1,5 +1,5 @@
 #import "LAVPMovie.h"
-#import "lavp_common.h"
+#import "MovieState.h"
 
 typedef struct IntSize_ { int width, height; } IntSize;
 

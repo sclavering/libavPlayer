@@ -20,10 +20,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "lavp_core.h"
-#import "lavp_video.h"
 #import "packetqueue.h"
-#import "lavp_audio.h"
+#import "decoder.h"
 
 
 void packet_queue_init(PacketQueue *q)

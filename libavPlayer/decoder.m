@@ -1,6 +1,4 @@
-#import "lavp_common.h"
-
-#import "packetqueue.h"
+#import "decoder.h"
 
 
 AVPacket flush_pkt;

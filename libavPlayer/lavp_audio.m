@@ -20,10 +20,8 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "lavp_core.h"
-#import "lavp_video.h"
-#import "packetqueue.h"
-#import "lavp_audio.h"
+#import "MovieState.h"
+#import "decoder.h"
 
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf);

@@ -110,12 +110,8 @@
 		16A18FF313AC57E2008825FF /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		16A1911413AC9C47008825FF /* packetqueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = packetqueue.h; sourceTree = "<group>"; };
 		16A1911513AC9C47008825FF /* packetqueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = packetqueue.m; sourceTree = "<group>"; };
-		16A1932A13ADB3E3008825FF /* lavp_video.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_video.h; sourceTree = "<group>"; };
 		16A1932B13ADB3E3008825FF /* lavp_video.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = lavp_video.m; sourceTree = "<group>"; };
-		16A1933713ADB4F0008825FF /* lavp_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_common.h; sourceTree = "<group>"; };
-		16A193C413ADC268008825FF /* lavp_audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_audio.h; sourceTree = "<group>"; };
 		16A193C513ADC268008825FF /* lavp_audio.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = lavp_audio.m; sourceTree = "<group>"; };
-		16A193E213ADC62A008825FF /* lavp_core.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lavp_core.h; sourceTree = "<group>"; };
 		16A193E313ADC62A008825FF /* lavp_core.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; lineEnding = 0; path = lavp_core.m; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objc; };
 		16A195A813ADF5F1008825FF /* LAVPLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LAVPLayer.h; sourceTree = "<group>"; };
 		16A195A913ADF5F1008825FF /* LAVPLayer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LAVPLayer.m; sourceTree = "<group>"; };
@@ -248,12 +244,8 @@
 				AA4F12281CE508FC00716F94 /* decoder.m */,
 				AA4F12271CE3BB0F00716F94 /* framequeue.h */,
 				AA4F12251CE3B2D400716F94 /* framequeue.m */,
-				16A193C413ADC268008825FF /* lavp_audio.h */,
 				16A193C513ADC268008825FF /* lavp_audio.m */,
-				16A1933713ADB4F0008825FF /* lavp_common.h */,
-				16A193E213ADC62A008825FF /* lavp_core.h */,
 				16A193E313ADC62A008825FF /* lavp_core.m */,
-				16A1932A13ADB3E3008825FF /* lavp_video.h */,
 				16A1932B13ADB3E3008825FF /* lavp_video.m */,
 				16A1911413AC9C47008825FF /* packetqueue.h */,
 				16A1911513AC9C47008825FF /* packetqueue.m */,

@@ -1,3 +1,6 @@
+#import "framequeue.h"
+
+
 @class MovieState;
 
 extern AVPacket flush_pkt;
