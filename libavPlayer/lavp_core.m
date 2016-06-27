@@ -118,6 +118,10 @@ void read_thread(MovieState* mov)
     bool reached_eof = false;
     AVPacket pkt1, *pkt = &pkt1;
     for(;;) {
+        pthread_mutex_lock(&wait_mutex);
+        lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
+        pthread_mutex_unlock(&wait_mutex);
+
         if (mov->abort_request)
             break;
 
@@ -144,9 +148,6 @@ void read_thread(MovieState* mov)
         if(!decoder_needs_more_packets(mov->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
                 && !decoder_needs_more_packets(mov->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
         {
-            pthread_mutex_lock(&wait_mutex);
-            lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
-            pthread_mutex_unlock(&wait_mutex);
             continue;
         }
 
@@ -163,9 +164,6 @@ void read_thread(MovieState* mov)
             }
             if (mov->ic->pb && mov->ic->pb->error)
                 break;
-            pthread_mutex_lock(&wait_mutex);
-            lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
-            pthread_mutex_unlock(&wait_mutex);
             continue;
         }
         reached_eof = false;
