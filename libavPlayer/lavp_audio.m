@@ -215,22 +215,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     }
 
     OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
-    if (err) {
-        NSString *errStr = @"kAudioQueueErr_???";
-        switch (err) {
-            case kAudioQueueErr_DisposalPending:
-                errStr = @"kAudioQueueErr_DisposalPending"; break;
-            case kAudioQueueErr_InvalidDevice:
-                errStr = @"kAudioQueueErr_InvalidDevice"; break;
-            case kAudioQueueErr_InvalidRunState:
-                errStr = @"kAudioQueueErr_InvalidRunState"; break;
-            case kAudioQueueErr_QueueInvalidated:
-                errStr = @"kAudioQueueErr_QueueInvalidated"; break;
-            case kAudioQueueErr_EnqueueDuringReset:
-                errStr = @"kAudioQueueErr_EnqueueDuringReset"; break;
-        }
-        NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d (%@)", err, errStr);
-    }
+    if (err) NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d", err);
 }
 
 void audio_queue_start(MovieState *mov)
