@@ -21,7 +21,7 @@
 
  You should have received a copy of the GNU General Public License
  along with libavPlayer; if not, write to the Free Software
- Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ Foundation, Inc.,  1 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 #import "MovieState.h"
@@ -72,7 +72,7 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
             mov->auddec = [[Decoder alloc] init];
-            if (decoder_init(mov->auddec, avctx, &mov->continue_read_thread, stream) < 0)
+            if (decoder_init(mov->auddec, avctx, stream) < 0)
                 goto fail;
 
             if ((ret = audio_open(mov, avctx)) < 0)
@@ -87,7 +87,7 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
             mov->height = stream->codecpar->height;
 
             mov->viddec = [[Decoder alloc] init];
-            if (decoder_init(mov->viddec, avctx, &mov->continue_read_thread, stream) < 0)
+            if (decoder_init(mov->viddec, avctx, stream) < 0)
                 goto fail;
 
             break;
@@ -134,8 +134,7 @@ void read_thread(MovieState* mov)
             int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
             int ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
             if (ret >= 0) {
-                decoder_update_for_seek(mov->auddec);
-                decoder_update_for_seek(mov->viddec);
+                decoders_update_for_seek(mov);
             }
             mov->seek_req = 0;
             reached_eof = false;
@@ -145,21 +144,17 @@ void read_thread(MovieState* mov)
             }
         }
 
-        if(!decoder_needs_more_packets(mov->auddec, AUDIO_FRAME_QUEUE_TARGET_SIZE)
-                && !decoder_needs_more_packets(mov->viddec, VIDEO_FRAME_QUEUE_TARGET_SIZE))
-        {
+        if (mov->packetq.pq_length > 100)
             continue;
-        }
 
-        if (!mov->paused && decoder_finished(mov->auddec) && decoder_finished(mov->viddec)) {
+        if (!mov->paused && decoder_finished(mov->auddec, mov->current_serial) && decoder_finished(mov->viddec, mov->current_serial)) {
             lavp_set_paused(mov, true);
         }
 
         int ret = av_read_frame(mov->ic, pkt);
         if (ret < 0) {
             if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !reached_eof) {
-                decoder_update_for_eof(mov->auddec);
-                decoder_update_for_eof(mov->viddec);
+                decoders_update_for_eof(mov);
                 reached_eof = true;
             }
             if (mov->ic->pb && mov->ic->pb->error)
@@ -168,8 +163,7 @@ void read_thread(MovieState* mov)
         }
         reached_eof = false;
 
-        if(!decoder_maybe_handle_packet(mov->auddec, pkt) && !decoder_maybe_handle_packet(mov->viddec, pkt))
-            av_packet_unref(pkt);
+        packet_queue_put(&mov->packetq, pkt, mov);
     }
 
     pthread_mutex_destroy(&wait_mutex);
@@ -212,6 +206,13 @@ void stream_close(MovieState *mov)
 
         if (mov->auddec) decoder_destroy(mov->auddec);
         if (mov->viddec) decoder_destroy(mov->viddec);
+
+        packet_queue_abort(&mov->packetq);
+        packet_queue_flush(&mov->packetq);
+        packet_queue_destroy(&mov->packetq);
+        dispatch_group_wait(mov->decoder_group, DISPATCH_TIME_FOREVER);
+        mov->decoder_group = NULL;
+        mov->decoder_queue = NULL;
 
         audio_queue_destroy(mov);
         swr_free(&mov->swr_ctx);
@@ -275,6 +276,15 @@ MovieState* stream_open(NSURL *sourceURL)
         goto fail;
     if (stream_component_open(mov, mov->ic->streams[vid_index]) < 0)
         goto fail;
+
+    packet_queue_init(&mov->packetq);
+    mov->decoder_queue = dispatch_queue_create(NULL, NULL);
+    mov->decoder_group = dispatch_group_create();
+    {
+        dispatch_group_async(mov->decoder_group, mov->decoder_queue, ^(void) {
+            decoders_thread(mov);
+        });
+    }
 
     clock_init(mov);
 

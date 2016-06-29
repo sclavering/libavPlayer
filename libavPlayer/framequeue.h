@@ -1,8 +1,7 @@
-#import "packetqueue.h"
+#import "MovieState.h"
 
-#define VIDEO_FRAME_QUEUE_TARGET_SIZE 15
-#define AUDIO_FRAME_QUEUE_TARGET_SIZE 9
-#define FRAME_QUEUE_SIZE 15
+
+#define FRAME_QUEUE_SIZE 50
 
 /* Common struct for handling all types of decoded data and allocated render buffers. */
 typedef struct Frame {

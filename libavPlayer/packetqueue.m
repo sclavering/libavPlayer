@@ -20,8 +20,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#import "packetqueue.h"
-#import "decoder.h"
+#import "MovieState.h"
 
 
 void packet_queue_init(PacketQueue *q)
@@ -61,15 +60,15 @@ void packet_queue_destroy(PacketQueue *q)
     pthread_cond_destroy(&q->cond);
 }
 
-int packet_queue_put(PacketQueue *q, AVPacket *pkt, Decoder *d)
+int packet_queue_put(PacketQueue *q, AVPacket *pkt, MovieState *mov)
 {
-    if (d->abort) goto fail;
+    if (mov->abort_request) goto fail;
     MyAVPacketList *pkt1 = av_malloc(sizeof(MyAVPacketList));
     if (!pkt1) goto fail;
     pthread_mutex_lock(&q->mutex);
     pkt1->pkt = *pkt;
     pkt1->next = NULL;
-    pkt1->serial = d->current_serial;
+    pkt1->serial = mov->current_serial;
     if (!q->last_pkt)
         q->first_pkt = pkt1;
     else
@@ -85,23 +84,23 @@ fail:
     return -1;
 }
 
-int packet_queue_put_nullpacket(PacketQueue *q, int stream_index, Decoder *d)
+int packet_queue_put_nullpacket(PacketQueue *q, MovieState *mov)
 {
     AVPacket pkt1, *pkt = &pkt1;
     av_init_packet(pkt);
     pkt->data = NULL;
     pkt->size = 0;
-    pkt->stream_index = stream_index;
-    return packet_queue_put(q, pkt, d);
+    pkt->stream_index = -1;
+    return packet_queue_put(q, pkt, mov);
 }
 
-int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial, Decoder *d)
+int packet_queue_get(PacketQueue *q, AVPacket *pkt, int *serial, MovieState *mov)
 {
     MyAVPacketList *pkt1;
     int ret = 0;
     pthread_mutex_lock(&q->mutex);
     for(;;) {
-        if (d->abort) {
+        if (mov->abort_request) {
             ret = -1;
             break;
         }

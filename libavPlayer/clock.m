@@ -4,7 +4,7 @@
 
 int64_t clock_get_usec(MovieState *mov)
 {
-    if (mov->auddec->current_serial != mov->clock_serial)
+    if (mov->current_serial != mov->clock_serial)
         return -1;
     if (mov->paused)
         return mov->clock_pts;

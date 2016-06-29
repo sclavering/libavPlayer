@@ -156,7 +156,7 @@ static void audio_decode_frame(MovieState *mov)
     mov->audio_buf = NULL;
     mov->audio_buf_size = 0;
 
-    Frame *af = decoder_peek_current_frame_blocking(mov->auddec);
+    Frame *af = decoder_peek_current_frame_blocking(mov->auddec, mov);
 
     if (mov->swr_ctx) {
         int out_size = av_samples_get_buffer_size(NULL, mov->audio_tgt_channels, af->frm_frame->nb_samples, mov->audio_tgt_fmt, 0);
@@ -186,11 +186,11 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     bool paused_or_seeking = mov->paused || mov->is_temporarily_unpaused_to_handle_seeking;
     if (paused_or_seeking) {
         // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
-        decoder_peek_current_frame_blocking(mov->auddec);
+        decoder_peek_current_frame_blocking(mov->auddec, mov);
     } else {
         // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
         // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-        Frame *fr = decoder_peek_current_frame_blocking(mov->auddec);
+        Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
         if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
 
         qbuf->mAudioDataByteSize = 0;

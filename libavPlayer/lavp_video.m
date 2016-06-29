@@ -31,7 +31,7 @@ void video_refresh(MovieState *mov)
 
     // Skip any frames that are in the past (except the current frame).
     for(;;) {
-        Frame *curr = decoder_peek_current_frame(mov->viddec);
+        Frame *curr = decoder_peek_current_frame(mov->viddec, mov);
         if (!curr) return;
         Frame *next = decoder_peek_next_frame(mov->viddec);
         int64_t now = clock_get_usec(mov);
@@ -54,7 +54,7 @@ AVFrame* lavp_get_current_frame(MovieState *mov)
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
     video_refresh(mov);
 
-    Frame* fr = decoder_peek_current_frame(mov->viddec);
+    Frame* fr = decoder_peek_current_frame(mov->viddec, mov);
     if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return NULL;
 
     // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.

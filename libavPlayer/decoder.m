@@ -8,48 +8,65 @@ AVPacket flush_pkt;
 @end
 
 static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr);
-void decoder_thread(Decoder *d);
+static int decoder_decode_packet(Decoder *d, AVPacket *pkt, int pkt_serial);
 
-int decoder_init(Decoder *d, AVCodecContext *avctx, pthread_cond_t *empty_queue_cond_ptr, AVStream *stream) {
+int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->finished = -1;
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
-    d->empty_queue_cond_ptr = empty_queue_cond_ptr;
     int err = frame_queue_init(&d->frameq);
     if(err < 0) return err;
     d->abort = 0;
-    packet_queue_init(&d->packetq);
-    d->dispatch_queue = dispatch_queue_create(NULL, NULL);
-    d->dispatch_group = dispatch_group_create();
-    dispatch_group_async(d->dispatch_group, d->dispatch_queue, ^(void) {
-        decoder_thread(d);
-    });
     return 0;
 }
 
-int decoder_decode_next_packet(Decoder *d) {
+void decoder_flush(Decoder *d)
+{
+    avcodec_flush_buffers(d->avctx);
+    d->finished = -1;
+    d->next_pts = AV_NOPTS_VALUE;
+}
+
+int decoders_handle_next_packet(MovieState *mov) {
     AVPacket pkt;
 
-    if (d->abort)
+    if (mov->abort_request)
         return -1;
 
     int pkt_serial;
     do {
-        if (d->packetq.pq_length == 0)
-            pthread_cond_signal(d->empty_queue_cond_ptr);
-        if (packet_queue_get(&d->packetq, &pkt, &pkt_serial, d) < 0)
+        if (mov->packetq.pq_length == 0)
+            pthread_cond_signal(&mov->continue_read_thread);
+        if (packet_queue_get(&mov->packetq, &pkt, &pkt_serial, mov) < 0)
             return -1;
         if (pkt.data == flush_pkt.data) {
-            avcodec_flush_buffers(d->avctx);
-            d->finished = -1;
-            d->next_pts = AV_NOPTS_VALUE;
+            decoder_flush(mov->auddec);
+            decoder_flush(mov->viddec);
         }
-    } while (pkt.data == flush_pkt.data || d->current_serial != pkt_serial);
+    } while (pkt.data == flush_pkt.data || mov->current_serial != pkt_serial);
 
-    int err = avcodec_send_packet(d->avctx, &pkt);
+    if (!pkt.data) {
+        // It's the special flush packet we enqueued in decoders_update_for_eof().
+        int err = decoder_decode_packet(mov->auddec, NULL, pkt_serial);
+        if (err < 0) return err;
+        return decoder_decode_packet(mov->viddec, NULL, pkt_serial);
+    }
+
+    if (pkt.stream_index == mov->auddec->stream->index)
+        return decoder_decode_packet(mov->auddec, &pkt, pkt_serial);
+    if (pkt.stream_index == mov->viddec->stream->index)
+        return decoder_decode_packet(mov->viddec, &pkt, pkt_serial);
+
     av_packet_unref(&pkt);
-    // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Absent this special case, the decoder_thread would get shut down.
+    return 0;
+}
+
+static int decoder_decode_packet(Decoder *d, AVPacket *pkt, int pkt_serial)
+{
+    int err = avcodec_send_packet(d->avctx, pkt);
+    if (pkt) av_packet_unref(pkt);
+    // xxx avcodec_send_packet() isn't documented as returning this error.  But I've observed it doing so for an audio stream after seeking, on an occasion where "[mp3 @ ...] Header missing" was also logged to the console.  Absent this special case, the decoders_thread would get shut down.
     if (err == AVERROR_INVALIDDATA)
         return 0;
     // Note: since we're looping over all frames from the packet, we shouldn't need to check for AVERROR(EAGAIN).
@@ -119,63 +136,21 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
 void decoder_destroy(Decoder *d)
 {
     d->abort = 1;
-    packet_queue_abort(&d->packetq);
     frame_queue_signal(&d->frameq);
 
-    dispatch_group_wait(d->dispatch_group, DISPATCH_TIME_FOREVER);
-    d->dispatch_group = NULL;
-    d->dispatch_queue = NULL;
-
-    packet_queue_flush(&d->packetq);
     d->stream->discard = AVDISCARD_ALL;
     d->stream = NULL;
     avcodec_free_context(&d->avctx);
 
-    packet_queue_destroy(&d->packetq);
     frame_queue_destroy(&d->frameq);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
 }
 
-bool decoder_maybe_handle_packet(Decoder *d, AVPacket *pkt)
+bool decoder_finished(Decoder *d, int current_serial)
 {
-    if (pkt->stream_index != d->stream->index)
-        return false;
-    packet_queue_put(&d->packetq, pkt, d);
-    return true;
-}
-
-void decoder_update_for_seek(Decoder *d)
-{
-    packet_queue_flush(&d->packetq);
-    // Not sure if this strictly needs to be atomic
-    OSAtomicIncrement32Barrier(&d->current_serial);
-    packet_queue_put(&d->packetq, &flush_pkt, d);
-}
-
-void decoder_update_for_eof(Decoder *d)
-{
-    packet_queue_put_nullpacket(&d->packetq, d->stream->index, d);
-}
-
-bool decoder_needs_more_packets(Decoder *d, int target_frame_queue_size)
-{
-    // Packets can result in more than one frame, but the basic idea is to just not grow the packetq needlessly.
-    return !d->abort && d->frameq.size + d->packetq.pq_length < target_frame_queue_size;
-}
-
-bool decoder_finished(Decoder *d)
-{
-    return d->finished == d->current_serial && !d->frameq.size;
-}
-
-void decoder_thread(Decoder *d)
-{
-    for(;;) {
-        int err = decoder_decode_next_packet(d);
-        if (err < 0) break;
-    }
+    return d->finished == current_serial && !d->frameq.size;
 }
 
 void decoder_advance_frame(Decoder *d)
@@ -183,14 +158,14 @@ void decoder_advance_frame(Decoder *d)
     frame_queue_next(&d->frameq);
 }
 
-Frame *decoder_peek_current_frame(Decoder *d)
+Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
     for(;;) {
         fr = frame_queue_peek(&d->frameq);
         if (!fr) break;
-        if (fr->frm_serial == d->current_serial) break;
+        if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d);
     }
     return fr;
@@ -201,14 +176,36 @@ Frame *decoder_peek_next_frame(Decoder *d)
     return frame_queue_peek_next(&d->frameq);
 }
 
-Frame *decoder_peek_current_frame_blocking(Decoder *d)
+Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     for (;;) {
         if (!(fr = frame_queue_peek_blocking(&d->frameq, d)))
             return NULL;
-        if (fr->frm_serial == d->current_serial) break;
+        if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d);
     }
     return fr;
+}
+
+
+void decoders_update_for_seek(MovieState *mov)
+{
+    packet_queue_flush(&mov->packetq);
+    // Not sure if this strictly needs to be atomic
+    OSAtomicIncrement32Barrier(&mov->current_serial);
+    packet_queue_put(&mov->packetq, &flush_pkt, mov);
+}
+
+void decoders_update_for_eof(MovieState *mov)
+{
+    packet_queue_put_nullpacket(&mov->packetq, mov);
+}
+
+void decoders_thread(MovieState *mov)
+{
+    for (;;) {
+        int err = decoders_handle_next_packet(mov);
+        if (err < 0) break;
+    }
 }

@@ -8,6 +8,8 @@
 #include "libavutil/time.h"
 #include "libswresample/swresample.h"
 
+#include "packetqueue.h"
+
 
 @class Decoder;
 @protocol LAVPMovieOutput;
@@ -33,6 +35,12 @@
     pthread_cond_t continue_read_thread;
     dispatch_queue_t parse_queue;
     dispatch_group_t parse_group;
+
+    // Serial numbers are use to flush out obsolete packets/frames after seeking.  We increment ->current_serial each time we seek.
+    int current_serial;
+    PacketQueue packetq;
+    dispatch_queue_t decoder_queue;
+    dispatch_group_t decoder_group;
 
     // Clock (i.e. the current time in a movie, in usec, based on audio playback time).
 
