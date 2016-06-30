@@ -8,8 +8,6 @@
 #include "libavutil/time.h"
 #include "libswresample/swresample.h"
 
-#include "packetqueue.h"
-
 
 @class Decoder;
 @protocol LAVPMovieOutput;
@@ -28,17 +26,14 @@
     int64_t seek_from;
     int64_t seek_to;
     bool is_temporarily_unpaused_to_handle_seeking;
+    bool paused_for_eof;
 
     AVFormatContext *ic;
     Decoder* auddec;
     Decoder* viddec;
-    pthread_cond_t continue_read_thread;
-    dispatch_queue_t parse_queue;
-    dispatch_group_t parse_group;
 
     // Serial numbers are use to flush out obsolete packets/frames after seeking.  We increment ->current_serial each time we seek.
     int current_serial;
-    PacketQueue packetq;
     dispatch_queue_t decoder_queue;
     dispatch_group_t decoder_group;
 
@@ -82,6 +77,15 @@ void lavp_set_paused(MovieState *mov, bool pause);
 
 int lavp_get_playback_speed_percent(MovieState *mov);
 void lavp_set_playback_speed_percent(MovieState *mov, int speed);
+
+bool decoders_check_for_seek(MovieState *mov);
+void decoders_check_if_finished(MovieState *mov);
+int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof);
+
+void decoders_thread(MovieState *mov);
+void decoders_wake_thread(MovieState *mov);
+bool decoders_should_stop_waiting(MovieState *mov);
+void decoders_pause_if_finished(MovieState *mov);
 
 
 // video

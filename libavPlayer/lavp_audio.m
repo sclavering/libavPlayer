@@ -198,7 +198,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
             if (mov->audio_buf_size <= 0) {
                 audio_decode_frame(mov);
                 if (!mov->audio_buf) break;
-                decoder_advance_frame(mov->auddec);
+                decoder_advance_frame(mov->auddec, mov);
             }
             int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
             memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);

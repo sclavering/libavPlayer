@@ -29,13 +29,6 @@
 #import "decoder.h"
 
 
-void lavp_pthread_cond_wait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, int ms)
-{
-    struct timespec time_to_wait = { 0, 0 };
-    time_to_wait.tv_nsec = 1000000 * ms;
-    pthread_cond_timedwait_relative_np(cond, mutex, &time_to_wait);
-}
-
 static int stream_component_open(MovieState *mov, AVStream *stream)
 {
     int ret;
@@ -110,63 +103,34 @@ static int decode_interrupt_cb(void *ctx)
     return mov->abort_request;
 }
 
-void read_thread(MovieState* mov)
+bool decoders_check_for_seek(MovieState *mov)
 {
-    pthread_mutex_t wait_mutex;
-    pthread_mutex_init(&wait_mutex, NULL);
-
-    bool reached_eof = false;
-    AVPacket pkt1, *pkt = &pkt1;
-    for(;;) {
-        pthread_mutex_lock(&wait_mutex);
-        lavp_pthread_cond_wait_with_timeout(&mov->continue_read_thread, &wait_mutex, 10);
-        pthread_mutex_unlock(&wait_mutex);
-
-        if (mov->abort_request)
-            break;
-
-        // Seek
-        if (mov->seek_req) {
+            if (!mov->seek_req) return false;
             mov->last_shown_video_frame_pts = -1;
             int64_t seek_diff = mov->seek_to - mov->seek_from;
             // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
             // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
             int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
             int ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
-            if (ret >= 0) {
-                decoders_update_for_seek(mov);
-            }
-            mov->seek_req = 0;
-            reached_eof = false;
-            if (mov->paused) {
-                lavp_set_paused(mov, false);
-                mov->is_temporarily_unpaused_to_handle_seeking = true;
-            }
-        }
+            mov->seek_req = false;
+            if (ret < 0) return false;
+            return true;
+}
 
-        if (mov->packetq.pq_length > 100)
-            continue;
-
-        if (!mov->paused && decoder_finished(mov->auddec, mov->current_serial) && decoder_finished(mov->viddec, mov->current_serial)) {
-            lavp_set_paused(mov, true);
-        }
-
+int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
+{
+        if (mov->abort_request) return -1;
         int ret = av_read_frame(mov->ic, pkt);
         if (ret < 0) {
-            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !reached_eof) {
-                decoders_update_for_eof(mov);
-                reached_eof = true;
+            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !*reached_eof) {
+                *reached_eof = true;
             }
             if (mov->ic->pb && mov->ic->pb->error)
-                break;
-            continue;
+                return -1; // xxx unsure about this
+            return 0;
         }
-        reached_eof = false;
-
-        packet_queue_put(&mov->packetq, pkt, mov);
-    }
-
-    pthread_mutex_destroy(&wait_mutex);
+        *reached_eof = false;
+        return 0;
 }
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
@@ -175,12 +139,15 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
         mov->seek_from = current_pos;
         mov->seek_to = pos;
         mov->seek_req = true;
-        pthread_cond_signal(&mov->continue_read_thread);
+        decoders_wake_thread(mov);
     }
 }
 
 void lavp_set_paused(MovieState *mov, bool pause)
 {
+    // Allowing unpause in this case would just let the clock run beyond the duration.
+    if (!pause && mov->paused && mov->paused_for_eof)
+        return;
     if (pause == mov->paused)
         return;
     mov->is_temporarily_unpaused_to_handle_seeking = false;
@@ -198,21 +165,14 @@ void stream_close(MovieState *mov)
 {
     if (mov) {
         mov->abort_request = true;
-        pthread_cond_signal(&mov->continue_read_thread);
 
-        if (mov->parse_group) dispatch_group_wait(mov->parse_group, DISPATCH_TIME_FOREVER);
-        mov->parse_group = NULL;
-        mov->parse_queue = NULL;
-
-        if (mov->auddec) decoder_destroy(mov->auddec);
-        if (mov->viddec) decoder_destroy(mov->viddec);
-
-        packet_queue_abort(&mov->packetq);
-        packet_queue_flush(&mov->packetq);
-        packet_queue_destroy(&mov->packetq);
+        decoders_wake_thread(mov);
         dispatch_group_wait(mov->decoder_group, DISPATCH_TIME_FOREVER);
         mov->decoder_group = NULL;
         mov->decoder_queue = NULL;
+
+        if (mov->auddec) decoder_destroy(mov->auddec);
+        if (mov->viddec) decoder_destroy(mov->viddec);
 
         audio_queue_destroy(mov);
         swr_free(&mov->swr_ctx);
@@ -222,18 +182,12 @@ void stream_close(MovieState *mov)
 
         avformat_close_input(&mov->ic);
 
-        pthread_cond_destroy(&mov->continue_read_thread);
-
         mov->weak_output = NULL;
     }
 }
 
 MovieState* stream_open(NSURL *sourceURL)
 {
-    // Re-doing this each time we open a stream ought to be fine, as av_init_packet() is documented as not modifying .data
-    av_init_packet(&flush_pkt);
-    flush_pkt.data = (uint8_t *)&flush_pkt;
-
     MovieState *mov = [[MovieState alloc] init];
 
     mov->volume_percent = 100;
@@ -242,6 +196,7 @@ MovieState* stream_open(NSURL *sourceURL)
     mov->paused = true;
     mov->playback_speed_percent = 100;
     mov->abort_request = false;
+    mov->seek_req = false;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
@@ -264,8 +219,6 @@ MovieState* stream_open(NSURL *sourceURL)
     for (int i = 0; i < mov->ic->nb_streams; i++)
         mov->ic->streams[i]->discard = AVDISCARD_ALL;
 
-    pthread_cond_init(&mov->continue_read_thread, NULL);
-
     int vid_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
     if (vid_index < 0)
         goto fail;
@@ -277,8 +230,7 @@ MovieState* stream_open(NSURL *sourceURL)
     if (stream_component_open(mov, mov->ic->streams[vid_index]) < 0)
         goto fail;
 
-    packet_queue_init(&mov->packetq);
-    mov->decoder_queue = dispatch_queue_create(NULL, NULL);
+    mov->decoder_queue = dispatch_queue_create("decoders", NULL);
     mov->decoder_group = dispatch_group_create();
     {
         dispatch_group_async(mov->decoder_group, mov->decoder_queue, ^(void) {
@@ -287,16 +239,6 @@ MovieState* stream_open(NSURL *sourceURL)
     }
 
     clock_init(mov);
-
-    mov->parse_queue = dispatch_queue_create("parse", NULL);
-    mov->parse_group = dispatch_group_create();
-    {
-        __weak MovieState* weak_mov = mov;
-        dispatch_group_async(mov->parse_group, mov->parse_queue, ^(void) {
-            __strong MovieState* strong_mov = weak_mov;
-            if (strong_mov) read_thread(strong_mov);
-        });
-    }
 
     // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
     lavp_set_paused(mov, false);
@@ -316,4 +258,91 @@ void lavp_set_playback_speed_percent(MovieState *mov, int speed)
     mov->playback_speed_percent = speed;
     clock_preserve(mov);
     lavp_audio_update_speed(mov);
+}
+
+void decoders_thread(MovieState *mov)
+{
+    AVPacket pkt;
+    int err = 0;
+    bool reached_eof = false;
+    bool aud_frames_pending = false;
+    bool vid_frames_pending = false;
+
+    // This loop is often waiting on a condvar in frame_queue_peek_writable().
+    for (;;) {
+        if (mov->abort_request) break;
+
+        if (decoders_check_for_seek(mov)) {
+            mov->paused_for_eof = false;
+            ++mov->current_serial;
+            reached_eof = false;
+            aud_frames_pending = false;
+            vid_frames_pending = false;
+            decoder_flush(mov->auddec);
+            decoder_flush(mov->viddec);
+            if (mov->paused) {
+                lavp_set_paused(mov, false);
+                mov->is_temporarily_unpaused_to_handle_seeking = true;
+            }
+            continue;
+        }
+
+        // Note: there can be frames pending even after reached_eof is set (there just shouldn't be any further packets).
+        if (aud_frames_pending) {
+            aud_frames_pending = decoder_receive_frame(mov->auddec, mov->current_serial, mov);
+            continue;
+        }
+        if (vid_frames_pending) {
+            vid_frames_pending = decoder_receive_frame(mov->viddec, mov->current_serial, mov);
+            continue;
+        }
+
+        if (reached_eof) {
+            // We need to wait until something interesting happens (e.g. abort or seek), and it needs to be one of the frameq condvars (where frame_queue_peek_writable() also waits).  Using viddec rather than auddec is arbitrary.
+            // This will actually wake up a bunch as the final frames are used up, but that's fine (the important thing is to just avoid trying to read and decode more packets, and end up getting an error and ending the loop).
+            FrameQueue *f = &mov->viddec->frameq;
+            pthread_mutex_lock(&f->mutex);
+            pthread_cond_wait(&f->cond, &f->mutex);
+            pthread_mutex_unlock(&f->mutex);
+            continue;
+        }
+
+        bool prev_reached_eof = reached_eof;
+        err = decoders_get_packet(mov, &pkt, &reached_eof);
+        if (err < 0) break;
+        if (reached_eof && !prev_reached_eof) {
+            aud_frames_pending = decoder_send_packet(mov->auddec, NULL);
+            vid_frames_pending = decoder_send_packet(mov->viddec, NULL);
+            continue;
+        }
+
+        if (pkt.stream_index == mov->auddec->stream->index) {
+            aud_frames_pending = decoder_send_packet(mov->auddec, &pkt);
+        } else if (pkt.stream_index == mov->viddec->stream->index) {
+            vid_frames_pending = decoder_send_packet(mov->viddec, &pkt);
+        } else {
+            av_packet_unref(&pkt);
+        }
+    }
+}
+
+void decoders_wake_thread(MovieState *mov)
+{
+    // When seeking (while paused) or closing, we need to interrupt the decoders_thread if it's waiting in frame_queue_peek_writable.  And we don't know which frameq it's waiting on, so we must wake both up.
+    frame_queue_signal(&mov->auddec->frameq);
+    frame_queue_signal(&mov->viddec->frameq);
+}
+
+bool decoders_should_stop_waiting(MovieState *mov)
+{
+    return mov->abort_request || mov->seek_req;
+}
+
+void decoders_pause_if_finished(MovieState *mov)
+{
+    if (mov->paused) return;
+    if (!decoder_finished(mov->auddec, mov->current_serial)) return;
+    if (!decoder_finished(mov->viddec, mov->current_serial)) return;
+    mov->paused_for_eof = true;
+    lavp_set_paused(mov, true);
 }

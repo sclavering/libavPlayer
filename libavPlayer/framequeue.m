@@ -34,7 +34,7 @@ void frame_queue_destroy(FrameQueue *f)
 void frame_queue_signal(FrameQueue *f)
 {
     pthread_mutex_lock(&f->mutex);
-    pthread_cond_signal(&f->cond);
+    pthread_cond_broadcast(&f->cond);
     pthread_mutex_unlock(&f->mutex);
 }
 
@@ -49,27 +49,30 @@ Frame *frame_queue_peek(FrameQueue *f)
     return &f->queue[f->rindex % FRAME_QUEUE_SIZE];
 }
 
-Frame *frame_queue_peek_blocking(FrameQueue *f, Decoder *d)
+Frame *frame_queue_peek_blocking(FrameQueue *f, MovieState *mov)
 {
     /* wait until we have a readable a new frame */
     pthread_mutex_lock(&f->mutex);
-    while (f->size <= 0 && !d->abort) {
+    while (f->size <= 0 && !mov->abort_request) {
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
-    if (d->abort) return NULL;
+    if (mov->abort_request) return NULL;
     return &f->queue[f->rindex % FRAME_QUEUE_SIZE];
 }
 
-Frame *frame_queue_peek_writable(FrameQueue *f, Decoder *d)
+Frame *frame_queue_peek_writable(FrameQueue *f, MovieState *mov)
 {
     /* wait until we have space to put a new frame */
+    bool cancelled = false;
     pthread_mutex_lock(&f->mutex);
-    while (f->size >= FRAME_QUEUE_SIZE && !d->abort) {
+    for (;;) {
+        if (f->size < FRAME_QUEUE_SIZE) break;
+        if ((cancelled = decoders_should_stop_waiting(mov))) break;
         pthread_cond_wait(&f->cond, &f->mutex);
     }
     pthread_mutex_unlock(&f->mutex);
-    if (d->abort) return NULL;
+    if (cancelled) return NULL;
     return &f->queue[f->windex];
 }
 

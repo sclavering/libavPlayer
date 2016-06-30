@@ -43,7 +43,7 @@ void video_refresh(MovieState *mov)
             int64_t duration = frame_rate.num && frame_rate.den ? (frame_rate.den * 1000000LL) / frame_rate.num : 0;
             if (now < curr->frm_pts_usec + duration) break;
         }
-        decoder_advance_frame(mov->viddec);
+        decoder_advance_frame(mov->viddec, mov);
     }
 
     if (mov->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused(mov, true);
