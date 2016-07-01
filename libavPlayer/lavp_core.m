@@ -105,32 +105,32 @@ static int decode_interrupt_cb(void *ctx)
 
 bool decoders_check_for_seek(MovieState *mov)
 {
-            if (!mov->seek_req) return false;
-            mov->last_shown_video_frame_pts = -1;
-            int64_t seek_diff = mov->seek_to - mov->seek_from;
-            // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
-            // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
-            int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
-            int ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
-            mov->seek_req = false;
-            if (ret < 0) return false;
-            return true;
+    if (!mov->seek_req) return false;
+    mov->last_shown_video_frame_pts = -1;
+    int64_t seek_diff = mov->seek_to - mov->seek_from;
+    // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
+    // xxx we should use AVSEEK_FLAG_ANY here, but that causes graphical corruption if used naïvely (presumably you need to actually decode the preceding frames back to the key frame).
+    int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
+    int ret = avformat_seek_file(mov->ic, -1, seek_min, mov->seek_to, INT64_MAX, 0);
+    mov->seek_req = false;
+    if (ret < 0) return false;
+    return true;
 }
 
 int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
 {
-        if (mov->abort_request) return -1;
-        int ret = av_read_frame(mov->ic, pkt);
-        if (ret < 0) {
-            if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !*reached_eof) {
-                *reached_eof = true;
-            }
-            if (mov->ic->pb && mov->ic->pb->error)
-                return -1; // xxx unsure about this
-            return 0;
+    if (mov->abort_request) return -1;
+    int ret = av_read_frame(mov->ic, pkt);
+    if (ret < 0) {
+        if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !*reached_eof) {
+            *reached_eof = true;
         }
-        *reached_eof = false;
+        if (mov->ic->pb && mov->ic->pb->error)
+            return -1; // xxx unsure about this
         return 0;
+    }
+    *reached_eof = false;
+    return 0;
 }
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)

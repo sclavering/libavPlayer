@@ -41,25 +41,25 @@ bool decoder_send_packet(Decoder *d, AVPacket *pkt)
 // Returns true if there are more frames to decode (including if we just stopped early); false otherwise.
 bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
 {
-        Frame* fr = frame_queue_peek_writable(&d->frameq, mov);
-        if (!fr)
-            return true;
-        int err = avcodec_receive_frame(d->avctx, d->tmp_frame);
-        if (!err) {
-            fr->frm_serial = pkt_serial;
-            decoder_enqueue_frame_into(d, d->tmp_frame, fr);
-            return true;
-        }
-        // If we've consumed all frames from the current packet.
-        if (err == AVERROR(EAGAIN))
-            return false;
-        if (err == AVERROR_EOF) {
-            d->finished = pkt_serial;
-            return false;
-        }
-        NSLog(@"error from avcodec_receive_frame(): %d", err);
-        // Not sure what's best here.
+    Frame* fr = frame_queue_peek_writable(&d->frameq, mov);
+    if (!fr)
+        return true;
+    int err = avcodec_receive_frame(d->avctx, d->tmp_frame);
+    if (!err) {
+        fr->frm_serial = pkt_serial;
+        decoder_enqueue_frame_into(d, d->tmp_frame, fr);
+        return true;
+    }
+    // If we've consumed all frames from the current packet.
+    if (err == AVERROR(EAGAIN))
         return false;
+    if (err == AVERROR_EOF) {
+        d->finished = pkt_serial;
+        return false;
+    }
+    NSLog(@"error from avcodec_receive_frame(): %d", err);
+    // Not sure what's best here.
+    return false;
 }
 
 static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
