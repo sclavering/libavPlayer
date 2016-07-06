@@ -274,7 +274,7 @@ GLuint load_shaders(const char * VertexShaderCode, const char * FragmentShaderCo
     if(info_log_length > 0) {
         char* err = malloc(info_log_length + 1);
         glGetProgramInfoLog(prog_id, info_log_length, NULL, err);
-        NSLog(@"LAVPLayer: error linking shader:\n%s", err);
+        NSLog(@"libavPlayer: error linking shader:\n%s", err);
         free(err);
         return 0;
     }
@@ -297,7 +297,7 @@ GLuint init_shader(GLenum kind, const char* code) {
     if(info_log_length > 0) {
         char* err = malloc(info_log_length + 1);
         glGetShaderInfoLog(shader_id, info_log_length, NULL, err);
-        NSLog(@"LAVPLayer: error compiling shader:\n%s", err);
+        NSLog(@"libavPlayer: error compiling shader:\n%s", err);
         free(err);
         return 0;
     }

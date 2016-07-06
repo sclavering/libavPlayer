@@ -215,7 +215,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     }
 
     OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
-    if (err) NSLog(@"DEBUG: AudioQueueEnqueueBuffer() returned %d", err);
+    if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
 }
 
 void audio_queue_start(MovieState *mov)

@@ -32,7 +32,7 @@ bool decoder_send_packet(Decoder *d, AVPacket *pkt)
         return false;
     // Note: since we'll loop over all frames from the packet before sending another, we shouldn't need to check for AVERROR(EAGAIN).
     if (err) {
-        NSLog(@"error from avcodec_send_packet(): %d", err);
+        NSLog(@"libavPlayer: error from avcodec_send_packet(): %d", err);
         return false;
     }
     return true;
@@ -57,7 +57,7 @@ bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
         d->finished = pkt_serial;
         return false;
     }
-    NSLog(@"error from avcodec_receive_frame(): %d", err);
+    NSLog(@"libavPlayer: error from avcodec_receive_frame(): %d", err);
     // Not sure what's best here.
     return false;
 }
