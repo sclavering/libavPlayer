@@ -51,7 +51,6 @@
     unsigned int audio_buf1_size;
 
     enum AVSampleFormat audio_tgt_fmt;
-    int audio_tgt_channels;
     struct SwrContext *swr_ctx;
     AudioChannelLayout *audio_channel_layout; // used if there's >2 channels
     AudioQueueRef audio_queue;

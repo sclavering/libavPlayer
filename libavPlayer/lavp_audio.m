@@ -31,16 +31,12 @@ static AudioChannelLabel convert_channel_label(uint64_t av_ch);
 int audio_open(MovieState *mov, AVCodecContext *avctx)
 {
     mov->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
-    mov->audio_tgt_channels = avctx->channels;
     mov->audio_buf_size = 0;
 
     if (avctx->sample_fmt != mov->audio_tgt_fmt) {
         mov->swr_ctx = swr_alloc_set_opts(NULL, avctx->channel_layout, mov->audio_tgt_fmt, avctx->sample_rate, avctx->channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
         if (!mov->swr_ctx || swr_init(mov->swr_ctx) < 0) {
-            av_log(NULL, AV_LOG_ERROR,
-                "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
-                avctx->sample_rate, av_get_sample_fmt_name(avctx->sample_fmt), avctx->channels,
-                avctx->sample_rate, av_get_sample_fmt_name(mov->audio_tgt_fmt), mov->audio_tgt_channels);
+            NSLog(@"libavPlayer: error creating sample-format converter from '%s' to '%s'", av_get_sample_fmt_name(avctx->sample_fmt), av_get_sample_fmt_name(mov->audio_tgt_fmt));
             swr_free(&mov->swr_ctx);
             return -1;
         }
@@ -77,13 +73,13 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     }
 
     // If we have more than two channels, we need to tell the AudioQueue what they are and what order they're in.
-    if (mov->audio_tgt_channels > 2) {
-        size_t sz = sizeof(AudioChannelLayout) + sizeof(AudioChannelDescription) * (mov->audio_tgt_channels - 1);
+    if (avctx->channels > 2) {
+        size_t sz = sizeof(AudioChannelLayout) + sizeof(AudioChannelDescription) * (avctx->channels - 1);
         mov->audio_channel_layout = malloc(sz);
         mov->audio_channel_layout->mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelDescriptions;
         mov->audio_channel_layout->mChannelBitmap = 0;
-        mov->audio_channel_layout->mNumberChannelDescriptions = mov->audio_tgt_channels;
-        for (int i = 0; i < mov->audio_tgt_channels; ++i) {
+        mov->audio_channel_layout->mNumberChannelDescriptions = avctx->channels;
+        for (int i = 0; i < avctx->channels; ++i) {
             // Note: ffmpeg's channel_layout is just a bitmap, because it apparently always stores channels in the same order.
             uint64_t av_ch = av_channel_layout_extract_channel(avctx->channel_layout, i);
             mov->audio_channel_layout->mChannelDescriptions[i].mChannelLabel = convert_channel_label(av_ch);
@@ -159,7 +155,7 @@ static void audio_decode_frame(MovieState *mov)
     Frame *af = decoder_peek_current_frame_blocking(mov->auddec, mov);
 
     if (mov->swr_ctx) {
-        int out_size = av_samples_get_buffer_size(NULL, mov->audio_tgt_channels, af->frm_frame->nb_samples, mov->audio_tgt_fmt, 0);
+        int out_size = av_samples_get_buffer_size(NULL, af->frm_frame->channels, af->frm_frame->nb_samples, mov->audio_tgt_fmt, 0);
         if (out_size < 0) {
             av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
             return;
