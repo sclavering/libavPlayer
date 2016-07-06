@@ -157,7 +157,7 @@ static void audio_decode_frame(MovieState *mov)
     if (mov->swr_ctx) {
         int out_size = av_samples_get_buffer_size(NULL, af->frm_frame->channels, af->frm_frame->nb_samples, mov->audio_tgt_fmt, 0);
         if (out_size < 0) {
-            av_log(NULL, AV_LOG_ERROR, "av_samples_get_buffer_size() failed\n");
+            NSLog(@"libavPlayer: av_samples_get_buffer_size() failed");
             return;
         }
         av_fast_malloc(&mov->audio_buf1, &mov->audio_buf1_size, out_size);
@@ -165,7 +165,7 @@ static void audio_decode_frame(MovieState *mov)
             return;
         int len2 = swr_convert(mov->swr_ctx, &mov->audio_buf1, af->frm_frame->nb_samples, (const uint8_t **)af->frm_frame->extended_data, af->frm_frame->nb_samples);
         if (len2 < 0) {
-            av_log(NULL, AV_LOG_ERROR, "swr_convert() failed\n");
+            NSLog(@"libavPlayer: swr_convert() failed");
             return;
         }
         mov->audio_buf = mov->audio_buf1;

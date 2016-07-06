@@ -45,7 +45,7 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
     AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
 
     if (!codec) {
-        av_log(NULL, AV_LOG_WARNING, "No codec could be found with id %d\n", avctx->codec_id);
+        NSLog(@"libavPlayer: no codec could be found with id %d\n", avctx->codec_id);
         ret = AVERROR(EINVAL);
         goto fail;
     }
