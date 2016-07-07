@@ -139,10 +139,7 @@ void lavp_set_paused(MovieState *mov, bool pause)
     mov->is_temporarily_unpaused_to_handle_seeking = false;
     clock_preserve(mov);
     mov->paused = pause;
-    if (mov->paused)
-        audio_queue_pause(mov);
-    else
-        audio_queue_start(mov);
+    audio_queue_set_paused(mov, pause);
     __strong id<LAVPMovieOutput> output = mov->weak_output;
     if (output) [output movieOutputNeedsContinuousUpdating:!pause];
 }

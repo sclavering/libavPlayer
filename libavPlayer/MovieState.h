@@ -54,7 +54,6 @@
     struct SwrContext *swr_ctx;
     AudioChannelLayout *audio_channel_layout; // used if there's >2 channels
     AudioQueueRef audio_queue;
-    unsigned int audio_queue_num_frames_to_prepare;
     dispatch_queue_t audio_dispatch_queue;
 
     // Video
@@ -94,11 +93,9 @@ AVFrame* lavp_get_current_frame(MovieState *mov);
 // audio
 
 int audio_open(MovieState *mov, AVCodecContext *avctx);
-
-void audio_queue_start(MovieState *mov);
-void audio_queue_pause(MovieState *mov);
 void audio_queue_destroy(MovieState *mov);
 
+void audio_queue_set_paused(MovieState *mov, bool pause);
 void lavp_audio_update_speed(MovieState *mov);
 void lavp_set_volume_percent(MovieState *mov, int volume);
 

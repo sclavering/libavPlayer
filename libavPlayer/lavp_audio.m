@@ -58,8 +58,6 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     asbd.mChannelsPerFrame = inChannelsPerFrame;
     asbd.mBitsPerChannel = inValidBitsPerChannel;
 
-    mov->audio_queue_num_frames_to_prepare = (int) (asbd.mSampleRate / 60); // Prepare for 1/60 sec (assuming normal playback speed).
-
     mov->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
     {
         __weak MovieState* weak_mov = mov;
@@ -214,23 +212,11 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
 }
 
-void audio_queue_start(MovieState *mov)
+void audio_queue_set_paused(MovieState *mov, bool pause)
 {
     if (!mov->audio_queue) return;
-    lavp_audio_update_speed(mov);
-    OSStatus err = AudioQueuePrime(mov->audio_queue, mov->audio_queue_num_frames_to_prepare, NULL);
-    assert(err == 0);
-    err = AudioQueueStart(mov->audio_queue, NULL);
-    assert(err == 0);
-}
-
-void audio_queue_pause(MovieState *mov)
-{
-    if (!mov->audio_queue) return;
-    OSStatus err = AudioQueueFlush(mov->audio_queue);
-    assert(err == 0);
-    err = AudioQueuePause(mov->audio_queue);
-    assert(err == 0);
+    if (pause) AudioQueuePause(mov->audio_queue);
+    else AudioQueueStart(mov->audio_queue, NULL);
 }
 
 void audio_queue_destroy(MovieState *mov)
