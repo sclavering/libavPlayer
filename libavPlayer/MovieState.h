@@ -88,8 +88,6 @@ void decoders_pause_if_finished(MovieState *mov);
 
 // video
 
-int video_thread(MovieState *mov);
-void video_refresh(MovieState *mov);
 AVFrame* lavp_get_current_frame(MovieState *mov);
 
 

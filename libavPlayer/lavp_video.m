@@ -24,7 +24,7 @@
 #import "decoder.h"
 
 
-void video_refresh(MovieState *mov)
+static void video_refresh(MovieState *mov)
 {
     if (mov->paused)
         return;
