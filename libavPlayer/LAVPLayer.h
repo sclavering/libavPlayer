@@ -45,7 +45,6 @@
     GLuint _textures[3]; // in Y U V order
 }
 
-@property bool stretchVideoToFitLayer;
 @property (retain) LAVPMovie *movie;
 
 -(void) invalidate;
