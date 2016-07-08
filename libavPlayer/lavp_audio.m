@@ -177,8 +177,7 @@ static void audio_decode_frame(MovieState *mov)
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-    bool paused_or_seeking = mov->paused || mov->is_temporarily_unpaused_to_handle_seeking;
-    if (paused_or_seeking) {
+    if (mov->paused) {
         // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
         decoder_peek_current_frame_blocking(mov->auddec, mov);
     } else {
@@ -203,7 +202,7 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     }
 
     // We always need to call AudioQueueEnqueueBuffer(), because otherwise the queue just stops (you don't get futher callbacks).  And we always need to actually queue some (silent) data, since it returns an error if you don't.  And actually you always need to fill qbuf, since just queueing 8 bytes or whatever means the CPU gets flooded (rapidly going over 100%, if you open several movies at once) with calls to this callbacks (though that might be fixable elsewhere).
-    if (paused_or_seeking || !qbuf->mAudioDataByteSize) {
+    if (mov->paused || !qbuf->mAudioDataByteSize) {
         memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
         qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
     }

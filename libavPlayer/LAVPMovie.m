@@ -106,7 +106,8 @@
 
 -(bool) paused {
     if(!mov) return true;
-    return mov->paused;
+    // Pausing/unpausing is async, but the caller is unlikely to want to know about that.
+    return mov->requested_paused;
 }
 
 -(void) setPaused:(bool)shouldPause {

@@ -16,6 +16,9 @@
 @interface MovieState : NSObject {
 @public
     bool paused;
+    // Pausing/unpausing is async.  It works by setting this to the desired value, and then the decoders_thread noticing the discrepancy and making the actual change.
+    bool requested_paused;
+
     int playback_speed_percent;
     int volume_percent;
     __weak id<LAVPMovieOutput> weak_output;
@@ -25,7 +28,6 @@
     // xxx eliminate seek_from!
     int64_t seek_from;
     int64_t seek_to;
-    bool is_temporarily_unpaused_to_handle_seeking;
     bool paused_for_eof;
 
     AVFormatContext *ic;
@@ -72,6 +74,9 @@ MovieState* stream_open(NSURL *sourceURL);
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
 
 void lavp_set_paused(MovieState *mov, bool pause);
+
+// Don't call this except from decoders_thread().
+void lavp_handle_paused_change(MovieState *mov);
 
 int lavp_get_playback_speed_percent(MovieState *mov);
 void lavp_set_playback_speed_percent(MovieState *mov, int speed);

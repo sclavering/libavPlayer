@@ -45,8 +45,6 @@ static void video_refresh(MovieState *mov)
         }
         decoder_advance_frame(mov->viddec, mov);
     }
-
-    if (mov->is_temporarily_unpaused_to_handle_seeking) lavp_set_paused(mov, true);
 }
 
 AVFrame* lavp_get_current_frame(MovieState *mov)

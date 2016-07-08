@@ -129,19 +129,27 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
     }
 }
 
-void lavp_set_paused(MovieState *mov, bool pause)
+// Don't call this except from decoders_thread().
+void lavp_handle_paused_change(MovieState *mov)
 {
-    // Allowing unpause in this case would just let the clock run beyond the duration.
-    if (!pause && mov->paused && mov->paused_for_eof)
-        return;
-    if (pause == mov->paused)
-        return;
-    mov->is_temporarily_unpaused_to_handle_seeking = false;
+    bool pause = mov->requested_paused;
+    if (pause == mov->paused) return;
     clock_preserve(mov);
     mov->paused = pause;
     audio_queue_set_paused(mov, pause);
     __strong id<LAVPMovieOutput> output = mov->weak_output;
     if (output) [output movieOutputNeedsContinuousUpdating:!pause];
+}
+
+void lavp_set_paused(MovieState *mov, bool pause)
+{
+    // Allowing unpause in this case would just let the clock run beyond the duration.
+    if (!pause && mov->paused && mov->paused_for_eof)
+        return;
+    if (pause == mov->requested_paused)
+        return;
+    mov->requested_paused = pause;
+    decoders_wake_thread(mov);
 }
 
 void stream_close(MovieState *mov)
@@ -177,6 +185,7 @@ MovieState* stream_open(NSURL *sourceURL)
     mov->weak_output = NULL;
     mov->last_shown_video_frame_pts = -1;
     mov->paused = true;
+    mov->requested_paused = true;
     mov->playback_speed_percent = 100;
     mov->abort_request = false;
     mov->seek_req = false;
@@ -223,10 +232,6 @@ MovieState* stream_open(NSURL *sourceURL)
 
     clock_init(mov);
 
-    // We want to start paused, but we also want to display the first frame rather than nothing.  This is exactly the same as wanting to display a frame after seeking while paused.
-    lavp_set_paused(mov, false);
-    mov->is_temporarily_unpaused_to_handle_seeking = true;
-
     return mov;
 
 fail:
@@ -250,10 +255,19 @@ void decoders_thread(MovieState *mov)
     bool reached_eof = false;
     bool aud_frames_pending = false;
     bool vid_frames_pending = false;
+    bool need_video_update_after_seeking_while_paused = false;
+    bool need_clock_update_after_seeking_while_paused = false;
 
     // This loop is often waiting on a condvar in frame_queue_peek_writable().
     for (;;) {
         if (mov->abort_request) break;
+
+        if (mov->paused != mov->requested_paused) {
+            lavp_handle_paused_change(mov);
+            need_video_update_after_seeking_while_paused = false;
+            need_clock_update_after_seeking_while_paused = false;
+            continue;
+        }
 
         if (mov->seek_req) {
             mov->last_shown_video_frame_pts = -1;
@@ -273,10 +287,27 @@ void decoders_thread(MovieState *mov)
             decoder_flush(mov->auddec);
             decoder_flush(mov->viddec);
             if (mov->paused) {
-                lavp_set_paused(mov, false);
-                mov->is_temporarily_unpaused_to_handle_seeking = true;
+                // Clear out stale frames so there's space for new ones.  If we're *not* paused we must leave this to audio_callback() and calls to lavp_get_current_frame() from the LAVPLayer's refresh timer, as otherwise we might discard a frame they're still in the middle of using.
+                decoder_peek_current_frame(mov->auddec, mov);
+                decoder_peek_current_frame(mov->viddec, mov);
+                need_video_update_after_seeking_while_paused = true;
+                need_clock_update_after_seeking_while_paused = true;
             }
             continue;
+        }
+
+        if (need_video_update_after_seeking_while_paused && decoder_peek_current_frame(mov->viddec, mov)) {
+            __strong id<LAVPMovieOutput> output = mov->weak_output;
+            if (output) [output movieOutputNeedsSingleUpdate];
+            need_video_update_after_seeking_while_paused = false;
+            continue;
+        }
+        if (need_clock_update_after_seeking_while_paused) {
+            Frame *fr;
+            if ((fr = decoder_peek_current_frame(mov->auddec, mov))) {
+                clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
+                need_clock_update_after_seeking_while_paused = false;
+            }
         }
 
         // Note: there can be frames pending even after reached_eof is set (there just shouldn't be any further packets).
@@ -327,7 +358,7 @@ void decoders_wake_thread(MovieState *mov)
 
 bool decoders_should_stop_waiting(MovieState *mov)
 {
-    return mov->abort_request || mov->seek_req;
+    return mov->abort_request || mov->seek_req || mov->paused != mov->requested_paused;
 }
 
 void decoders_pause_if_finished(MovieState *mov)

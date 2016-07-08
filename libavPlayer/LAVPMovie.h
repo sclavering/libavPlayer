@@ -65,6 +65,8 @@
 
 @protocol LAVPMovieOutput
 
+// Called e.g. after seeking while paused.
+-(void) movieOutputNeedsSingleUpdate;
 // Called when playback starts or stops for any reason.
 -(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating;
 
