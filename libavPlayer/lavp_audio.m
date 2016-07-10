@@ -110,7 +110,7 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
 
 static AudioChannelLabel convert_channel_label(uint64_t av_ch)
 {
-    switch(av_ch) {
+    switch (av_ch) {
         // Note: these mappings are mostly based on how GStreamer maps its own channel labels to/from AV_CH_* and kAudioChannelLabel_*, plus a little guesswork.
         case AV_CH_FRONT_LEFT: return kAudioChannelLabel_Left;
         case AV_CH_FRONT_RIGHT: return kAudioChannelLabel_Right;

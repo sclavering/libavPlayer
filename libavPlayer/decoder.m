@@ -123,7 +123,7 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
-    for(;;) {
+    for (;;) {
         fr = frame_queue_peek(&d->frameq);
         if (!fr) break;
         if (fr->frm_serial == mov->current_serial) break;

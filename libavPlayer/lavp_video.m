@@ -30,7 +30,7 @@ static void video_refresh(MovieState *mov)
         return;
 
     // Skip any frames that are in the past (except the current frame).
-    for(;;) {
+    for (;;) {
         Frame *curr = decoder_peek_current_frame(mov->viddec, mov);
         if (!curr) return;
         Frame *next = decoder_peek_next_frame(mov->viddec);
