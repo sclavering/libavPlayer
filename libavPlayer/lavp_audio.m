@@ -177,14 +177,14 @@ static void audio_decode_frame(MovieState *mov)
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-    if (mov->paused) {
-        // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
-        decoder_peek_current_frame_blocking(mov->auddec, mov);
-    } else {
+    // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
+    Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
+
+    if (!mov->paused) {
         // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
         // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-        Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
         if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
+    }
 
         qbuf->mAudioDataByteSize = 0;
         while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
@@ -199,13 +199,6 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
             mov->audio_buf += len1;
             mov->audio_buf_size -= len1;
         }
-    }
-
-    // We always need to call AudioQueueEnqueueBuffer(), because otherwise the queue just stops (you don't get futher callbacks).  And we always need to actually queue some (silent) data, since it returns an error if you don't.  And actually you always need to fill qbuf, since just queueing 8 bytes or whatever means the CPU gets flooded (rapidly going over 100%, if you open several movies at once) with calls to this callbacks (though that might be fixable elsewhere).
-    if (mov->paused || !qbuf->mAudioDataByteSize) {
-        memset(qbuf->mAudioData + qbuf->mAudioDataByteSize, 0, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-        qbuf->mAudioDataByteSize = qbuf->mAudioDataBytesCapacity;
-    }
 
     OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
     if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
