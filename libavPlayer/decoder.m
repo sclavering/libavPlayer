@@ -11,9 +11,7 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
-    int err = frame_queue_init(&d->frameq);
-    if(err < 0) return err;
-    return 0;
+    return frame_queue_init(&d->frameq);
 }
 
 void decoder_flush(Decoder *d)
