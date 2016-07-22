@@ -312,23 +312,24 @@ GLuint init_shader(GLenum kind, const char* code) {
 
 -(void) _gl_draw {
     [_lock lock];
-    AVFrame* fr = [_movie getCurrentFrame];
 
     // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
-    // Pixel formats other than AV_PIX_FMT_YUV420P are vanishingly rare, so don't bother with them, at least for now.
-    // If we ever do handle them, ideally it'd be here in LAVPLayer, by using different shaders.
-    if(fr && fr->format == AV_PIX_FMT_YUV420P) {
-        IntSize sz = [_movie sizeForGLTextures];
-        glBindTexture(GL_TEXTURE_2D, _textures[0]);
+    [_movie ifNewFrameIsAvailableThenRun:^(AVFrame *fr) {
+        // Pixel formats other than AV_PIX_FMT_YUV420P are vanishingly rare, so don't bother with them, at least for now.
+        // If we ever do handle them, ideally it'd be here in LAVPLayer, by using different shaders.
+        if (fr->format != AV_PIX_FMT_YUV420P) return;
+
+        IntSize sz = [self->_movie sizeForGLTextures];
+        glBindTexture(GL_TEXTURE_2D, self->_textures[0]);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, fr->linesize[0]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width, sz.height, 0, GL_RED, GL_UNSIGNED_BYTE, fr->data[0]);
-        glBindTexture(GL_TEXTURE_2D, _textures[1]);
+        glBindTexture(GL_TEXTURE_2D, self->_textures[1]);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, fr->linesize[1]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, fr->data[1]);
-        glBindTexture(GL_TEXTURE_2D, _textures[2]);
+        glBindTexture(GL_TEXTURE_2D, self->_textures[2]);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, fr->linesize[2]);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, sz.width / 2, sz.height / 2, 0, GL_RED, GL_UNSIGNED_BYTE, fr->data[2]);
-    }
+    }];
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

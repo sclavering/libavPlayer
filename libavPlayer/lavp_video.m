@@ -47,14 +47,14 @@ static void video_refresh(MovieState *mov)
     }
 }
 
-AVFrame* lavp_get_current_frame(MovieState *mov)
+void lavp_if_new_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *))
 {
     // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
     video_refresh(mov);
 
     Frame* fr = decoder_peek_current_frame(mov->viddec, mov);
-    if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return NULL;
+    if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return;
 
     mov->last_shown_video_frame_pts = fr->frm_pts_usec;
-    return fr->frm_frame;
+    func(fr->frm_frame);
 }

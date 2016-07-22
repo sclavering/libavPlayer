@@ -92,7 +92,7 @@ void decoders_pause_if_finished(MovieState *mov);
 
 // video
 
-AVFrame* lavp_get_current_frame(MovieState *mov);
+void lavp_if_new_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *));
 
 
 // audio

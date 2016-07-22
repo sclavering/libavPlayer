@@ -135,9 +135,9 @@
     lavp_set_volume_percent(mov, volume);
 }
 
--(AVFrame*) getCurrentFrame {
-    if(!mov) return NULL;
-    return lavp_get_current_frame(mov);
+-(void) ifNewFrameIsAvailableThenRun:(void (^)(AVFrame *))func {
+    if(!mov) return;
+    lavp_if_new_frame_is_available_then_run(mov, func);
 }
 
 @end
