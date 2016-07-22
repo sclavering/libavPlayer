@@ -29,25 +29,22 @@
 #import "decoder.h"
 
 
-static int stream_component_open(MovieState *mov, AVStream *stream)
+static int movie_stream_open(MovieState *mov, Decoder *dec, AVStream *stream)
 {
-    int ret;
-
-    AVCodecContext *avctx = avcodec_alloc_context3(NULL);
+    dec->avctx = avcodec_alloc_context3(NULL);
+    AVCodecContext *avctx = dec->avctx;
     if (!avctx)
         return AVERROR(ENOMEM);
 
-    ret = avcodec_parameters_to_context(avctx, stream->codecpar);
-    if (ret < 0)
-        goto fail;
+    int err = avcodec_parameters_to_context(avctx, stream->codecpar);
+    if (err < 0)
+        return err;
     av_codec_set_pkt_timebase(avctx, stream->time_base);
 
     AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
-
     if (!codec) {
         NSLog(@"libavPlayer: no codec could be found with id %d\n", avctx->codec_id);
-        ret = AVERROR(EINVAL);
-        goto fail;
+        return AVERROR(EINVAL);
     }
 
     avctx->codec_id = codec->id;
@@ -57,40 +54,14 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
 
     avctx->thread_count = 0; // Tell ffmpeg to choose an appropriate number.
     if (avcodec_open2(avctx, codec, NULL) < 0)
-        goto fail;
+        return -1;
 
     stream->discard = AVDISCARD_DEFAULT;
-    switch (avctx->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
-            mov->auddec = [[Decoder alloc] init];
-            if (decoder_init(mov->auddec, avctx, stream) < 0)
-                goto fail;
 
-            if ((ret = audio_open(mov, avctx)) < 0)
-                goto out;
+    if (decoder_init(dec, avctx, stream) < 0)
+        return -1;
 
-            break;
-        case AVMEDIA_TYPE_VIDEO:
-            if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC)
-                goto fail;
-
-            mov->width = stream->codecpar->width;
-            mov->height = stream->codecpar->height;
-
-            mov->viddec = [[Decoder alloc] init];
-            if (decoder_init(mov->viddec, avctx, stream) < 0)
-                goto fail;
-
-            break;
-        default:
-            break;
-    }
-    goto out;
-
-fail:
-    avcodec_free_context(&avctx);
-out:
-    return ret;
+    return 0;
 }
 
 static int decode_interrupt_cb(void *ctx)
@@ -213,10 +184,21 @@ MovieState* movie_open(NSURL *sourceURL)
     int aud_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
     if (aud_index < 0)
         goto fail;
-    if (stream_component_open(mov, mov->ic->streams[aud_index]) < 0)
+    mov->auddec = [[Decoder alloc] init];
+    if (movie_stream_open(mov, mov->auddec, mov->ic->streams[aud_index]) < 0)
         goto fail;
-    if (stream_component_open(mov, mov->ic->streams[vid_index]) < 0)
+    if (audio_open(mov, mov->auddec->avctx) < 0)
         goto fail;
+    {
+        AVStream *vidstream = mov->ic->streams[vid_index];
+        if (vidstream->disposition & AV_DISPOSITION_ATTACHED_PIC)
+            goto fail;
+        mov->width = vidstream->codecpar->width;
+        mov->height = vidstream->codecpar->height;
+        mov->viddec = [[Decoder alloc] init];
+        if (movie_stream_open(mov, mov->viddec, vidstream) < 0)
+            goto fail;
+    }
 
     mov->decoder_queue = dispatch_queue_create("decoders", NULL);
     mov->decoder_group = dispatch_group_create();
