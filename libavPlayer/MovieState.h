@@ -68,8 +68,8 @@
 
 // core
 
-void stream_close(MovieState *mov);
-MovieState* stream_open(NSURL *sourceURL);
+MovieState* movie_open(NSURL *sourceURL);
+void movie_close(MovieState *mov);
 
 void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
 

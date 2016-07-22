@@ -148,7 +148,7 @@ void lavp_set_paused(MovieState *mov, bool pause)
     decoders_wake_thread(mov);
 }
 
-void stream_close(MovieState *mov)
+void movie_close(MovieState *mov)
 {
     if (mov) {
         mov->abort_request = true;
@@ -173,7 +173,7 @@ void stream_close(MovieState *mov)
     }
 }
 
-MovieState* stream_open(NSURL *sourceURL)
+MovieState* movie_open(NSURL *sourceURL)
 {
     MovieState *mov = [[MovieState alloc] init];
 
@@ -231,7 +231,7 @@ MovieState* stream_open(NSURL *sourceURL)
     return mov;
 
 fail:
-    stream_close(mov);
+    movie_close(mov);
     return NULL;
 }
 

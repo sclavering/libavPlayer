@@ -30,7 +30,7 @@
 -(instancetype) initWithURL:(NSURL *)sourceURL error:(NSError **)errorPtr {
     self = [super init];
     if(self) {
-        mov = stream_open(sourceURL);
+        mov = movie_open(sourceURL);
         if(!mov) return nil;
     }
     return self;
@@ -43,7 +43,7 @@
 -(void) invalidate {
     if(!mov) return;
     self.paused = true;
-    stream_close(mov);
+    movie_close(mov);
     mov = NULL;
 }
 
