@@ -55,10 +55,8 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
     av_codec_set_lowres(avctx, 0);
     avctx->error_concealment = 3;
 
-    AVDictionary *opts = NULL;
-    av_dict_set(&opts, "threads", "auto", 0);
-    av_dict_set(&opts, "refcounted_frames", "1", 0);
-    if (avcodec_open2(avctx, codec, &opts) < 0)
+    avctx->thread_count = 0; // Tell ffmpeg to choose an appropriate number.
+    if (avcodec_open2(avctx, codec, NULL) < 0)
         goto fail;
 
     stream->discard = AVDISCARD_DEFAULT;
@@ -92,8 +90,6 @@ static int stream_component_open(MovieState *mov, AVStream *stream)
 fail:
     avcodec_free_context(&avctx);
 out:
-    av_dict_free(&opts);
-
     return ret;
 }
 
