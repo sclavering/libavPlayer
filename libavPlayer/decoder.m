@@ -11,7 +11,14 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
-    return frame_queue_init(d);
+    int err = pthread_mutex_init(&d->mutex, NULL);
+    if (err) return AVERROR(ENOMEM);
+    err = pthread_cond_init(&d->cond, NULL);
+    if (err) return AVERROR(ENOMEM);
+    for (int i = 0; i < FRAME_QUEUE_SIZE; ++i)
+        if (!(d->frameq[i].frm_frame = av_frame_alloc()))
+            return AVERROR(ENOMEM);
+    return 0;
 }
 
 void decoder_flush(Decoder *d)
@@ -102,7 +109,13 @@ void decoder_destroy(Decoder *d)
     d->stream = NULL;
     avcodec_free_context(&d->avctx);
 
-    frame_queue_destroy(d);
+    for (int i = 0; i < FRAME_QUEUE_SIZE; ++i) {
+        Frame *vp = &d->frameq[i];
+        av_frame_unref(vp->frm_frame);
+        av_frame_free(&vp->frm_frame);
+    }
+    pthread_mutex_destroy(&d->mutex);
+    pthread_cond_destroy(&d->cond);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
@@ -115,7 +128,14 @@ bool decoder_finished(Decoder *d, int current_serial)
 
 void decoder_advance_frame(Decoder *d, MovieState *mov)
 {
-    frame_queue_next(d);
+    av_frame_unref(d->frameq[d->frameq_head].frm_frame);
+    if (++d->frameq_head == FRAME_QUEUE_SIZE)
+        d->frameq_head = 0;
+    pthread_mutex_lock(&d->mutex);
+    d->frameq_size--;
+    pthread_cond_signal(&d->cond);
+    pthread_mutex_unlock(&d->mutex);
+
     decoders_pause_if_finished(mov);
 }
 
@@ -124,8 +144,11 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
     for (;;) {
-        fr = frame_queue_peek(d);
-        if (!fr) break;
+        if (!d->frameq_size) {
+            fr = NULL;
+            break;
+        }
+        fr = &d->frameq[d->frameq_head % FRAME_QUEUE_SIZE];
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d, mov);
     }
@@ -134,7 +157,7 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
 
 Frame *decoder_peek_next_frame(Decoder *d)
 {
-    return frame_queue_peek_next(d);
+    return d->frameq_size > 1 ? &d->frameq[(d->frameq_head + 1) % FRAME_QUEUE_SIZE] : NULL;
 }
 
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
