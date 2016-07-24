@@ -93,7 +93,6 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     if (0 != AudioQueueSetProperty(mov->audio_queue, kAudioQueueProperty_TimePitchAlgorithm, &prop_value, sizeof(prop_value)))
         return -1;
 
-    // prepare audio queue buffers for Output
     unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
     for (int i = 0; i < 3; i++) {
         AudioQueueBufferRef out_buf = NULL;
