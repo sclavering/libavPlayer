@@ -301,10 +301,9 @@ void decoders_thread(MovieState *mov)
         if (reached_eof) {
             // We need to wait until something interesting happens (e.g. abort or seek), and it needs to be one of the frameq condvars (where frame_queue_peek_writable() also waits).  Using viddec rather than auddec is arbitrary.
             // This will actually wake up a bunch as the final frames are used up, but that's fine (the important thing is to just avoid trying to read and decode more packets, and end up getting an error and ending the loop).
-            FrameQueue *f = &mov->viddec->frameq;
-            pthread_mutex_lock(&f->mutex);
-            pthread_cond_wait(&f->cond, &f->mutex);
-            pthread_mutex_unlock(&f->mutex);
+            pthread_mutex_lock(&mov->viddec->mutex);
+            pthread_cond_wait(&mov->viddec->cond, &mov->viddec->mutex);
+            pthread_mutex_unlock(&mov->viddec->mutex);
             continue;
         }
 
@@ -330,8 +329,8 @@ void decoders_thread(MovieState *mov)
 void decoders_wake_thread(MovieState *mov)
 {
     // When seeking (while paused) or closing, we need to interrupt the decoders_thread if it's waiting in frame_queue_peek_writable.  And we don't know which frameq it's waiting on, so we must wake both up.
-    frame_queue_signal(&mov->auddec->frameq);
-    frame_queue_signal(&mov->viddec->frameq);
+    frame_queue_signal(mov->auddec);
+    frame_queue_signal(mov->viddec);
 }
 
 bool decoders_should_stop_waiting(MovieState *mov)

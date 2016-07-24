@@ -186,7 +186,7 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 }
 
 // Called when playback starts or stops.
-// Note: the internals rely on this triggering periodic calls to lavp_get_current_frame() and thus draining the video frame-queue.
+// Note: the internals rely on this triggering periodic calls to lavp_get_current_frame() and thus draining the video frameq.
 -(void) movieOutputNeedsContinuousUpdating:(bool)continuousUpdating {
     // Setting .asynchronous from off the main thread mutates the stored value, but doesn't actually have the needed side effect of starting/stopping the ~60fps timer that calls -canDrawInCGLContext:/-drawInCGLContext:
     if(!NSThread.isMainThread) return dispatch_async(dispatch_get_main_queue(), ^{

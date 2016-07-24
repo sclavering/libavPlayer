@@ -11,7 +11,7 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->tmp_frame = av_frame_alloc();
     d->stream = stream;
     d->avctx = avctx;
-    return frame_queue_init(&d->frameq);
+    return frame_queue_init(d);
 }
 
 void decoder_flush(Decoder *d)
@@ -39,7 +39,7 @@ bool decoder_send_packet(Decoder *d, AVPacket *pkt)
 // Returns true if there are more frames to decode (including if we just stopped early); false otherwise.
 bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
 {
-    Frame* fr = frame_queue_peek_writable(&d->frameq, mov);
+    Frame* fr = frame_queue_peek_writable(d, mov);
     if (!fr)
         return true;
     int err = avcodec_receive_frame(d->avctx, d->tmp_frame);
@@ -91,18 +91,18 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
     else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
     fr->frm_pts_usec = frame->pts == AV_NOPTS_VALUE ? -1 : frame->pts * 1000000 * tb.num / tb.den;
     av_frame_move_ref(fr->frm_frame, frame);
-    frame_queue_push(&d->frameq);
+    frame_queue_push(d);
 }
 
 void decoder_destroy(Decoder *d)
 {
-    frame_queue_signal(&d->frameq);
+    frame_queue_signal(d);
 
     d->stream->discard = AVDISCARD_ALL;
     d->stream = NULL;
     avcodec_free_context(&d->avctx);
 
-    frame_queue_destroy(&d->frameq);
+    frame_queue_destroy(d);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
@@ -110,12 +110,12 @@ void decoder_destroy(Decoder *d)
 
 bool decoder_finished(Decoder *d, int current_serial)
 {
-    return d->finished == current_serial && !d->frameq.size;
+    return d->finished == current_serial && !d->frameq_size;
 }
 
 void decoder_advance_frame(Decoder *d, MovieState *mov)
 {
-    frame_queue_next(&d->frameq);
+    frame_queue_next(d);
     decoders_pause_if_finished(mov);
 }
 
@@ -124,7 +124,7 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
     for (;;) {
-        fr = frame_queue_peek(&d->frameq);
+        fr = frame_queue_peek(d);
         if (!fr) break;
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d, mov);
@@ -134,14 +134,14 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
 
 Frame *decoder_peek_next_frame(Decoder *d)
 {
-    return frame_queue_peek_next(&d->frameq);
+    return frame_queue_peek_next(d);
 }
 
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     for (;;) {
-        if (!(fr = frame_queue_peek_blocking(&d->frameq, mov)))
+        if (!(fr = frame_queue_peek_blocking(d, mov)))
             return NULL;
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d, mov);
