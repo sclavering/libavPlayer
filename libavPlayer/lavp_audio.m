@@ -205,19 +205,19 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
         if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
     }
 
-        qbuf->mAudioDataByteSize = 0;
-        while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
-            if (mov->audio_buf_size <= 0) {
-                audio_decode_frame(mov);
-                if (!mov->audio_buf) break;
-                decoder_advance_frame(mov->auddec, mov);
-            }
-            int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-            memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);
-            qbuf->mAudioDataByteSize += len1;
-            mov->audio_buf += len1;
-            mov->audio_buf_size -= len1;
+    qbuf->mAudioDataByteSize = 0;
+    while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
+        if (mov->audio_buf_size <= 0) {
+            audio_decode_frame(mov);
+            if (!mov->audio_buf) break;
+            decoder_advance_frame(mov->auddec, mov);
         }
+        int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
+        memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);
+        qbuf->mAudioDataByteSize += len1;
+        mov->audio_buf += len1;
+        mov->audio_buf_size -= len1;
+    }
 
     OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
     if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
