@@ -129,10 +129,11 @@ void movie_close(MovieState *mov)
         mov->decoder_group = NULL;
         mov->decoder_queue = NULL;
 
+        audio_queue_destroy(mov);
+
         if (mov->auddec) decoder_destroy(mov->auddec);
         if (mov->viddec) decoder_destroy(mov->viddec);
 
-        audio_queue_destroy(mov);
         swr_free(&mov->swr_ctx);
         av_freep(&mov->audio_buf1);
         mov->audio_buf1_size = 0;
@@ -302,7 +303,7 @@ void decoders_thread(MovieState *mov)
             // We need to wait until something interesting happens (e.g. abort or seek), and it needs to be one of the frameq condvars (where decoder_receive_frame() also waits).  Using viddec rather than auddec is arbitrary.
             // This will actually wake up a bunch as the final frames are used up, but that's fine (the important thing is to just avoid trying to read and decode more packets, and end up getting an error and ending the loop).
             pthread_mutex_lock(&mov->viddec->mutex);
-            pthread_cond_wait(&mov->viddec->cond, &mov->viddec->mutex);
+            pthread_cond_wait(&mov->viddec->not_full_cond, &mov->viddec->mutex);
             pthread_mutex_unlock(&mov->viddec->mutex);
             continue;
         }
@@ -329,8 +330,8 @@ void decoders_thread(MovieState *mov)
 void decoders_wake_thread(MovieState *mov)
 {
     // When seeking (while paused) or closing, we need to interrupt the decoders_thread if it's waiting in decoder_receive_frame().  And we don't know which frameq it's waiting on, so we must wake both up.
-    decoder_signal(mov->auddec);
-    decoder_signal(mov->viddec);
+    pthread_cond_signal(&mov->auddec->not_full_cond);
+    pthread_cond_signal(&mov->viddec->not_full_cond);
 }
 
 bool decoders_should_stop_waiting(MovieState *mov)

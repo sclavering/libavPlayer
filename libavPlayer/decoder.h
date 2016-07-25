@@ -23,7 +23,8 @@ typedef struct Frame {
     int frameq_tail;
     int frameq_size;
     pthread_mutex_t mutex;
-    pthread_cond_t cond;
+    pthread_cond_t not_empty_cond;
+    pthread_cond_t not_full_cond;
 }
 @end;
 
@@ -40,5 +41,3 @@ void decoder_advance_frame(Decoder *d, MovieState *mov);
 Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov);
 Frame *decoder_peek_next_frame(Decoder *d);
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov);
-
-void decoder_signal(Decoder *d);

@@ -13,7 +13,9 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->avctx = avctx;
     int err = pthread_mutex_init(&d->mutex, NULL);
     if (err) return AVERROR(ENOMEM);
-    err = pthread_cond_init(&d->cond, NULL);
+    err = pthread_cond_init(&d->not_empty_cond, NULL);
+    if (err) return AVERROR(ENOMEM);
+    err = pthread_cond_init(&d->not_full_cond, NULL);
     if (err) return AVERROR(ENOMEM);
     for (int i = 0; i < FRAME_QUEUE_SIZE; ++i)
         if (!(d->frameq[i].frm_frame = av_frame_alloc()))
@@ -52,7 +54,7 @@ bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
     for (;;) {
         if (d->frameq_size < FRAME_QUEUE_SIZE) break;
         if ((cancelled = decoders_should_stop_waiting(mov))) break;
-        pthread_cond_wait(&d->cond, &d->mutex);
+        pthread_cond_wait(&d->not_full_cond, &d->mutex);
     }
     pthread_mutex_unlock(&d->mutex);
     if (cancelled)
@@ -71,7 +73,7 @@ bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
             pthread_mutex_lock(&d->mutex);
             if (++d->frameq_tail == FRAME_QUEUE_SIZE) d->frameq_tail = 0;
             d->frameq_size++;
-            pthread_cond_signal(&d->cond);
+            pthread_cond_signal(&d->not_empty_cond);
             pthread_mutex_unlock(&d->mutex);
         }
         return true;
@@ -121,8 +123,6 @@ static int64_t decoder_calculate_pts(Decoder *d, AVFrame *frame, Frame *fr)
 
 void decoder_destroy(Decoder *d)
 {
-    decoder_signal(d);
-
     d->stream->discard = AVDISCARD_ALL;
     d->stream = NULL;
     avcodec_free_context(&d->avctx);
@@ -133,7 +133,8 @@ void decoder_destroy(Decoder *d)
         av_frame_free(&vp->frm_frame);
     }
     pthread_mutex_destroy(&d->mutex);
-    pthread_cond_destroy(&d->cond);
+    pthread_cond_destroy(&d->not_empty_cond);
+    pthread_cond_destroy(&d->not_full_cond);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
@@ -151,7 +152,7 @@ void decoder_advance_frame(Decoder *d, MovieState *mov)
         d->frameq_head = 0;
     pthread_mutex_lock(&d->mutex);
     d->frameq_size--;
-    pthread_cond_signal(&d->cond);
+    pthread_cond_signal(&d->not_full_cond);
     pthread_mutex_unlock(&d->mutex);
 
     decoders_pause_if_finished(mov);
@@ -184,7 +185,7 @@ Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
     for (;;) {
         // Wait until we have a new frame
         pthread_mutex_lock(&d->mutex);
-        while (d->frameq_size <= 0 && !mov->abort_request) pthread_cond_wait(&d->cond, &d->mutex);
+        while (d->frameq_size <= 0 && !mov->abort_request) pthread_cond_wait(&d->not_empty_cond, &d->mutex);
         pthread_mutex_unlock(&d->mutex);
         if (mov->abort_request)
             return NULL;
@@ -193,11 +194,4 @@ Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
         decoder_advance_frame(d, mov);
     }
     return fr;
-}
-
-void decoder_signal(Decoder *d)
-{
-    pthread_mutex_lock(&d->mutex);
-    pthread_cond_broadcast(&d->cond);
-    pthread_mutex_unlock(&d->mutex);
 }
