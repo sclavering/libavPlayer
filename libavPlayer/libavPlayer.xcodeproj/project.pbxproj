@@ -55,7 +55,6 @@
 		16A1971613ADFE22008825FF /* libavPlayer.h in Headers */ = {isa = PBXBuildFile; fileRef = 16A1971513ADFE22008825FF /* libavPlayer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16CFAA2B183CE911008DD4BF /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 16009698183C8E1E0026B528 /* libswresample.a */; };
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
-		AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12251CE3B2D400716F94 /* framequeue.m */; };
 		AA4F122A1CE5096C00716F94 /* decoder.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12281CE508FC00716F94 /* decoder.m */; };
 		AA4F122C1CE54F8100716F94 /* MovieState.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F122B1CE54F7A00716F94 /* MovieState.m */; };
 		AA6E9C581CF8E0A50082BDEC /* clock.m in Sources */ = {isa = PBXBuildFile; fileRef = AA6E9C561CF8E07C0082BDEC /* clock.m */; };
@@ -117,7 +116,6 @@
 		16A1971513ADFE22008825FF /* libavPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = libavPlayer.h; sourceTree = "<group>"; };
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* libavPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = libavPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA4F12251CE3B2D400716F94 /* framequeue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = framequeue.m; sourceTree = "<group>"; };
 		AA4F12281CE508FC00716F94 /* decoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = decoder.m; sourceTree = "<group>"; };
 		AA4F12291CE508FC00716F94 /* decoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = decoder.h; sourceTree = "<group>"; };
 		AA4F122B1CE54F7A00716F94 /* MovieState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MovieState.m; sourceTree = "<group>"; };
@@ -238,7 +236,6 @@
 				AA6E9C561CF8E07C0082BDEC /* clock.m */,
 				AA4F12291CE508FC00716F94 /* decoder.h */,
 				AA4F12281CE508FC00716F94 /* decoder.m */,
-				AA4F12251CE3B2D400716F94 /* framequeue.m */,
 				16A193C513ADC268008825FF /* lavp_audio.m */,
 				16A193E313ADC62A008825FF /* lavp_core.m */,
 				16A1932B13ADB3E3008825FF /* lavp_video.m */,
@@ -348,7 +345,6 @@
 				AA6E9C581CF8E0A50082BDEC /* clock.m in Sources */,
 				AA4F122C1CE54F8100716F94 /* MovieState.m in Sources */,
 				AA4F122A1CE5096C00716F94 /* decoder.m in Sources */,
-				AA4F12261CE3BAAD00716F94 /* framequeue.m in Sources */,
 				16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */,
 				16A1932D13ADB3E3008825FF /* lavp_video.m in Sources */,
 				16A193E513ADC62A008825FF /* lavp_core.m in Sources */,

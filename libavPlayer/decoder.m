@@ -4,7 +4,7 @@
 @implementation Decoder
 @end
 
-static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr);
+static int64_t decoder_calculate_pts(Decoder *d, AVFrame *frame, Frame *fr);
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     d->finished = -1;
@@ -46,13 +46,34 @@ bool decoder_send_packet(Decoder *d, AVPacket *pkt)
 // Returns true if there are more frames to decode (including if we just stopped early); false otherwise.
 bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
 {
-    Frame* fr = frame_queue_peek_writable(d, mov);
-    if (!fr)
+    // Wait until we have space to put a new frame.
+    bool cancelled = false;
+    pthread_mutex_lock(&d->mutex);
+    for (;;) {
+        if (d->frameq_size < FRAME_QUEUE_SIZE) break;
+        if ((cancelled = decoders_should_stop_waiting(mov))) break;
+        pthread_cond_wait(&d->cond, &d->mutex);
+    }
+    pthread_mutex_unlock(&d->mutex);
+    if (cancelled)
         return true;
+    Frame *fr = &d->frameq[d->frameq_tail];
+
     int err = avcodec_receive_frame(d->avctx, d->tmp_frame);
     if (!err) {
         fr->frm_serial = pkt_serial;
-        decoder_enqueue_frame_into(d, d->tmp_frame, fr);
+        int64_t pts = decoder_calculate_pts(d, d->tmp_frame, fr);
+        // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (.pkt_pts and .pkt_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory these could appear elsewhere, but we'd still not know what to do with frames with no pts.
+        if (pts != AV_NOPTS_VALUE) {
+            fr->frm_pts_usec = pts;
+            av_frame_move_ref(fr->frm_frame, d->tmp_frame);
+
+            pthread_mutex_lock(&d->mutex);
+            if (++d->frameq_tail == FRAME_QUEUE_SIZE) d->frameq_tail = 0;
+            d->frameq_size++;
+            pthread_cond_signal(&d->cond);
+            pthread_mutex_unlock(&d->mutex);
+        }
         return true;
     }
     // If we've consumed all frames from the current packet.
@@ -67,13 +88,12 @@ bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
     return false;
 }
 
-static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
+static int64_t decoder_calculate_pts(Decoder *d, AVFrame *frame, Frame *fr)
 {
     switch (d->avctx->codec_type) {
         case AVMEDIA_TYPE_VIDEO:
             frame->pts = av_frame_get_best_effort_timestamp(frame);
-            // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (->pkt_pts and ->pkt_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory theses could appear elsewhere, but we'd still not know what to do with frames with no pts.
-            if (frame->pts == AV_NOPTS_VALUE) return;
+            if (frame->pts == AV_NOPTS_VALUE) return AV_NOPTS_VALUE;
             break;
         case AVMEDIA_TYPE_AUDIO: {
             AVRational tb = (AVRational){1, frame->sample_rate};
@@ -96,14 +116,12 @@ static void decoder_enqueue_frame_into(Decoder *d, AVFrame *frame, Frame *fr)
     AVRational tb = { 0, 0 };
     if (d->avctx->codec_type == AVMEDIA_TYPE_VIDEO) tb = d->stream->time_base;
     else if (d->avctx->codec_type == AVMEDIA_TYPE_AUDIO) tb = (AVRational){ 1, frame->sample_rate };
-    fr->frm_pts_usec = frame->pts == AV_NOPTS_VALUE ? -1 : frame->pts * 1000000 * tb.num / tb.den;
-    av_frame_move_ref(fr->frm_frame, frame);
-    frame_queue_push(d);
+    return frame->pts == AV_NOPTS_VALUE ? -1 : frame->pts * 1000000 * tb.num / tb.den;
 }
 
 void decoder_destroy(Decoder *d)
 {
-    frame_queue_signal(d);
+    decoder_signal(d);
 
     d->stream->discard = AVDISCARD_ALL;
     d->stream = NULL;
@@ -164,10 +182,22 @@ Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     for (;;) {
-        if (!(fr = frame_queue_peek_blocking(d, mov)))
+        // Wait until we have a new frame
+        pthread_mutex_lock(&d->mutex);
+        while (d->frameq_size <= 0 && !mov->abort_request) pthread_cond_wait(&d->cond, &d->mutex);
+        pthread_mutex_unlock(&d->mutex);
+        if (mov->abort_request)
             return NULL;
+        fr = &d->frameq[d->frameq_head % FRAME_QUEUE_SIZE];
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame(d, mov);
     }
     return fr;
+}
+
+void decoder_signal(Decoder *d)
+{
+    pthread_mutex_lock(&d->mutex);
+    pthread_cond_broadcast(&d->cond);
+    pthread_mutex_unlock(&d->mutex);
 }

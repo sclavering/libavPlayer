@@ -41,7 +41,4 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov);
 Frame *decoder_peek_next_frame(Decoder *d);
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov);
 
-void frame_queue_signal(Decoder *d);
-Frame *frame_queue_peek_blocking(Decoder *d, MovieState *mov);
-Frame *frame_queue_peek_writable(Decoder *d, MovieState *mov);
-void frame_queue_push(Decoder *d);
+void decoder_signal(Decoder *d);
