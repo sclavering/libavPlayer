@@ -25,12 +25,13 @@
 
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf);
+static int32_t audio_format_flags_from_sample_format(enum AVSampleFormat fmt);
 static AudioChannelLabel convert_channel_label(uint64_t av_ch);
 
 
 int audio_open(MovieState *mov, AVCodecContext *avctx)
 {
-    mov->audio_tgt_fmt = AV_SAMPLE_FMT_S16;
+    mov->audio_tgt_fmt = av_get_packed_sample_fmt(avctx->sample_fmt);
     mov->audio_buf_size = 0;
 
     if (avctx->sample_fmt != mov->audio_tgt_fmt) {
@@ -42,21 +43,16 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
         }
     }
 
-    double inSampleRate = avctx->sample_rate;
-    unsigned int inTotalBitsPerChannels = 16, inValidBitsPerChannel = 16;    // Packed
-    unsigned int inChannelsPerFrame = avctx->channels;
-    unsigned int inFramesPerPacket = 1;
-    unsigned int inBytesPerFrame = inChannelsPerFrame * inTotalBitsPerChannels/8;
-    unsigned int inBytesPerPacket = inBytesPerFrame * inFramesPerPacket;
     AudioStreamBasicDescription asbd = { 0 };
-    asbd.mSampleRate = inSampleRate;
     asbd.mFormatID = kAudioFormatLinearPCM;
-    asbd.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-    asbd.mBytesPerPacket = inBytesPerPacket;
-    asbd.mFramesPerPacket = inFramesPerPacket;
-    asbd.mBytesPerFrame = inBytesPerFrame;
-    asbd.mChannelsPerFrame = inChannelsPerFrame;
-    asbd.mBitsPerChannel = inValidBitsPerChannel;
+    asbd.mSampleRate = avctx->sample_rate;
+    asbd.mFramesPerPacket = 1;
+    asbd.mChannelsPerFrame = avctx->channels;
+    asbd.mFormatFlags = audio_format_flags_from_sample_format(mov->audio_tgt_fmt);
+    int bytes_per_sample = av_get_bytes_per_sample(mov->audio_tgt_fmt);
+    asbd.mBytesPerFrame = avctx->channels * bytes_per_sample;
+    asbd.mBitsPerChannel = bytes_per_sample * 8;
+    asbd.mBytesPerPacket = asbd.mBytesPerFrame;
 
     mov->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
     {
@@ -101,10 +97,34 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
         memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
         // Enqueue dummy data to start queuing
         out_buf->mAudioDataByteSize = 8; // dummy data
-        AudioQueueEnqueueBuffer(mov->audio_queue, out_buf, 0, 0);
+        AudioQueueEnqueueBuffer(mov->audio_queue, out_buf, 0, NULL);
     }
 
     return 0;
+}
+
+static int32_t audio_format_flags_from_sample_format(enum AVSampleFormat fmt)
+{
+    int32_t flags = 0;
+    flags |= kAudioFormatFlagIsPacked;
+    flags |= kAudioFormatFlagsNativeEndian; // ffmpeg docs say it always uses native endian
+    switch (fmt) {
+        case AV_SAMPLE_FMT_FLT:
+        case AV_SAMPLE_FMT_DBL:
+        case AV_SAMPLE_FMT_FLTP:
+        case AV_SAMPLE_FMT_DBLP:
+            flags |= kAudioFormatFlagIsFloat;
+            break;
+        case AV_SAMPLE_FMT_S16:
+        case AV_SAMPLE_FMT_S32:
+        case AV_SAMPLE_FMT_S16P:
+        case AV_SAMPLE_FMT_S32P:
+            flags |= kAudioFormatFlagIsSignedInteger;
+            break;
+        default:
+            break;
+    }
+    return flags;
 }
 
 static AudioChannelLabel convert_channel_label(uint64_t av_ch)
