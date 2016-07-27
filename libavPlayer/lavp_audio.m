@@ -31,6 +31,7 @@ static AudioChannelLabel convert_channel_label(uint64_t av_ch);
 
 int audio_open(MovieState *mov, AVCodecContext *avctx)
 {
+    // Note: per the docs for AudioQueueNewOutput(), non-interleaved (a.k.a. planar) linear-PCM audio is **not supported**.  Thus we must always convert to interleaved (a.k.a. packed) (rather unfortunately, as most movies seem to use planar).
     mov->audio_tgt_fmt = av_get_packed_sample_fmt(avctx->sample_fmt);
     mov->audio_buf_size = 0;
 
