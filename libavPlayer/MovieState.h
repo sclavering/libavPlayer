@@ -46,13 +46,10 @@
 
     // Audio
 
-    uint8_t *audio_buf;
-    uint8_t *audio_buf1;
-    unsigned int audio_buf_size; /* in bytes */
-    unsigned int audio_buf1_size;
-
     bool audio_needs_interleaving;
     enum AVSampleFormat audio_tgt_fmt;
+    int64_t current_audio_frame_pts;
+    size_t current_audio_frame_buffer_offset;
     AudioChannelLayout *audio_channel_layout; // used if there's >2 channels
     AudioQueueRef audio_queue;
     dispatch_queue_t audio_dispatch_queue;

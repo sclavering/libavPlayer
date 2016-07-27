@@ -33,9 +33,8 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
 {
     // Note: per the docs for AudioQueueNewOutput(), non-interleaved (a.k.a. planar) linear-PCM audio is **not supported**.  Thus we must always convert to interleaved (a.k.a. packed) (rather unfortunately, as most movies seem to use planar).
     mov->audio_tgt_fmt = av_get_packed_sample_fmt(avctx->sample_fmt);
-    mov->audio_buf_size = 0;
-
     mov->audio_needs_interleaving = (avctx->sample_fmt != mov->audio_tgt_fmt);
+    mov->current_audio_frame_buffer_offset = 0;
 
     AudioStreamBasicDescription asbd = { 0 };
     asbd.mFormatID = kAudioFormatLinearPCM;
@@ -158,65 +157,57 @@ static AudioChannelLabel convert_channel_label(uint64_t av_ch)
     return kAudioChannelLabel_Unused;
 }
 
-static void audio_convert_to_interleaved(uint8_t *output_buf, AVFrame *af)
+static void audio_convert_to_interleaved(uint8_t *output_buf, AVFrame *af, int offset_in_frame, int bytes_to_copy_per_channel)
 {
-    int nb_samples = af->nb_samples;
     int samp_size = av_get_bytes_per_sample(af->format);
+    int nb_samples = bytes_to_copy_per_channel / samp_size;
     int channels = af->channels;
     for (int s = 0; s < nb_samples; ++s) {
         for (int ch = 0; ch < channels; ++ch) {
-            memcpy(output_buf + (s * channels + ch) * samp_size, af->extended_data[ch] + s * samp_size, samp_size);
+            memcpy(output_buf + (s * channels + ch) * samp_size, af->extended_data[ch] + offset_in_frame + s * samp_size, samp_size);
         }
     }
-}
-
-static void audio_decode_frame(MovieState *mov, AVFrame *af)
-{
-    mov->audio_buf = NULL;
-    mov->audio_buf_size = 0;
-
-    if (mov->audio_needs_interleaving) {
-        int out_size = av_samples_get_buffer_size(NULL, af->channels, af->nb_samples, mov->audio_tgt_fmt, 0);
-        if (out_size < 0) {
-            NSLog(@"libavPlayer: av_samples_get_buffer_size() failed");
-            return;
-        }
-        av_fast_malloc(&mov->audio_buf1, &mov->audio_buf1_size, out_size);
-        if (!mov->audio_buf1)
-            return;
-        audio_convert_to_interleaved(mov->audio_buf1, af);
-        mov->audio_buf = mov->audio_buf1;
-        mov->audio_buf_size = out_size;
-        return;
-    }
-
-    // xxx this really needs to be memcpy()'d, since we free the AVFrame soon after returning.  Except that interleaved audio is really rare, so it's fairly irrelevant in practice.
-    mov->audio_buf = af->data[0];
-    mov->audio_buf_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af), af->nb_samples, af->format, 1);
 }
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
     qbuf->mAudioDataByteSize = 0;
-    while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
-        if (mov->audio_buf_size <= 0) {
-            Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
-            if (!fr) return; // ->abort_request must have been set
+    while (qbuf->mAudioDataByteSize < qbuf->mAudioDataBytesCapacity) {
+        Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
+        if (!fr) return; // ->abort_request must have been set
+        AVFrame *af = fr->frm_frame;
 
+        // We set it to -1 to mark that we've already made some use of this frame.
+        if (fr->frm_pts_usec > 0) {
             // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
             // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
             if (!mov->paused) clock_set(mov, fr->frm_pts_usec);
 
-            audio_decode_frame(mov, fr->frm_frame);
-            if (!mov->audio_buf) return; // something really weird went wrong
+            fr->frm_pts_usec = -1;
+            mov->current_audio_frame_buffer_offset = 0;
+        }
 
+        // Note: don't use AVFrame .linesize here, as it's frequent weird/wrong, or at least not what we want.  e.g. I have a .webm file where .nb_samples varies, but .linesize doesn't.
+        int available_bytes_per_channel = av_get_bytes_per_sample(af->format) * af->nb_samples;
+        if (mov->audio_needs_interleaving) {
+            int bytes_to_copy_per_channel = MIN(
+                (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize) / af->channels,
+                available_bytes_per_channel - mov->current_audio_frame_buffer_offset
+            );
+            audio_convert_to_interleaved(qbuf->mAudioData + qbuf->mAudioDataByteSize, af, mov->current_audio_frame_buffer_offset, bytes_to_copy_per_channel);
+            mov->current_audio_frame_buffer_offset += bytes_to_copy_per_channel;
+            qbuf->mAudioDataByteSize += bytes_to_copy_per_channel * af->channels;
+        } else {
+            size_t bytes_to_copy = MIN(qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize, available_bytes_per_channel - mov->current_audio_frame_buffer_offset);
+            memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, af->data[0] + mov->current_audio_frame_buffer_offset, bytes_to_copy);
+            mov->current_audio_frame_buffer_offset += bytes_to_copy;
+            qbuf->mAudioDataByteSize += bytes_to_copy;
+        }
+
+        // If we've used all the audio from this frame then advance to the next one.
+        if (mov->current_audio_frame_buffer_offset >= available_bytes_per_channel) {
             decoder_advance_frame(mov->auddec, mov);
         }
-        int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
-        memcpy(qbuf->mAudioData + qbuf->mAudioDataByteSize, mov->audio_buf, len1);
-        qbuf->mAudioDataByteSize += len1;
-        mov->audio_buf += len1;
-        mov->audio_buf_size -= len1;
     }
 
     OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);

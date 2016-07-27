@@ -134,10 +134,6 @@ void movie_close(MovieState *mov)
         if (mov->auddec) decoder_destroy(mov->auddec);
         if (mov->viddec) decoder_destroy(mov->viddec);
 
-        av_freep(&mov->audio_buf1);
-        mov->audio_buf1_size = 0;
-        mov->audio_buf = NULL;
-
         avformat_close_input(&mov->ic);
 
         mov->weak_output = NULL;
