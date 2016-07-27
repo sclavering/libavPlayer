@@ -35,14 +35,7 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     mov->audio_tgt_fmt = av_get_packed_sample_fmt(avctx->sample_fmt);
     mov->audio_buf_size = 0;
 
-    if (avctx->sample_fmt != mov->audio_tgt_fmt) {
-        mov->swr_ctx = swr_alloc_set_opts(NULL, avctx->channel_layout, mov->audio_tgt_fmt, avctx->sample_rate, avctx->channel_layout, avctx->sample_fmt, avctx->sample_rate, 0, NULL);
-        if (!mov->swr_ctx || swr_init(mov->swr_ctx) < 0) {
-            NSLog(@"libavPlayer: error creating sample-format converter from '%s' to '%s'", av_get_sample_fmt_name(avctx->sample_fmt), av_get_sample_fmt_name(mov->audio_tgt_fmt));
-            swr_free(&mov->swr_ctx);
-            return -1;
-        }
-    }
+    mov->audio_needs_interleaving = (avctx->sample_fmt != mov->audio_tgt_fmt);
 
     AudioStreamBasicDescription asbd = { 0 };
     asbd.mFormatID = kAudioFormatLinearPCM;
@@ -165,12 +158,24 @@ static AudioChannelLabel convert_channel_label(uint64_t av_ch)
     return kAudioChannelLabel_Unused;
 }
 
+static void audio_convert_to_interleaved(uint8_t *output_buf, AVFrame *af)
+{
+    int nb_samples = af->nb_samples;
+    int samp_size = av_get_bytes_per_sample(af->format);
+    int channels = af->channels;
+    for (int s = 0; s < nb_samples; ++s) {
+        for (int ch = 0; ch < channels; ++ch) {
+            memcpy(output_buf + (s * channels + ch) * samp_size, af->extended_data[ch] + s * samp_size, samp_size);
+        }
+    }
+}
+
 static void audio_decode_frame(MovieState *mov, AVFrame *af)
 {
     mov->audio_buf = NULL;
     mov->audio_buf_size = 0;
 
-    if (mov->swr_ctx) {
+    if (mov->audio_needs_interleaving) {
         int out_size = av_samples_get_buffer_size(NULL, af->channels, af->nb_samples, mov->audio_tgt_fmt, 0);
         if (out_size < 0) {
             NSLog(@"libavPlayer: av_samples_get_buffer_size() failed");
@@ -179,11 +184,7 @@ static void audio_decode_frame(MovieState *mov, AVFrame *af)
         av_fast_malloc(&mov->audio_buf1, &mov->audio_buf1_size, out_size);
         if (!mov->audio_buf1)
             return;
-        int len2 = swr_convert(mov->swr_ctx, &mov->audio_buf1, af->nb_samples, (const uint8_t **)af->extended_data, af->nb_samples);
-        if (len2 < 0) {
-            NSLog(@"libavPlayer: swr_convert() failed");
-            return;
-        }
+        audio_convert_to_interleaved(mov->audio_buf1, af);
         mov->audio_buf = mov->audio_buf1;
         mov->audio_buf_size = out_size;
         return;

@@ -134,7 +134,6 @@ void movie_close(MovieState *mov)
         if (mov->auddec) decoder_destroy(mov->auddec);
         if (mov->viddec) decoder_destroy(mov->viddec);
 
-        swr_free(&mov->swr_ctx);
         av_freep(&mov->audio_buf1);
         mov->audio_buf1_size = 0;
         mov->audio_buf = NULL;
