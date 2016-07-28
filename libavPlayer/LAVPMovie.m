@@ -76,9 +76,7 @@
 
 -(int64_t) currentTimeInMicroseconds {
     if(!mov) return 0;
-    int64_t pos = clock_get_usec(mov);
-    if(pos >= 0) lastPosition = pos;
-    return lastPosition;
+    return clock_get_usec(mov);
 }
 
 -(double) currentTimeAsFraction {
@@ -100,8 +98,6 @@
     if(newTime > self.durationInMicroseconds) newTime = self.durationInMicroseconds;
     if(mov->ic->start_time != AV_NOPTS_VALUE) newTime += mov->ic->start_time;
     lavp_seek(mov, newTime, self.currentTimeInMicroseconds);
-    // This exists because clock_get_usec() returns invalid values after seeking while paused, and we need to mask that.
-    lastPosition = newTime;
 }
 
 -(bool) paused {
