@@ -33,8 +33,7 @@ void lavp_if_new_frame_is_available_then_run(MovieState *mov, void (^func)(AVFra
         fr = decoder_peek_current_frame(mov->viddec, mov);
         if (!fr) break;
 
-        // These both mean we've just seeked, in which case we want a new frame up ASAP (weirdly, seeking can put you a little before the PTS of a keyframe).
-        if (now < 0) break;
+        // If we've just seeked we want a new frame up ASAP (the clock comes from the first audio frame, which sometimes has a pts a little before that of the first video frame).
         if (fr->frm_serial != mov->last_shown_frame_serial) break;
 
         // If fr is still in the future don't show it yet (and we'll carry on showing the one already uploaded into a GL texture).

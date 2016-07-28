@@ -281,7 +281,7 @@ void decoders_thread(MovieState *mov)
         if (need_clock_update_after_seeking) {
             Frame *fr;
             if ((fr = decoder_peek_current_frame(mov->auddec, mov))) {
-                clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
+                clock_set(mov, fr->frm_pts_usec);
                 need_clock_update_after_seeking = false;
             }
         }

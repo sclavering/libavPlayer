@@ -43,7 +43,6 @@
 
     int64_t clock_pts; // The pts of a recently-played audio frame.
     int64_t clock_last_updated; // The machine/wallclock time the clock was last set.
-    int clock_serial; // The serial of the frame for which clock_pts was set.
 
     // Audio
 
@@ -108,5 +107,5 @@ void lavp_set_volume_percent(MovieState *mov, int volume);
 // clock
 
 int64_t clock_get_usec(MovieState *mov);
-void clock_set(MovieState *mov, int64_t pts, int serial);
+void clock_set(MovieState *mov, int64_t pts);
 void clock_preserve(MovieState *mov);
