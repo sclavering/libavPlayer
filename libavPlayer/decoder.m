@@ -147,10 +147,10 @@ bool decoder_finished(Decoder *d, int current_serial)
 
 void decoder_advance_frame(Decoder *d, MovieState *mov)
 {
+    pthread_mutex_lock(&d->mutex);
     av_frame_unref(d->frameq[d->frameq_head].frm_frame);
     if (++d->frameq_head == FRAME_QUEUE_SIZE)
         d->frameq_head = 0;
-    pthread_mutex_lock(&d->mutex);
     d->frameq_size--;
     pthread_cond_signal(&d->not_full_cond);
     pthread_mutex_unlock(&d->mutex);
