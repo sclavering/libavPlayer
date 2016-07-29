@@ -96,7 +96,6 @@ NSString* formatTime(int64_t usec)
     if (!viewmovie.paused) {
         viewmovie.paused = true;
     } else {
-        if(viewmovie.currentTimeInMicroseconds >= viewmovie.durationInMicroseconds) viewmovie.currentTimeAsFraction = 0;
         BOOL shiftKey = [NSEvent modifierFlags] & NSShiftKeyMask ? TRUE : FALSE;
         viewmovie.playbackSpeedPercent = shiftKey ? 150 : 100;
         viewmovie.paused = false;
