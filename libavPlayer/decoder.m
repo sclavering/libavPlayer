@@ -145,23 +145,29 @@ bool decoder_finished(Decoder *d, int current_serial)
     return d->finished == current_serial && !d->frameq_size;
 }
 
-void decoder_advance_frame(Decoder *d, MovieState *mov)
+void decoder_advance_frame_already_locked(Decoder *d, MovieState *mov)
 {
-    pthread_mutex_lock(&d->mutex);
     av_frame_unref(d->frameq[d->frameq_head].frm_frame);
     if (++d->frameq_head == FRAME_QUEUE_SIZE)
         d->frameq_head = 0;
     d->frameq_size--;
     pthread_cond_signal(&d->not_full_cond);
-    pthread_mutex_unlock(&d->mutex);
 
     decoders_pause_if_finished(mov);
+}
+
+void decoder_advance_frame(Decoder *d, MovieState *mov)
+{
+    pthread_mutex_lock(&d->mutex);
+    decoder_advance_frame_already_locked(d, mov);
+    pthread_mutex_unlock(&d->mutex);
 }
 
 Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
+    pthread_mutex_lock(&d->mutex);
     for (;;) {
         if (!d->frameq_size) {
             fr = NULL;
@@ -169,8 +175,9 @@ Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
         }
         fr = &d->frameq[d->frameq_head % FRAME_QUEUE_SIZE];
         if (fr->frm_serial == mov->current_serial) break;
-        decoder_advance_frame(d, mov);
+        decoder_advance_frame_already_locked(d, mov);
     }
+    pthread_mutex_unlock(&d->mutex);
     return fr;
 }
 
@@ -182,16 +189,16 @@ Frame *decoder_peek_next_frame(Decoder *d)
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
+    pthread_mutex_lock(&d->mutex);
     for (;;) {
         // Wait until we have a new frame
-        pthread_mutex_lock(&d->mutex);
         while (d->frameq_size <= 0 && !mov->abort_request) pthread_cond_wait(&d->not_empty_cond, &d->mutex);
-        pthread_mutex_unlock(&d->mutex);
         if (mov->abort_request)
             return NULL;
         fr = &d->frameq[d->frameq_head % FRAME_QUEUE_SIZE];
         if (fr->frm_serial == mov->current_serial) break;
-        decoder_advance_frame(d, mov);
+        decoder_advance_frame_already_locked(d, mov);
     }
+    pthread_mutex_unlock(&d->mutex);
     return fr;
 }
