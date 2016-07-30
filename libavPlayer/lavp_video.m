@@ -24,37 +24,36 @@
 #import "decoder.h"
 
 
-static void video_refresh(MovieState *mov)
-{
-    if (mov->paused)
-        return;
-
-    // Skip any frames that are in the past (except the current frame).
-    for (;;) {
-        Frame *curr = decoder_peek_current_frame(mov->viddec, mov);
-        if (!curr) return;
-        Frame *next = decoder_peek_next_frame(mov->viddec);
-        int64_t now = clock_get_usec(mov);
-        // If the next frame is still in the future, stop here.
-        if (next && !(curr->frm_pts_usec < now && next->frm_pts_usec < now)) break;
-        // If we've reached EOF, we should advance the queue, but only once the final frame has had its duration.
-        if (!next) {
-            AVRational frame_rate = av_guess_frame_rate(mov->ic, mov->viddec->stream, NULL);
-            int64_t duration = frame_rate.num && frame_rate.den ? (frame_rate.den * 1000000LL) / frame_rate.num : 0;
-            if (now < curr->frm_pts_usec + duration) break;
-        }
-        decoder_advance_frame(mov->viddec, mov);
-    }
-}
-
 void lavp_if_new_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *))
 {
-    // This seems to take ~1ms typically, and occasionally ~10ms (presumably when waiting on the mutex), so shouldn't interfere with 60fps updating.
-    video_refresh(mov);
+    int64_t now = clock_get_usec(mov);
+    Frame *fr = NULL;
+    // Note: the loop generally takes ~1ms which is plenty fast enough with us being called every ~16ms.
+    for (;;) {
+        fr = decoder_peek_current_frame(mov->viddec, mov);
+        if (!fr) break;
 
-    Frame* fr = decoder_peek_current_frame(mov->viddec, mov);
-    if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return;
+        // These both mean we've just seeked, in which case we want a new frame up ASAP (weirdly, seeking can put you a little before the PTS of a keyframe).
+        if (now < 0) break;
+        if (fr->frm_serial != mov->last_shown_frame_serial) break;
 
-    mov->last_shown_video_frame_pts = fr->frm_pts_usec;
-    func(fr->frm_frame);
+        // If fr is still in the future don't show it yet (and we'll carry on showing the one already uploaded into a GL texture).
+        if (now < fr->frm_pts_usec) {
+            fr = NULL;
+            break;
+        }
+
+        // If there's a later frame that we should already have shown or be showing then skip the earlier one.
+        // xxx Maybe we should add a threshold to this, since if we've only overshot by a little bit it might be better to show a slightly stale frame for the sake of smoother playback in scenes with a lot of motion?
+        Frame *next = decoder_peek_next_frame(mov->viddec);
+        if (!next) break;
+        if (now < next->frm_pts_usec) break;
+        decoder_advance_frame(mov->viddec, mov);
+    }
+
+    if (fr) {
+        func(fr->frm_frame);
+        mov->last_shown_frame_serial = fr->frm_serial;
+        decoder_advance_frame(mov->viddec, mov);
+    }
 }

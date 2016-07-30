@@ -61,7 +61,7 @@
     // Video
 
     int width, height;
-    int64_t last_shown_video_frame_pts;
+    int last_shown_frame_serial;
 }
 @end;
 

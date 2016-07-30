@@ -151,12 +151,12 @@ MovieState* movie_open(NSURL *sourceURL)
 
     mov->volume_percent = 100;
     mov->weak_output = NULL;
-    mov->last_shown_video_frame_pts = -1;
     mov->paused = true;
     mov->requested_paused = true;
     mov->playback_speed_percent = 100;
     mov->abort_request = false;
     mov->seek_req = false;
+    mov->last_shown_frame_serial = -1;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
@@ -249,7 +249,6 @@ void decoders_thread(MovieState *mov)
         }
 
         if (mov->seek_req) {
-            mov->last_shown_video_frame_pts = -1;
             int64_t seek_diff = mov->seek_to - mov->seek_from;
             // When trying to seek forward a small distance, we need to specifiy a time in the future as the minimum acceptable seek position, since otherwise the seek could end up going backward slightly (e.g. if keyframes are ~10s apart and we were ~2s past one and request a +5s seek, the key frame immediately before the target time is the one we're just past, and is what avformat_seek_file will seek to).  The "/ 2" is a fairly arbitrary choice.
             int64_t seek_min = seek_diff > 0 ? mov->seek_to - (seek_diff / 2) : INT64_MIN;
