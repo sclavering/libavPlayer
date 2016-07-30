@@ -55,10 +55,6 @@ AVFrame* lavp_get_current_frame(MovieState *mov)
     Frame* fr = decoder_peek_current_frame(mov->viddec, mov);
     if (!fr || fr->frm_pts_usec == mov->last_shown_video_frame_pts) return NULL;
 
-    // Other pixel formats are vanishingly rare, so don't bother with them, at least for now.
-    // If we ever do handle them, doing conversion via OpenGL would probably work fine here, but for CPU conversion we'd likely want to do it in advance.
-    if (fr->frm_frame->format != AV_PIX_FMT_YUV420P) return NULL;
-
     mov->last_shown_video_frame_pts = fr->frm_pts_usec;
     return fr->frm_frame;
 }

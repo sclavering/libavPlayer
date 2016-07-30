@@ -315,7 +315,9 @@ GLuint init_shader(GLenum kind, const char* code) {
     AVFrame* fr = [_movie getCurrentFrame];
 
     // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
-    if(fr) {
+    // Pixel formats other than AV_PIX_FMT_YUV420P are vanishingly rare, so don't bother with them, at least for now.
+    // If we ever do handle them, ideally it'd be here in LAVPLayer, by using different shaders.
+    if(fr && fr->format == AV_PIX_FMT_YUV420P) {
         IntSize sz = [_movie sizeForGLTextures];
         glBindTexture(GL_TEXTURE_2D, _textures[0]);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, fr->linesize[0]);
