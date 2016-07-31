@@ -203,7 +203,11 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
     if (!mov->paused) {
         // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
         // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-        if (fr && fr->frm_pts_usec > 0) clock_set(mov, fr->frm_pts_usec);
+        if (fr && fr->frm_pts_usec > 0) {
+            clock_set(mov, fr->frm_pts_usec);
+            // So we don't wind the clock back if there's still leftover samples from this frame during the next audio_callback() call.
+            fr->frm_pts_usec = -1;
+        }
     }
 
     qbuf->mAudioDataByteSize = 0;
