@@ -165,15 +165,13 @@ static AudioChannelLabel convert_channel_label(uint64_t av_ch)
     return kAudioChannelLabel_Unused;
 }
 
-static void audio_decode_frame(MovieState *mov)
+static void audio_decode_frame(MovieState *mov, AVFrame *af)
 {
     mov->audio_buf = NULL;
     mov->audio_buf_size = 0;
 
-    Frame *af = decoder_peek_current_frame_blocking(mov->auddec, mov);
-
     if (mov->swr_ctx) {
-        int out_size = av_samples_get_buffer_size(NULL, af->frm_frame->channels, af->frm_frame->nb_samples, mov->audio_tgt_fmt, 0);
+        int out_size = av_samples_get_buffer_size(NULL, af->channels, af->nb_samples, mov->audio_tgt_fmt, 0);
         if (out_size < 0) {
             NSLog(@"libavPlayer: av_samples_get_buffer_size() failed");
             return;
@@ -181,7 +179,7 @@ static void audio_decode_frame(MovieState *mov)
         av_fast_malloc(&mov->audio_buf1, &mov->audio_buf1_size, out_size);
         if (!mov->audio_buf1)
             return;
-        int len2 = swr_convert(mov->swr_ctx, &mov->audio_buf1, af->frm_frame->nb_samples, (const uint8_t **)af->frm_frame->extended_data, af->frm_frame->nb_samples);
+        int len2 = swr_convert(mov->swr_ctx, &mov->audio_buf1, af->nb_samples, (const uint8_t **)af->extended_data, af->nb_samples);
         if (len2 < 0) {
             NSLog(@"libavPlayer: swr_convert() failed");
             return;
@@ -191,30 +189,26 @@ static void audio_decode_frame(MovieState *mov)
         return;
     }
 
-    mov->audio_buf = af->frm_frame->data[0];
-    mov->audio_buf_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af->frm_frame), af->frm_frame->nb_samples, af->frm_frame->format, 1);
+    // xxx this really needs to be memcpy()'d, since we free the AVFrame soon after returning.  Except that interleaved audio is really rare, so it's fairly irrelevant in practice.
+    mov->audio_buf = af->data[0];
+    mov->audio_buf_size = av_samples_get_buffer_size(NULL, av_frame_get_channels(af), af->nb_samples, af->format, 1);
 }
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
-    // So we skip any obsolete frames (and thus create space in the frameq for the new ones).
-    Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
-
-    if (!mov->paused) {
-        // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
-        // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
-        if (fr && fr->frm_pts_usec > 0) {
-            clock_set(mov, fr->frm_pts_usec);
-            // So we don't wind the clock back if there's still leftover samples from this frame during the next audio_callback() call.
-            fr->frm_pts_usec = -1;
-        }
-    }
-
     qbuf->mAudioDataByteSize = 0;
     while (qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize > 0) {
         if (mov->audio_buf_size <= 0) {
-            audio_decode_frame(mov);
-            if (!mov->audio_buf) break;
+            Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
+            if (!fr) return; // ->abort_request must have been set
+
+            // Obviously this isn't really correct (it doesn't take account of the audio already buffered but not yet played), but with our callback running at 50Hz ish, it ought to be only ~20ms out, which should be OK.
+            // Note: I tried using AudioQueueGetCurrentTime(), but it seemed to be running faster than it should, leading to ~500ms desync after only a minute or two of playing.  Also, it's a pain to handle seeking for (as it doesn't reset the time on seek, even if flushed), and according to random internet sources has other gotchas like the time resetting if someone plugs/unplugs headphones.
+            if (!mov->paused) clock_set(mov, fr->frm_pts_usec);
+
+            audio_decode_frame(mov, fr->frm_frame);
+            if (!mov->audio_buf) return; // something really weird went wrong
+
             decoder_advance_frame(mov->auddec, mov);
         }
         int len1 = MIN(mov->audio_buf_size, qbuf->mAudioDataBytesCapacity - qbuf->mAudioDataByteSize);
