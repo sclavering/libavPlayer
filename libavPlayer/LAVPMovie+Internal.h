@@ -5,5 +5,5 @@ typedef struct IntSize_ { int width, height; } IntSize;
 
 @interface LAVPMovie (Internal)
 -(IntSize) sizeForGLTextures;
--(void) ifNewFrameIsAvailableThenRun:(void (^)(AVFrame *))func;
+-(void) ifNewVideoFrameIsAvailableThenRun:(void (^)(AVFrame *))func;
 @end

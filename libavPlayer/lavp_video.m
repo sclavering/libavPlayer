@@ -24,7 +24,7 @@
 #import "decoder.h"
 
 
-void lavp_if_new_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *))
+void lavp_if_new_video_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *))
 {
     int64_t now = clock_get_usec(mov);
     Frame *fr = NULL;

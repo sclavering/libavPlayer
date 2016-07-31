@@ -314,7 +314,7 @@ GLuint init_shader(GLenum kind, const char* code) {
     [_lock lock];
 
     // We always need to re-render, but if the frame is unchanged we don't upload new texture data).
-    [_movie ifNewFrameIsAvailableThenRun:^(AVFrame *fr) {
+    [_movie ifNewVideoFrameIsAvailableThenRun:^(AVFrame *fr) {
         // Pixel formats other than AV_PIX_FMT_YUV420P are vanishingly rare, so don't bother with them, at least for now.
         // If we ever do handle them, ideally it'd be here in LAVPLayer, by using different shaders.
         if (fr->format != AV_PIX_FMT_YUV420P) return;
