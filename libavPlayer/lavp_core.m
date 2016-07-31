@@ -209,8 +209,6 @@ MovieState* movie_open(NSURL *sourceURL)
         });
     }
 
-    clock_init(mov);
-
     return mov;
 
 fail:
@@ -234,8 +232,9 @@ void decoders_thread(MovieState *mov)
     bool reached_eof = false;
     bool aud_frames_pending = false;
     bool vid_frames_pending = false;
-    bool need_video_update_after_seeking_while_paused = false;
-    bool need_clock_update_after_seeking_while_paused = false;
+    // These both start true because we start paused, and want a clock and video update ASAP, which is equivalent to the seek-while-paused case.
+    bool need_video_update_after_seeking_while_paused = true;
+    bool need_clock_update_after_seeking = true;
 
     // This loop is often waiting on a condvar in decoder_receive_frame().
     for (;;) {
@@ -244,7 +243,6 @@ void decoders_thread(MovieState *mov)
         if (mov->paused != mov->requested_paused) {
             lavp_handle_paused_change(mov);
             need_video_update_after_seeking_while_paused = false;
-            need_clock_update_after_seeking_while_paused = false;
             continue;
         }
 
@@ -264,12 +262,12 @@ void decoders_thread(MovieState *mov)
             vid_frames_pending = false;
             decoder_flush(mov->auddec);
             decoder_flush(mov->viddec);
+            need_clock_update_after_seeking = true;
             if (mov->paused) {
                 // Clear out stale frames so there's space for new ones.  If we're *not* paused we must leave this to audio_callback() and calls to lavp_get_current_frame() from the LAVPLayer's refresh timer, as otherwise we might discard a frame they're still in the middle of using.
                 decoder_peek_current_frame(mov->auddec, mov);
                 decoder_peek_current_frame(mov->viddec, mov);
                 need_video_update_after_seeking_while_paused = true;
-                need_clock_update_after_seeking_while_paused = true;
             }
             continue;
         }
@@ -280,11 +278,11 @@ void decoders_thread(MovieState *mov)
             need_video_update_after_seeking_while_paused = false;
             continue;
         }
-        if (need_clock_update_after_seeking_while_paused) {
+        if (need_clock_update_after_seeking) {
             Frame *fr;
             if ((fr = decoder_peek_current_frame(mov->auddec, mov))) {
                 clock_set(mov, fr->frm_pts_usec, fr->frm_serial);
-                need_clock_update_after_seeking_while_paused = false;
+                need_clock_update_after_seeking = false;
             }
         }
 

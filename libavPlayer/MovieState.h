@@ -110,4 +110,3 @@ void lavp_set_volume_percent(MovieState *mov, int volume);
 int64_t clock_get_usec(MovieState *mov);
 void clock_set(MovieState *mov, int64_t pts, int serial);
 void clock_preserve(MovieState *mov);
-void clock_init(MovieState *mov);

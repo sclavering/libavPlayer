@@ -23,8 +23,3 @@ void clock_preserve(MovieState *mov)
     // This ensures the clock is correct after pausing, unpausing, or changing speed change (all of which would invalidate the basic calculation done by clock_get_usec, for different reasons).
     clock_set(mov, clock_get_usec(mov), mov->clock_serial);
 }
-
-void clock_init(MovieState *mov)
-{
-    clock_set(mov, -1, -1);
-}
