@@ -27,10 +27,13 @@
 void lavp_if_new_video_frame_is_available_then_run(MovieState *mov, void (^func)(AVFrame *))
 {
     int64_t now = clock_get_usec(mov);
+
+    pthread_mutex_lock(&mov->viddec->mutex);
+
     Frame *fr = NULL;
     // Note: the loop generally takes ~1ms which is plenty fast enough with us being called every ~16ms.
     for (;;) {
-        fr = decoder_peek_current_frame(mov->viddec, mov);
+        fr = decoder_peek_current_frame_already_locked(mov->viddec, mov);
         if (!fr) break;
 
         // If we've just seeked we want a new frame up ASAP (the clock comes from the first audio frame, which sometimes has a pts a little before that of the first video frame).
@@ -47,12 +50,14 @@ void lavp_if_new_video_frame_is_available_then_run(MovieState *mov, void (^func)
         Frame *next = decoder_peek_next_frame(mov->viddec);
         if (!next) break;
         if (now < next->frm_pts_usec) break;
-        decoder_advance_frame(mov->viddec, mov);
+        decoder_advance_frame_already_locked(mov->viddec, mov);
     }
 
     if (fr) {
         func(fr->frm_frame);
         mov->last_shown_frame_serial = fr->frm_serial;
-        decoder_advance_frame(mov->viddec, mov);
+        decoder_advance_frame_already_locked(mov->viddec, mov);
     }
+
+    pthread_mutex_unlock(&mov->viddec->mutex);
 }

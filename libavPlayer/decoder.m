@@ -163,20 +163,23 @@ void decoder_advance_frame(Decoder *d, MovieState *mov)
     pthread_mutex_unlock(&d->mutex);
 }
 
-Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
+Frame *decoder_peek_current_frame_already_locked(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
     // Skip any frames left over from before seeking.
-    pthread_mutex_lock(&d->mutex);
     for (;;) {
-        if (!d->frameq_size) {
-            fr = NULL;
-            break;
-        }
+        if (!d->frameq_size) return NULL;
         fr = &d->frameq[d->frameq_head % FRAME_QUEUE_SIZE];
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame_already_locked(d, mov);
     }
+    return fr;
+}
+
+Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov)
+{
+    pthread_mutex_lock(&d->mutex);
+    Frame *fr = decoder_peek_current_frame_already_locked(d, mov);
     pthread_mutex_unlock(&d->mutex);
     return fr;
 }

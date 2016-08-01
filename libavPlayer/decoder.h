@@ -37,7 +37,9 @@ bool decoder_finished(Decoder *d, int current_serial);
 bool decoder_send_packet(Decoder *d, AVPacket *pkt);
 bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov);
 
+void decoder_advance_frame_already_locked(Decoder *d, MovieState *mov);
 void decoder_advance_frame(Decoder *d, MovieState *mov);
+Frame *decoder_peek_current_frame_already_locked(Decoder *d, MovieState *mov);
 Frame *decoder_peek_current_frame(Decoder *d, MovieState *mov);
 Frame *decoder_peek_next_frame(Decoder *d);
 Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov);
