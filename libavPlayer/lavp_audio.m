@@ -171,10 +171,16 @@ static void audio_convert_to_interleaved(uint8_t *output_buf, AVFrame *af, int o
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
 {
+    pthread_mutex_lock(&mov->auddec->mutex);
+
+    bool abort = false;
     qbuf->mAudioDataByteSize = 0;
     while (qbuf->mAudioDataByteSize < qbuf->mAudioDataBytesCapacity) {
-        Frame *fr = decoder_peek_current_frame_blocking(mov->auddec, mov);
-        if (!fr) return; // ->abort_request must have been set
+        Frame *fr = decoder_peek_current_frame_blocking_already_locked(mov->auddec, mov);
+        if (!fr) { // ->abort_request must have been set
+            abort = true;
+            break;
+        }
         AVFrame *af = fr->frm_frame;
 
         // We set it to -1 to mark that we've already made some use of this frame.
@@ -206,12 +212,16 @@ static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRe
 
         // If we've used all the audio from this frame then advance to the next one.
         if (mov->current_audio_frame_buffer_offset >= available_bytes_per_channel) {
-            decoder_advance_frame(mov->auddec, mov);
+            decoder_advance_frame_already_locked(mov->auddec, mov);
         }
     }
 
-    OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
-    if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
+    if (!abort) {
+        OSStatus err = AudioQueueEnqueueBuffer(aq, qbuf, 0, NULL);
+        if (err) NSLog(@"libavPlayer: error from AudioQueueEnqueueBuffer(): %d", err);
+    }
+
+    pthread_mutex_unlock(&mov->auddec->mutex);
 }
 
 void audio_queue_set_paused(MovieState *mov, bool pause)

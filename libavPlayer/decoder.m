@@ -189,10 +189,9 @@ Frame *decoder_peek_next_frame(Decoder *d)
     return d->frameq_size > 1 ? &d->frameq[(d->frameq_head + 1) % FRAME_QUEUE_SIZE] : NULL;
 }
 
-Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
+Frame *decoder_peek_current_frame_blocking_already_locked(Decoder *d, MovieState *mov)
 {
     Frame *fr = NULL;
-    pthread_mutex_lock(&d->mutex);
     for (;;) {
         // Wait until we have a new frame
         while (d->frameq_size <= 0 && !mov->abort_request) pthread_cond_wait(&d->not_empty_cond, &d->mutex);
@@ -202,6 +201,5 @@ Frame *decoder_peek_current_frame_blocking(Decoder *d, MovieState *mov)
         if (fr->frm_serial == mov->current_serial) break;
         decoder_advance_frame_already_locked(d, mov);
     }
-    pthread_mutex_unlock(&d->mutex);
     return fr;
 }
