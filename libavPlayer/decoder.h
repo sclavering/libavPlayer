@@ -19,9 +19,9 @@ typedef struct Frame {
     AVFrame *tmp_frame;
 
     Frame frameq[FRAME_QUEUE_SIZE];
+    // If frameq_head == frameq_tail then the queue is empty.  Thus a full queue must only hold (FRAME_QUEUE_SIZE - 1) frames.
     int frameq_head;
     int frameq_tail;
-    int frameq_size;
     pthread_mutex_t mutex;
     pthread_cond_t not_empty_cond;
     pthread_cond_t not_full_cond;
