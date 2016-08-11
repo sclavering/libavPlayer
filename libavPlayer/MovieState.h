@@ -39,6 +39,9 @@
     dispatch_queue_t decoder_queue;
     dispatch_group_t decoder_group;
 
+    pthread_mutex_t decoders_mutex;
+    pthread_cond_t decoders_cond;
+
     // Clock (i.e. the current time in a movie, in usec, based on audio playback time).
 
     int64_t clock_pts; // The pts of a recently-played audio frame.
@@ -83,7 +86,6 @@ int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof);
 
 void decoders_thread(MovieState *mov);
 void decoders_wake_thread(MovieState *mov);
-bool decoders_should_stop_waiting(MovieState *mov);
 void decoders_pause_if_finished(MovieState *mov);
 
 

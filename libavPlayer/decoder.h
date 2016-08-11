@@ -21,15 +21,19 @@ typedef struct Frame {
     Frame frameq[FRAME_QUEUE_SIZE];
     // If frameq_head == frameq_tail then the queue is empty.  Thus a full queue must only hold (FRAME_QUEUE_SIZE - 1) frames.
     int frameq_head;
-    int frameq_tail;
+    // The mutex protects writes to .frameq_head
     pthread_mutex_t mutex;
     pthread_cond_t not_empty_cond;
-    pthread_cond_t not_full_cond;
+
+    // Note: this should only be modified by decoders_thread, and is not protected by the above lock.  It's "protected" by MovieState's .decoders_mutex, but that's really just there to allow the use of its .decoders_cond to signal when the decoder thread needs to wake up and decode a new packet (and also when it needs to handle e.g. seeking or pausing).
+    int frameq_tail;
 }
 @end;
 
 int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream);
 void decoder_destroy(Decoder *d);
+
+bool decoder_frameq_is_full(Decoder *d);
 
 void decoder_flush(Decoder *d);
 bool decoder_finished(Decoder *d, int current_serial);

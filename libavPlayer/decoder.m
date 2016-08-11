@@ -15,8 +15,6 @@ int decoder_init(Decoder *d, AVCodecContext *avctx, AVStream *stream) {
     if (err) return AVERROR(ENOMEM);
     err = pthread_cond_init(&d->not_empty_cond, NULL);
     if (err) return AVERROR(ENOMEM);
-    err = pthread_cond_init(&d->not_full_cond, NULL);
-    if (err) return AVERROR(ENOMEM);
     for (int i = 0; i < FRAME_QUEUE_SIZE; ++i)
         if (!(d->frameq[i].frm_frame = av_frame_alloc()))
             return AVERROR(ENOMEM);
@@ -28,7 +26,7 @@ static bool decoder_frameq_is_empty(Decoder *d)
     return d->frameq_head == d->frameq_tail;
 }
 
-static bool decoder_frameq_is_full(Decoder *d)
+bool decoder_frameq_is_full(Decoder *d)
 {
     return d->frameq_head == (d->frameq_tail + 1) % FRAME_QUEUE_SIZE;
 }
@@ -55,20 +53,10 @@ bool decoder_send_packet(Decoder *d, AVPacket *pkt)
     return true;
 }
 
+// The caller MUST ensure there is space in the frameq to decode into.
 // Returns true if there are more frames to decode (including if we just stopped early); false otherwise.
 bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
 {
-    // Wait until we have space to put a new frame.
-    bool cancelled = false;
-    pthread_mutex_lock(&d->mutex);
-    for (;;) {
-        if (!decoder_frameq_is_full(d)) break;
-        if ((cancelled = decoders_should_stop_waiting(mov))) break;
-        pthread_cond_wait(&d->not_full_cond, &d->mutex);
-    }
-    pthread_mutex_unlock(&d->mutex);
-    if (cancelled)
-        return true;
     Frame *fr = &d->frameq[d->frameq_tail];
 
     int err = avcodec_receive_frame(d->avctx, d->tmp_frame);
@@ -143,7 +131,6 @@ void decoder_destroy(Decoder *d)
     }
     pthread_mutex_destroy(&d->mutex);
     pthread_cond_destroy(&d->not_empty_cond);
-    pthread_cond_destroy(&d->not_full_cond);
 
     av_frame_free(&d->tmp_frame);
     d->tmp_frame = NULL;
@@ -158,7 +145,7 @@ void decoder_advance_frame_already_locked(Decoder *d, MovieState *mov)
 {
     av_frame_unref(d->frameq[d->frameq_head].frm_frame);
     d->frameq_head = (d->frameq_head + 1) % FRAME_QUEUE_SIZE;
-    pthread_cond_signal(&d->not_full_cond);
+    pthread_cond_signal(&mov->decoders_cond);
 
     decoders_pause_if_finished(mov);
 }

@@ -136,6 +136,9 @@ void movie_close(MovieState *mov)
 
         avformat_close_input(&mov->ic);
 
+        pthread_mutex_destroy(&mov->decoders_mutex);
+        pthread_cond_destroy(&mov->decoders_cond);
+
         mov->weak_output = NULL;
     }
 }
@@ -153,6 +156,11 @@ MovieState* movie_open(NSURL *sourceURL)
     mov->seek_req = false;
     mov->last_shown_frame_serial = -1;
 
+    int err = pthread_mutex_init(&mov->decoders_mutex, NULL);
+    if (err) return NULL;
+    err = pthread_cond_init(&mov->decoders_cond, NULL);
+    if (err) return NULL;
+
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
 
@@ -160,7 +168,7 @@ MovieState* movie_open(NSURL *sourceURL)
     if (!mov->ic) return NULL;
     mov->ic->interrupt_callback.callback = decode_interrupt_cb;
     mov->ic->interrupt_callback.opaque = (__bridge void *)(mov);
-    int err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, NULL, NULL);
+    err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, NULL, NULL);
     if (err < 0)
         return NULL;
 
@@ -231,7 +239,6 @@ void decoders_thread(MovieState *mov)
     bool need_video_update_after_seeking_while_paused = true;
     bool need_clock_update_after_seeking = true;
 
-    // This loop is often waiting on a condvar in decoder_receive_frame().
     for (;;) {
         if (mov->abort_request) break;
 
@@ -282,21 +289,21 @@ void decoders_thread(MovieState *mov)
         }
 
         // Note: there can be frames pending even after reached_eof is set (there just shouldn't be any further packets).
-        if (aud_frames_pending) {
+        if (aud_frames_pending && !decoder_frameq_is_full(mov->auddec)) {
             aud_frames_pending = decoder_receive_frame(mov->auddec, mov->current_serial, mov);
             continue;
         }
-        if (vid_frames_pending) {
+        if (vid_frames_pending && !decoder_frameq_is_full(mov->viddec)) {
             vid_frames_pending = decoder_receive_frame(mov->viddec, mov->current_serial, mov);
             continue;
         }
 
-        if (reached_eof) {
-            // We need to wait until something interesting happens (e.g. abort or seek), and it needs to be one of the frameq condvars (where decoder_receive_frame() also waits).  Using viddec rather than auddec is arbitrary.
-            // This will actually wake up a bunch as the final frames are used up, but that's fine (the important thing is to just avoid trying to read and decode more packets, and end up getting an error and ending the loop).
-            pthread_mutex_lock(&mov->viddec->mutex);
-            pthread_cond_wait(&mov->viddec->not_full_cond, &mov->viddec->mutex);
-            pthread_mutex_unlock(&mov->viddec->mutex);
+        if (reached_eof || aud_frames_pending || vid_frames_pending) {
+            // For aud_frames_pending or vid_frames_pending, we need to wait until there's space in the frameq (or until we get interrupted to handle close/seek/pause/whatever).  For reached_eof we just need to wait for close/seek/pause/whatever.
+            // We'll wake up unnecessarily sometimes (e.g. in the reached_eof case we'll wake >FRAME_QUEUE_SIZE times as each of the remaining frames is drained from the queue), but that's harmless.
+            pthread_mutex_lock(&mov->decoders_mutex);
+            pthread_cond_wait(&mov->decoders_cond, &mov->decoders_mutex);
+            pthread_mutex_unlock(&mov->decoders_mutex);
             continue;
         }
 
@@ -321,14 +328,7 @@ void decoders_thread(MovieState *mov)
 
 void decoders_wake_thread(MovieState *mov)
 {
-    // When seeking (while paused) or closing, we need to interrupt the decoders_thread if it's waiting in decoder_receive_frame().  And we don't know which frameq it's waiting on, so we must wake both up.
-    pthread_cond_signal(&mov->auddec->not_full_cond);
-    pthread_cond_signal(&mov->viddec->not_full_cond);
-}
-
-bool decoders_should_stop_waiting(MovieState *mov)
-{
-    return mov->abort_request || mov->seek_req || mov->paused != mov->requested_paused;
+    pthread_cond_signal(&mov->decoders_cond);
 }
 
 void decoders_pause_if_finished(MovieState *mov)
