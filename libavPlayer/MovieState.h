@@ -53,6 +53,7 @@
     AudioChannelLayout *audio_channel_layout; // used if there's >2 channels
     AudioQueueRef audio_queue;
     dispatch_queue_t audio_dispatch_queue;
+    dispatch_group_t audio_dispatch_group;
 
     // Video
 

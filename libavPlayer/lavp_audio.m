@@ -24,6 +24,7 @@
 #import "decoder.h"
 
 
+static void audio_callback_raw(void *raw_mov, AudioQueueRef aq, AudioQueueBufferRef qbuf);
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf);
 static int32_t audio_format_flags_from_sample_format(enum AVSampleFormat fmt);
 static AudioChannelLabel convert_channel_label(uint64_t av_ch);
@@ -48,16 +49,10 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     asbd.mBytesPerPacket = asbd.mBytesPerFrame;
 
     mov->audio_dispatch_queue = dispatch_queue_create("audio", DISPATCH_QUEUE_SERIAL);
-    {
-        __weak MovieState* weak_mov = mov;
-        OSStatus err = AudioQueueNewOutputWithDispatchQueue(&mov->audio_queue, &asbd, 0, mov->audio_dispatch_queue, ^(AudioQueueRef aq, AudioQueueBufferRef qbuf) {
-            __strong MovieState* strong_mov = weak_mov;
-            if (!strong_mov || strong_mov->abort_request) return;
-            audio_callback(strong_mov, aq, qbuf);
-        });
-        if (!mov->audio_queue || err != 0)
-            return -1;
-    }
+    mov->audio_dispatch_group = dispatch_group_create();
+    OSStatus err = AudioQueueNewOutput(&asbd, &audio_callback_raw, (__bridge void*) mov, NULL, NULL, 0, &mov->audio_queue);
+    if (!mov->audio_queue || err != 0)
+        return -1;
 
     // If we have more than two channels, we need to tell the AudioQueue what they are and what order they're in.
     if (avctx->channels > 2) {
@@ -85,7 +80,7 @@ int audio_open(MovieState *mov, AVCodecContext *avctx)
     unsigned int buf_size = ((int) asbd.mSampleRate / 50) * asbd.mBytesPerFrame; // perform callback 50 times per sec
     for (int i = 0; i < 3; i++) {
         AudioQueueBufferRef out_buf = NULL;
-        OSStatus err = AudioQueueAllocateBuffer(mov->audio_queue, buf_size, &out_buf);
+        err = AudioQueueAllocateBuffer(mov->audio_queue, buf_size, &out_buf);
         assert(err == 0 && out_buf != NULL);
         memset(out_buf->mAudioData, 0, out_buf->mAudioDataBytesCapacity);
         // Enqueue dummy data to start queuing
@@ -167,6 +162,15 @@ static void audio_convert_to_interleaved(uint8_t *output_buf, AVFrame *af, int o
             memcpy(output_buf + (s * channels + ch) * samp_size, af->extended_data[ch] + offset_in_frame + s * samp_size, samp_size);
         }
     }
+}
+
+static void audio_callback_raw(void *raw_mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
+{
+    MovieState *mov = (__bridge MovieState*) raw_mov;
+    // Move this to a different thread because it might wait on the mutex/condvar, and doing that on an AudioQueue thread can block other audio in the same app.
+    if (!mov->abort_request) dispatch_group_async(mov->audio_dispatch_group, mov->audio_dispatch_queue, ^(void) {
+        audio_callback(mov, aq, qbuf);
+    });
 }
 
 static void audio_callback(MovieState *mov, AudioQueueRef aq, AudioQueueBufferRef qbuf)
