@@ -86,7 +86,6 @@ int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof);
 
 void decoders_thread(MovieState *mov);
 void decoders_wake_thread(MovieState *mov);
-void decoders_pause_if_finished(MovieState *mov);
 
 
 // video

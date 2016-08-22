@@ -298,6 +298,13 @@ void decoders_thread(MovieState *mov)
             continue;
         }
 
+        // Pause at EOF (so we don't waste CPU refreshing the CALayer when nothing has changed).
+        if (reached_eof && !mov->paused && decoder_finished(mov->auddec, mov->current_serial) && decoder_finished(mov->viddec, mov->current_serial)) {
+            mov->paused_for_eof = true;
+            mov->requested_paused = true;
+            continue;
+        }
+
         if (reached_eof || aud_frames_pending || vid_frames_pending) {
             // For aud_frames_pending or vid_frames_pending, we need to wait until there's space in the frameq (or until we get interrupted to handle close/seek/pause/whatever).  For reached_eof we just need to wait for close/seek/pause/whatever.
             // We'll wake up unnecessarily sometimes (e.g. in the reached_eof case we'll wake >FRAME_QUEUE_SIZE times as each of the remaining frames is drained from the queue), but that's harmless.
@@ -329,13 +336,4 @@ void decoders_thread(MovieState *mov)
 void decoders_wake_thread(MovieState *mov)
 {
     pthread_cond_signal(&mov->decoders_cond);
-}
-
-void decoders_pause_if_finished(MovieState *mov)
-{
-    if (mov->paused) return;
-    if (!decoder_finished(mov->auddec, mov->current_serial)) return;
-    if (!decoder_finished(mov->viddec, mov->current_serial)) return;
-    mov->paused_for_eof = true;
-    lavp_set_paused(mov, true);
 }

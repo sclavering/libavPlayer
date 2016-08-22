@@ -146,8 +146,6 @@ void decoder_advance_frame_already_locked(Decoder *d, MovieState *mov)
     av_frame_unref(d->frameq[d->frameq_head].frm_frame);
     d->frameq_head = (d->frameq_head + 1) % FRAME_QUEUE_SIZE;
     pthread_cond_signal(&mov->decoders_cond);
-
-    decoders_pause_if_finished(mov);
 }
 
 void decoder_advance_frame(Decoder *d, MovieState *mov)
