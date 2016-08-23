@@ -70,7 +70,7 @@ static int decode_interrupt_cb(void *ctx)
     return mov->abort_request;
 }
 
-int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
+static int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
 {
     if (mov->abort_request) return -1;
     int ret = av_read_frame(mov->ic, pkt);
