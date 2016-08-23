@@ -57,7 +57,6 @@
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
 		AA4F122A1CE5096C00716F94 /* decoder.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F12281CE508FC00716F94 /* decoder.m */; };
 		AA4F122C1CE54F8100716F94 /* MovieState.m in Sources */ = {isa = PBXBuildFile; fileRef = AA4F122B1CE54F7A00716F94 /* MovieState.m */; };
-		AA6E9C581CF8E0A50082BDEC /* clock.m in Sources */ = {isa = PBXBuildFile; fileRef = AA6E9C561CF8E07C0082BDEC /* clock.m */; };
 		AA81D9D71CC6876100827BED /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9D61CC6876100827BED /* CoreMedia.framework */; };
 		AA81D9DB1CC687F400827BED /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */; };
 		AA81D9DD1CC6882E00827BED /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */; };
@@ -120,7 +119,6 @@
 		AA4F12291CE508FC00716F94 /* decoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = decoder.h; sourceTree = "<group>"; };
 		AA4F122B1CE54F7A00716F94 /* MovieState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MovieState.m; sourceTree = "<group>"; };
 		AA4F122D1CE552B300716F94 /* MovieState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MovieState.h; sourceTree = "<group>"; };
-		AA6E9C561CF8E07C0082BDEC /* clock.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = clock.m; sourceTree = "<group>"; };
 		AA81D9D61CC6876100827BED /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		AA81D9DA1CC687F400827BED /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
 		AA81D9DC1CC6882E00827BED /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
@@ -233,7 +231,6 @@
 		32C88DFF0371C24200C91783 /* Other Sources */ = {
 			isa = PBXGroup;
 			children = (
-				AA6E9C561CF8E07C0082BDEC /* clock.m */,
 				AA4F12291CE508FC00716F94 /* decoder.h */,
 				AA4F12281CE508FC00716F94 /* decoder.m */,
 				16A193C513ADC268008825FF /* lavp_audio.m */,
@@ -342,7 +339,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA6E9C581CF8E0A50082BDEC /* clock.m in Sources */,
 				AA4F122C1CE54F8100716F94 /* MovieState.m in Sources */,
 				AA4F122A1CE5096C00716F94 /* decoder.m in Sources */,
 				16A18F4A13AC466F008825FF /* LAVPMovie.m in Sources */,

@@ -168,6 +168,25 @@ static int decode_interrupt_cb(void *ctx)
     return mov->abort_request;
 }
 
+int64_t clock_get_usec(MovieState *mov)
+{
+    if (mov->paused)
+        return mov->clock_pts;
+    return mov->clock_pts + (av_gettime_relative() - mov->clock_last_updated) * mov->playback_speed_percent / 100;
+}
+
+void clock_set(MovieState *mov, int64_t pts)
+{
+    mov->clock_pts = pts;
+    mov->clock_last_updated = av_gettime_relative();
+}
+
+void clock_preserve(MovieState *mov)
+{
+    // This ensures the clock is correct after pausing, unpausing, or changing speed change (all of which would invalidate the basic calculation done by clock_get_usec, for different reasons).
+    clock_set(mov, clock_get_usec(mov));
+}
+
 static int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
 {
     if (mov->abort_request) return -1;
