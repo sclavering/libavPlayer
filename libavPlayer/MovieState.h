@@ -75,9 +75,6 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos);
 
 void lavp_set_paused(MovieState *mov, bool pause);
 
-// Don't call this except from decoders_thread().
-void lavp_handle_paused_change(MovieState *mov);
-
 int lavp_get_playback_speed_percent(MovieState *mov);
 void lavp_set_playback_speed_percent(MovieState *mov, int speed);
 

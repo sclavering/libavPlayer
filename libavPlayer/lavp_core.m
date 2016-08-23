@@ -96,18 +96,6 @@ void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
     }
 }
 
-// Don't call this except from decoders_thread().
-void lavp_handle_paused_change(MovieState *mov)
-{
-    bool pause = mov->requested_paused;
-    if (pause == mov->paused) return;
-    clock_preserve(mov);
-    mov->paused = pause;
-    audio_queue_set_paused(mov, pause);
-    __strong id<LAVPMovieOutput> output = mov->weak_output;
-    if (output) [output movieOutputNeedsContinuousUpdating:!pause];
-}
-
 void lavp_set_paused(MovieState *mov, bool pause)
 {
     // Allowing unpause in this case would just let the clock run beyond the duration.
@@ -242,8 +230,13 @@ void decoders_thread(MovieState *mov)
     for (;;) {
         if (mov->abort_request) break;
 
-        if (mov->paused != mov->requested_paused) {
-            lavp_handle_paused_change(mov);
+        bool pause = mov->requested_paused;
+        if (mov->paused != pause) {
+            clock_preserve(mov);
+            mov->paused = pause;
+            audio_queue_set_paused(mov, pause);
+            __strong id<LAVPMovieOutput> output = mov->weak_output;
+            if (output) [output movieOutputNeedsContinuousUpdating:!pause];
             need_video_update_after_seeking_while_paused = false;
             continue;
         }
