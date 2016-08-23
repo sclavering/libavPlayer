@@ -131,10 +131,8 @@ void movie_close(MovieState *mov)
     }
 }
 
-MovieState* movie_open(NSURL *sourceURL)
+static int movie_open_helper(MovieState *mov, NSURL *source_url)
 {
-    MovieState *mov = [[MovieState alloc] init];
-
     mov->volume_percent = 100;
     mov->weak_output = NULL;
     mov->paused = true;
@@ -145,66 +143,62 @@ MovieState* movie_open(NSURL *sourceURL)
     mov->last_shown_frame_serial = -1;
 
     int err = pthread_mutex_init(&mov->decoders_mutex, NULL);
-    if (err) return NULL;
+    if (err) return -1;
     err = pthread_cond_init(&mov->decoders_cond, NULL);
-    if (err) return NULL;
+    if (err) return -1;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_register_all();
 
     mov->ic = avformat_alloc_context();
-    if (!mov->ic) return NULL;
+    if (!mov->ic) return -1;
     mov->ic->interrupt_callback.callback = decode_interrupt_cb;
-    mov->ic->interrupt_callback.opaque = (__bridge void *)(mov);
-    err = avformat_open_input(&mov->ic, sourceURL.path.fileSystemRepresentation, NULL, NULL);
-    if (err < 0)
-        return NULL;
+    mov->ic->interrupt_callback.opaque = (__bridge void*) mov;
+    err = avformat_open_input(&mov->ic, source_url.path.fileSystemRepresentation, NULL, NULL);
+    if (err < 0) return -1;
 
     err = avformat_find_stream_info(mov->ic, NULL);
-    if (err < 0)
-        return NULL;
+    if (err < 0) return -1;
 
-    if (mov->ic->pb)
-        mov->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
+    if (mov->ic->pb) mov->ic->pb->eof_reached = 0; // FIXME hack, ffplay maybe should not use avio_feof() to test for the end
 
-    for (int i = 0; i < mov->ic->nb_streams; i++)
-        mov->ic->streams[i]->discard = AVDISCARD_ALL;
+    for (int i = 0; i < mov->ic->nb_streams; ++i) mov->ic->streams[i]->discard = AVDISCARD_ALL;
 
     int vid_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-    if (vid_index < 0)
-        goto fail;
+    if (vid_index < 0) return -1;
     int aud_index = av_find_best_stream(mov->ic, AVMEDIA_TYPE_AUDIO, -1, vid_index, NULL, 0);
-    if (aud_index < 0)
-        goto fail;
+    if (aud_index < 0) return -1;
     mov->auddec = [[Decoder alloc] init];
     if (movie_stream_open(mov, mov->auddec, mov->ic->streams[aud_index]) < 0)
-        goto fail;
+        return -1;
     if (audio_open(mov, mov->auddec->avctx) < 0)
-        goto fail;
-    {
-        AVStream *vidstream = mov->ic->streams[vid_index];
-        if (vidstream->disposition & AV_DISPOSITION_ATTACHED_PIC)
-            goto fail;
-        mov->width = vidstream->codecpar->width;
-        mov->height = vidstream->codecpar->height;
-        mov->viddec = [[Decoder alloc] init];
-        if (movie_stream_open(mov, mov->viddec, vidstream) < 0)
-            goto fail;
-    }
+        return -1;
+    AVStream *vidstream = mov->ic->streams[vid_index];
+    if (vidstream->disposition & AV_DISPOSITION_ATTACHED_PIC)
+        return -1;
+    mov->width = vidstream->codecpar->width;
+    mov->height = vidstream->codecpar->height;
+    mov->viddec = [[Decoder alloc] init];
+    if (movie_stream_open(mov, mov->viddec, vidstream) < 0)
+        return -1;
 
     mov->decoder_queue = dispatch_queue_create("decoders", NULL);
     mov->decoder_group = dispatch_group_create();
-    {
-        dispatch_group_async(mov->decoder_group, mov->decoder_queue, ^(void) {
-            decoders_thread(mov);
-        });
+    dispatch_group_async(mov->decoder_group, mov->decoder_queue, ^(void) {
+        decoders_thread(mov);
+    });
+
+    return 0;
+}
+
+MovieState* movie_open(NSURL *source_url)
+{
+    MovieState *mov = [[MovieState alloc] init];
+    if (movie_open_helper(mov, source_url) < 0) {
+        movie_close(mov);
+        return NULL;
     }
-
     return mov;
-
-fail:
-    movie_close(mov);
-    return NULL;
 }
 
 void lavp_set_playback_speed_percent(MovieState *mov, int speed)
