@@ -81,7 +81,6 @@ void lavp_handle_paused_change(MovieState *mov);
 int lavp_get_playback_speed_percent(MovieState *mov);
 void lavp_set_playback_speed_percent(MovieState *mov, int speed);
 
-void decoders_check_if_finished(MovieState *mov);
 int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof);
 
 void decoders_thread(MovieState *mov);
