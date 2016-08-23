@@ -252,12 +252,10 @@ void decoders_thread(MovieState *mov)
             decoder_flush(mov->auddec);
             decoder_flush(mov->viddec);
             need_clock_update_after_seeking = true;
-            if (mov->paused) {
-                // Clear out stale frames so there's space for new ones.  If we're *not* paused we must leave this to audio_callback() and calls to lavp_get_current_frame() from the LAVPLayer's refresh timer, as otherwise we might discard a frame they're still in the middle of using.
-                decoder_peek_current_frame(mov->auddec, mov);
-                decoder_peek_current_frame(mov->viddec, mov);
-                need_video_update_after_seeking_while_paused = true;
-            }
+            // Clear out stale frames so there's space for new ones.  This is not strictly necessary if we're not paused, as the code that consumes the frames will do the same, but it seems simpler to be consistent.
+            decoder_peek_current_frame(mov->auddec, mov);
+            decoder_peek_current_frame(mov->viddec, mov);
+            need_video_update_after_seeking_while_paused = mov->paused;
             continue;
         }
 
