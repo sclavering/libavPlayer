@@ -63,7 +63,7 @@ bool decoder_receive_frame(Decoder *d, int pkt_serial, MovieState *mov)
     if (!err) {
         fr->frm_serial = pkt_serial;
         int64_t pts = decoder_calculate_pts(d, d->tmp_frame, fr);
-        // The last video frame of an .avi file seems to always have av_frame_get_best_effort_timestamp() return AV_NOPTS_VALUE (.pkt_pts and .pkt_dts are also AV_NOPTS_VALUE).  Ignore these frames, since video_refresh() doesn't know what to do with a frame with no pts, so we end up never advancing past them, which means we fail to detect EOF when playing (and so we fail to pause, and the clock runs past the end of the movie, and our CPU usage stays high).  Of course in theory these could appear elsewhere, but we'd still not know what to do with frames with no pts.
+        // The AV_NOPTS_VALUE check is because we have no way to handle video frames with no pts (we don't know when to start/stop displaying them, so they would obstruct the frameq).  And the last video frame of .avi files seems to always be missing a pts (av_frame_get_best_effort_timestamp() returns AV_NOPTS_VALUE, and both .pkt_pts and .pkt_dts are also AV_NOPTS_VALUE).
         if (pts != AV_NOPTS_VALUE) {
             fr->frm_pts_usec = pts;
             av_frame_move_ref(fr->frm_frame, d->tmp_frame);
