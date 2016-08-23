@@ -29,106 +29,19 @@
 #import "decoder.h"
 
 
-static int movie_stream_open(MovieState *mov, Decoder *dec, AVStream *stream)
+static int movie_stream_open(MovieState *mov, Decoder *dec, AVStream *stream);
+static int movie_open_helper(MovieState *mov, NSURL *source_url);
+static int decode_interrupt_cb(void *ctx);
+
+
+MovieState* movie_open(NSURL *source_url)
 {
-    dec->avctx = avcodec_alloc_context3(NULL);
-    AVCodecContext *avctx = dec->avctx;
-    if (!avctx)
-        return AVERROR(ENOMEM);
-
-    int err = avcodec_parameters_to_context(avctx, stream->codecpar);
-    if (err < 0)
-        return err;
-    av_codec_set_pkt_timebase(avctx, stream->time_base);
-
-    AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
-    if (!codec) {
-        NSLog(@"libavPlayer: no codec could be found with id %d\n", avctx->codec_id);
-        return AVERROR(EINVAL);
+    MovieState *mov = [[MovieState alloc] init];
+    if (movie_open_helper(mov, source_url) < 0) {
+        movie_close(mov);
+        return NULL;
     }
-
-    avctx->codec_id = codec->id;
-    avctx->workaround_bugs = 1;
-    av_codec_set_lowres(avctx, 0);
-    avctx->error_concealment = 3;
-
-    avctx->thread_count = 0; // Tell ffmpeg to choose an appropriate number.
-    if (avcodec_open2(avctx, codec, NULL) < 0)
-        return -1;
-
-    stream->discard = AVDISCARD_DEFAULT;
-
-    if (decoder_init(dec, avctx, stream) < 0)
-        return -1;
-
-    return 0;
-}
-
-static int decode_interrupt_cb(void *ctx)
-{
-    MovieState *mov = (__bridge MovieState *)(ctx);
-    return mov->abort_request;
-}
-
-static int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
-{
-    if (mov->abort_request) return -1;
-    int ret = av_read_frame(mov->ic, pkt);
-    if (ret < 0) {
-        if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !*reached_eof) {
-            *reached_eof = true;
-        }
-        if (mov->ic->pb && mov->ic->pb->error)
-            return -1; // xxx unsure about this
-        return 0;
-    }
-    *reached_eof = false;
-    return 0;
-}
-
-void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
-{
-    if (!mov->seek_req) {
-        mov->seek_from = current_pos;
-        mov->seek_to = pos;
-        mov->seek_req = true;
-        decoders_wake_thread(mov);
-    }
-}
-
-void lavp_set_paused(MovieState *mov, bool pause)
-{
-    // Allowing unpause in this case would just let the clock run beyond the duration.
-    if (!pause && mov->paused && mov->paused_for_eof)
-        return;
-    if (pause == mov->requested_paused)
-        return;
-    mov->requested_paused = pause;
-    decoders_wake_thread(mov);
-}
-
-void movie_close(MovieState *mov)
-{
-    if (mov) {
-        mov->abort_request = true;
-
-        decoders_wake_thread(mov);
-        dispatch_group_wait(mov->decoder_group, DISPATCH_TIME_FOREVER);
-        mov->decoder_group = NULL;
-        mov->decoder_queue = NULL;
-
-        audio_queue_destroy(mov);
-
-        if (mov->auddec) decoder_destroy(mov->auddec);
-        if (mov->viddec) decoder_destroy(mov->viddec);
-
-        avformat_close_input(&mov->ic);
-
-        pthread_mutex_destroy(&mov->decoders_mutex);
-        pthread_cond_destroy(&mov->decoders_cond);
-
-        mov->weak_output = NULL;
-    }
+    return mov;
 }
 
 static int movie_open_helper(MovieState *mov, NSURL *source_url)
@@ -191,14 +104,105 @@ static int movie_open_helper(MovieState *mov, NSURL *source_url)
     return 0;
 }
 
-MovieState* movie_open(NSURL *source_url)
+static int movie_stream_open(MovieState *mov, Decoder *dec, AVStream *stream)
 {
-    MovieState *mov = [[MovieState alloc] init];
-    if (movie_open_helper(mov, source_url) < 0) {
-        movie_close(mov);
-        return NULL;
+    dec->avctx = avcodec_alloc_context3(NULL);
+    AVCodecContext *avctx = dec->avctx;
+    if (!avctx)
+        return AVERROR(ENOMEM);
+
+    int err = avcodec_parameters_to_context(avctx, stream->codecpar);
+    if (err < 0)
+        return err;
+    av_codec_set_pkt_timebase(avctx, stream->time_base);
+
+    AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
+    if (!codec) {
+        NSLog(@"libavPlayer: no codec could be found with id %d\n", avctx->codec_id);
+        return AVERROR(EINVAL);
     }
-    return mov;
+
+    avctx->codec_id = codec->id;
+    avctx->workaround_bugs = 1;
+    av_codec_set_lowres(avctx, 0);
+    avctx->error_concealment = 3;
+
+    avctx->thread_count = 0; // Tell ffmpeg to choose an appropriate number.
+    if (avcodec_open2(avctx, codec, NULL) < 0)
+        return -1;
+
+    stream->discard = AVDISCARD_DEFAULT;
+
+    if (decoder_init(dec, avctx, stream) < 0)
+        return -1;
+
+    return 0;
+}
+
+void movie_close(MovieState *mov)
+{
+    if (!mov) return;
+    mov->abort_request = true;
+
+    decoders_wake_thread(mov);
+    dispatch_group_wait(mov->decoder_group, DISPATCH_TIME_FOREVER);
+    mov->decoder_group = NULL;
+    mov->decoder_queue = NULL;
+
+    audio_queue_destroy(mov);
+
+    if (mov->auddec) decoder_destroy(mov->auddec);
+    if (mov->viddec) decoder_destroy(mov->viddec);
+
+    avformat_close_input(&mov->ic);
+
+    pthread_mutex_destroy(&mov->decoders_mutex);
+    pthread_cond_destroy(&mov->decoders_cond);
+
+    mov->weak_output = NULL;
+}
+
+static int decode_interrupt_cb(void *ctx)
+{
+    MovieState *mov = (__bridge MovieState *)(ctx);
+    return mov->abort_request;
+}
+
+static int decoders_get_packet(MovieState *mov, AVPacket *pkt, bool *reached_eof)
+{
+    if (mov->abort_request) return -1;
+    int ret = av_read_frame(mov->ic, pkt);
+    if (ret < 0) {
+        if ((ret == AVERROR_EOF || avio_feof(mov->ic->pb)) && !*reached_eof) {
+            *reached_eof = true;
+        }
+        if (mov->ic->pb && mov->ic->pb->error)
+            return -1; // xxx unsure about this
+        return 0;
+    }
+    *reached_eof = false;
+    return 0;
+}
+
+void lavp_seek(MovieState *mov, int64_t pos, int64_t current_pos)
+{
+    if (!mov->seek_req) {
+        mov->seek_from = current_pos;
+        mov->seek_to = pos;
+        mov->seek_req = true;
+        decoders_wake_thread(mov);
+    }
+}
+
+void lavp_set_paused(MovieState *mov, bool pause)
+{
+    // Allowing unpause in this case would just let the clock run beyond the duration.
+    if (!pause && mov->paused && mov->paused_for_eof)
+        return;
+    if (pause == mov->requested_paused)
+        return;
+    mov->requested_paused = pause;
+    decoders_wake_thread(mov);
 }
 
 void lavp_set_playback_speed_percent(MovieState *mov, int speed)
