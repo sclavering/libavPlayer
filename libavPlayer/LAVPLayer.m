@@ -56,15 +56,6 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
         _movie = NULL;
     }
     if (_lock) _lock = NULL;
-    if (_cglContext) {
-        // We rely on this cleaning up our textures and shaders.
-        CGLReleaseContext(_cglContext);
-        _cglContext = NULL;
-    }
-    if (_cglPixelFormat) {
-        CGLReleasePixelFormat(_cglPixelFormat);
-        _cglPixelFormat = NULL;
-    }
 }
 
 -(void) dealloc {
@@ -73,37 +64,8 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
 -(instancetype) init {
     self = [super init];
-
     if (self) {
-        // FBO Support
-        GLint numPixelFormats = 0;
-        CGLPixelFormatAttribute attributes[] =
-        {
-            kCGLPFAOpenGLProfile, (CGLPixelFormatAttribute) kCGLOGLPVersion_GL3_Core,
-            kCGLPFAAccelerated,
-            kCGLPFADoubleBuffer,
-            kCGLPFAColorSize, 24,
-            kCGLPFAAlphaSize,  8,
-            //kCGLPFADepthSize, 16,    // no depth buffer
-            kCGLPFAMultisample,
-            kCGLPFASampleBuffers, 1,
-            kCGLPFASamples, 4,
-            0
-        };
-        CGLChoosePixelFormat(attributes, &_cglPixelFormat, &numPixelFormats);
-        assert(_cglPixelFormat);
-
-        _cglContext = [super copyCGLContextForPixelFormat:_cglPixelFormat];
-        assert(_cglContext);
-
-        CGLSetCurrentContext(_cglContext);
-        CGLLockContext(_cglContext);
-
-        [self _gl_init];
-
         self.needsDisplayOnBoundsChange = YES;
-
-        CGLUnlockContext(_cglContext);
 
         _lock = [[NSLock alloc] init];
 
@@ -111,18 +73,30 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
 
         CGDisplayRegisterReconfigurationCallback(MyDisplayReconfigurationCallBack, (__bridge void *)(self));
     }
-
     return self;
 }
 
 -(CGLPixelFormatObj) copyCGLPixelFormatForDisplayMask:(uint32_t)mask {
-    CGLRetainPixelFormat(_cglPixelFormat);
-    return _cglPixelFormat;
-}
-
--(CGLContextObj) copyCGLContextForPixelFormat:(CGLPixelFormatObj)pixelFormat {
-    CGLRetainContext(_cglContext);
-    return _cglContext;
+    GLint numPixelFormats = 0;
+    CGLPixelFormatAttribute attributes[] = {
+        kCGLPFAOpenGLProfile, (CGLPixelFormatAttribute) kCGLOGLPVersion_GL3_Core,
+        kCGLPFADisplayMask, mask,
+        kCGLPFADoubleBuffer,
+        kCGLPFAColorSize, 24,
+        kCGLPFAAlphaSize, 8,
+        // //kCGLPFADepthSize, 16,    // no depth buffer
+        kCGLPFAMultisample,
+        kCGLPFASampleBuffers, 1,
+        // Disabled because it leads to glError() returning non-zero at the start of -drawInCGLContext.
+        // kCGLPFASamples, 4,
+        0
+    };
+    CGLPixelFormatObj pixelFormat;
+    CGLError err = CGLChoosePixelFormat(attributes, &pixelFormat, &numPixelFormats);
+    if (err || !pixelFormat) {
+        NSLog(@"CGLChoosePixelFormat failed %d: %s", err, CGLErrorString(err));
+    }
+    return pixelFormat;
 }
 
 -(BOOL) canDrawInCGLContext:(CGLContextObj)glContext
@@ -138,6 +112,11 @@ void MyDisplayReconfigurationCallBack(CGDirectDisplayID display,
              forLayerTime:(CFTimeInterval)timeInterval
               displayTime:(const CVTimeStamp *)timeStamp
 {
+    CGLSetCurrentContext(glContext);
+    if (glContext != _cglContext) {
+        _cglContext = glContext;
+        [self _gl_init];
+    }
     [self _gl_draw];
     [super drawInCGLContext:glContext
                 pixelFormat:pixelFormat

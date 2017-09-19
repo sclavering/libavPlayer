@@ -33,8 +33,7 @@
 @private
     NSLock *_lock;
 
-    CGLPixelFormatObj   _cglPixelFormat;
-    CGLContextObj       _cglContext;
+    CGLContextObj _cglContext;
 
     GLuint _program;
     GLuint _location_y;
